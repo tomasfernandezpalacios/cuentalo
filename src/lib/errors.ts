@@ -28,6 +28,7 @@ const POSTGRES_MESSAGES: Record<string, string> = {
 const CUSTOM_MESSAGES: Record<string, string> = {
   invalid_invite_code: 'Ese código no corresponde a ningún grupo.',
   not_group_owner: 'Solo el administrador del grupo puede hacer esto.',
+  not_shared_counter: 'Este contador no es de ningún grupo del que formes parte.',
 };
 
 export function getErrorMessage(error: unknown): string {

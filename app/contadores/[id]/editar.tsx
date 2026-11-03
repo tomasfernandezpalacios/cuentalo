@@ -16,7 +16,7 @@ export default function EditCounterScreen() {
   if (counter.isPending) return <LoadingView />;
   if (counter.error) return <ErrorView error={counter.error} onRetry={counter.refetch} />;
 
-  const { name, unit, emoji, archived } = counter.data;
+  const { name, unit, emoji, archived, group } = counter.data;
 
   function toggleArchived() {
     update.mutate(
@@ -50,6 +50,7 @@ export default function EditCounterScreen() {
   return (
     <CounterForm
       initial={{ name, unit: unit ?? '', emoji: emoji ?? '' }}
+      sharedGroupName={group?.name}
       submitTitle="Guardar cambios"
       saving={update.isPending}
       error={update.error}
@@ -61,12 +62,15 @@ export default function EditCounterScreen() {
             variant="secondary"
             onPress={toggleArchived}
           />
-          <AppButton
-            title="Borrar contador"
-            variant="danger"
-            onPress={confirmDelete}
-            loading={remove.isPending}
-          />
+          {/* Los compartidos no se borran (se perderían los registros de todos): se archivan. */}
+          {group ? null : (
+            <AppButton
+              title="Borrar contador"
+              variant="danger"
+              onPress={confirmDelete}
+              loading={remove.isPending}
+            />
+          )}
         </View>
       }
     />

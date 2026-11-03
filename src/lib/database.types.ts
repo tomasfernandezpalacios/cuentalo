@@ -27,6 +27,7 @@ export type Database = {
           name: string;
           unit: string | null;
           emoji: string | null;
+          group_id: string | null;
           streak_enabled: boolean;
           archived: boolean;
           created_at: string;
@@ -37,6 +38,7 @@ export type Database = {
           name: string;
           unit?: string | null;
           emoji?: string | null;
+          group_id?: string | null;
           streak_enabled?: boolean;
           archived?: boolean;
           created_at?: string;
@@ -126,6 +128,8 @@ export type Database = {
           total: number;
           entry_count: number;
           last_logged_at: string;
+          my_total: number;
+          my_entry_count: number;
         };
         Relationships: [];
       };
@@ -168,6 +172,17 @@ export type Database = {
       join_group_by_code: {
         Args: { p_code: string };
         Returns: string;
+      };
+      get_leaderboard: {
+        Args: { counter_id: string; period: string };
+        Returns: {
+          user_id: string;
+          username: string;
+          display_name: string;
+          total: number;
+          entry_count: number;
+          position: number;
+        }[];
       };
     };
     Enums: Record<string, never>;

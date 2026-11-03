@@ -28,8 +28,10 @@ export default function CountersScreen() {
   if (isPending) return <LoadingView />;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
 
-  const archivedCount = data.filter((c) => c.archived).length;
-  const counters = showArchived ? data : data.filter((c) => !c.archived);
+  // Solo los míos y los de grupos donde sigo; los de grupos que dejé quedan para estadísticas.
+  const active = data.filter((c) => c.isActive);
+  const archivedCount = active.filter((c) => c.archived).length;
+  const counters = showArchived ? active : active.filter((c) => !c.archived);
 
   function showError(error: unknown) {
     Alert.alert('No se ha podido guardar', getErrorMessage(error));

@@ -24,7 +24,7 @@ export function buildCounterStats(
 ): CounterStats[] {
   const byId = new Map(counters.map((c) => [c.id, c]));
   const ids = new Set([
-    ...counters.filter((c) => !c.archived).map((c) => c.id),
+    ...counters.filter((c) => c.isActive && !c.archived).map((c) => c.id),
     ...summaries.keys(),
   ]);
 

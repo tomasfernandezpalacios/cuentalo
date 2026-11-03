@@ -24,7 +24,7 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${counter.name}: ${formatWithUnit(counter.total, counter.unit)}`}
+      accessibilityLabel={`${counter.name}${counter.group ? `, del grupo ${counter.group.name}` : ''}: ${formatWithUnit(counter.myTotal, counter.unit)}`}
       accessibilityHint="Abre el contador"
       style={({ pressed }) => [
         styles.card,
@@ -40,8 +40,15 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
         <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
           {counter.name}
         </Text>
-        {counter.archived ? (
-          <Text style={[styles.unit, { color: colors.textMuted }]}>Archivado</Text>
+        {counter.group || counter.archived ? (
+          <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
+            {[
+              counter.group ? `👥 ${counter.group.name}` : null,
+              counter.archived ? 'Archivado' : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </Text>
         ) : null}
       </View>
 
@@ -51,7 +58,7 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
           unit={counter.unit}
           onAdd={onAdd}
           onRemoveOne={onRemoveOne}
-          canRemove={counter.total > 0}
+          canRemove={counter.myTotal >= 1}
           onLongPressAdd={onCustomAdd}
         />
       )}
@@ -62,7 +69,8 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
           numberOfLines={1}
           adjustsFontSizeToFit
         >
-          {formatAmount(counter.total)}
+          {/* En un compartido la tarjeta muestra lo mío; el total del grupo está en el detalle. */}
+          {formatAmount(counter.myTotal)}
         </Text>
         {counter.unit ? (
           <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>

@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
+import { useUserId } from '@/features/auth/AuthProvider';
+
 import {
   createCounter,
   createEntry,
@@ -8,12 +10,14 @@ import {
   fetchCounter,
   fetchCounters,
   fetchEntries,
+  fetchLeaderboard,
   removeOne,
   updateCounter,
   updateEntry,
   type CounterInput,
   type CounterWithTotal,
   type EntryInput,
+  type LeaderboardPeriod,
 } from './api';
 
 export const counterKeys = {
@@ -21,28 +25,51 @@ export const counterKeys = {
   list: () => [...counterKeys.all, 'list'] as const,
   detail: (id: string) => [...counterKeys.all, 'detail', id] as const,
   entries: (id: string) => [...counterKeys.all, 'entries', id] as const,
+  leaderboard: (id: string, period: LeaderboardPeriod) =>
+    [...counterKeys.all, 'leaderboard', id, period] as const,
 };
 
 // Tras cualquier cambio refrescamos todo lo de contadores: son pocas consultas y así la lista,
-// el detalle y las estadísticas nunca se desincronizan.
+// el detalle, la clasificación y las estadísticas nunca se desincronizan.
 function invalidateCounters(queryClient: QueryClient) {
   return queryClient.invalidateQueries({ queryKey: counterKeys.all });
 }
 
 // --- Consultas --------------------------------------------------------------
 
+/** Todos los contadores que veo; la lista de inicio filtra los `isActive`. */
 export function useCounterList() {
-  return useQuery({ queryKey: counterKeys.list(), queryFn: fetchCounters });
+  const userId = useUserId();
+  return useQuery({
+    queryKey: counterKeys.list(),
+    queryFn: () => fetchCounters(userId),
+    enabled: userId !== '',
+  });
 }
 
 export function useCounter(id: string) {
-  return useQuery({ queryKey: counterKeys.detail(id), queryFn: () => fetchCounter(id) });
+  const userId = useUserId();
+  return useQuery({
+    queryKey: counterKeys.detail(id),
+    queryFn: () => fetchCounter(id, userId),
+    enabled: userId !== '',
+  });
 }
 
 export function useEntries(counterId: string) {
+  const userId = useUserId();
   return useQuery({
     queryKey: counterKeys.entries(counterId),
-    queryFn: () => fetchEntries(counterId),
+    queryFn: () => fetchEntries(counterId, userId),
+    enabled: userId !== '',
+  });
+}
+
+export function useLeaderboard(counterId: string, period: LeaderboardPeriod, enabled: boolean) {
+  return useQuery({
+    queryKey: counterKeys.leaderboard(counterId, period),
+    queryFn: () => fetchLeaderboard(counterId, period),
+    enabled,
   });
 }
 
@@ -51,7 +78,8 @@ export function useEntries(counterId: string) {
 export function useCreateCounter() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: CounterInput) => createCounter(input),
+    mutationFn: ({ input, groupId }: { input: CounterInput; groupId: string | null }) =>
+      createCounter(input, groupId),
     onSuccess: () => invalidateCounters(queryClient),
   });
 }
@@ -119,19 +147,23 @@ export function useAddEntry() {
         ...c,
         total: c.total + input.amount,
         entryCount: c.entryCount + 1,
+        myTotal: c.myTotal + input.amount,
+        myEntryCount: c.myEntryCount + 1,
       })),
     onError: (_error, _variables, context) => rollback(queryClient, context),
     onSettled: () => invalidateCounters(queryClient),
   });
 }
 
-/** Botón −1: guarda un registro de −1 (sin bajar de 0). No cuenta como registro nuevo. */
+/** Botón −1: guarda un registro de −1 (mi total nunca baja de 0). No cuenta como registro. */
 export function useRemoveOne() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (counterId: string) => removeOne(counterId),
     onMutate: (counterId) =>
-      applyOptimistic(queryClient, counterId, (c) => ({ ...c, total: Math.max(0, c.total - 1) })),
+      applyOptimistic(queryClient, counterId, (c) =>
+        c.myTotal < 1 ? c : { ...c, total: c.total - 1, myTotal: c.myTotal - 1 },
+      ),
     onError: (_error, _counterId, context) => rollback(queryClient, context),
     onSettled: () => invalidateCounters(queryClient),
   });

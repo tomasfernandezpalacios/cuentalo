@@ -4,48 +4,123 @@ import { supabase } from '@/lib/supabase';
 export type Counter = Tables<'counters'>;
 export type Entry = Tables<'entries'>;
 export type CounterTotal = Views<'counter_totals'>;
+export type LeaderboardPeriod = 'week' | 'month' | 'year' | 'all';
 
-export type CounterWithTotal = Counter & { total: number; entryCount: number };
+export type CounterGroup = { id: string; name: string; ownerId: string };
+
+export type CounterWithTotal = Counter & {
+  /** Lo que veo: en un compartido, la suma de todo el grupo. */
+  total: number;
+  entryCount: number;
+  /** Solo lo mío. En un privado coincide con total. */
+  myTotal: number;
+  myEntryCount: number;
+  /** Grupo con el que se comparte (null si es privado o ya no soy miembro). */
+  group: CounterGroup | null;
+  /**
+   * Sale en "Mis contadores": privado mío o de un grupo donde soy miembro activo. Los contadores
+   * de grupos de los que salí solo se usan para mis estadísticas.
+   */
+  isActive: boolean;
+  /** Puedo editarlo y archivarlo (dueño, o owner del grupo en un compartido). */
+  canManage: boolean;
+};
 
 /** La unidad y el emoticono son opcionales: una cadena vacía se guarda como null. */
 export type CounterInput = { name: string; unit: string; emoji: string };
 export type EntryInput = { amount: number; loggedAt: Date; note: string | null };
 
+export type LeaderboardRow = {
+  userId: string;
+  username: string;
+  displayName: string;
+  total: number;
+  entryCount: number;
+  position: number;
+};
+
 function emptyToNull(value: string): string | null {
   return value.trim() || null;
 }
 
-function withTotal(counter: Counter, totals: CounterTotal[]): CounterWithTotal {
-  const total = totals.find((t) => t.counter_id === counter.id);
-  return { ...counter, total: total?.total ?? 0, entryCount: total?.entry_count ?? 0 };
+/** Grupos en los que soy miembro activo, por id. */
+async function fetchMyActiveGroups(myId: string): Promise<Map<string, CounterGroup>> {
+  const memberships = await supabase
+    .from('group_members')
+    .select('group_id')
+    .eq('user_id', myId)
+    .eq('status', 'active');
+  if (memberships.error) throw memberships.error;
+  const ids = memberships.data.map((m) => m.group_id);
+  if (ids.length === 0) return new Map();
+
+  const groups = await supabase.from('groups').select('id, name, owner_id').in('id', ids);
+  if (groups.error) throw groups.error;
+  return new Map(groups.data.map((g) => [g.id, { id: g.id, name: g.name, ownerId: g.owner_id }]));
+}
+
+/** Añade totales, grupo y permisos a un contador (exportada para los tests). */
+export function enrich(
+  counter: Counter,
+  totals: CounterTotal[],
+  groups: Map<string, CounterGroup>,
+  myId: string,
+): CounterWithTotal {
+  const t = totals.find((row) => row.counter_id === counter.id);
+  const group = counter.group_id ? (groups.get(counter.group_id) ?? null) : null;
+  const isActive = counter.group_id ? group !== null : counter.owner_id === myId;
+  const canManage = counter.group_id
+    ? group !== null && (counter.owner_id === myId || group.ownerId === myId)
+    : counter.owner_id === myId;
+  return {
+    ...counter,
+    total: t?.total ?? 0,
+    entryCount: t?.entry_count ?? 0,
+    myTotal: t?.my_total ?? 0,
+    myEntryCount: t?.my_entry_count ?? 0,
+    group,
+    isActive,
+    canManage,
+  };
 }
 
 // --- Contadores -------------------------------------------------------------
 
-export async function fetchCounters(): Promise<CounterWithTotal[]> {
-  const [counters, totals] = await Promise.all([
+export async function fetchCounters(myId: string): Promise<CounterWithTotal[]> {
+  const [counters, totals, groups] = await Promise.all([
     supabase.from('counters').select('*').order('created_at', { ascending: true }),
     supabase.from('counter_totals').select('*'),
+    fetchMyActiveGroups(myId),
   ]);
   if (counters.error) throw counters.error;
   if (totals.error) throw totals.error;
-  return counters.data.map((counter) => withTotal(counter, totals.data));
+  return counters.data.map((counter) => enrich(counter, totals.data, groups, myId));
 }
 
-export async function fetchCounter(id: string): Promise<CounterWithTotal> {
-  const [counter, totals] = await Promise.all([
+export async function fetchCounter(id: string, myId: string): Promise<CounterWithTotal> {
+  const [counter, totals, groups] = await Promise.all([
     supabase.from('counters').select('*').eq('id', id).single(),
     supabase.from('counter_totals').select('*').eq('counter_id', id),
+    fetchMyActiveGroups(myId),
   ]);
   if (counter.error) throw counter.error;
   if (totals.error) throw totals.error;
-  return withTotal(counter.data, totals.data);
+  return enrich(counter.data, totals.data, groups, myId);
 }
 
-export async function createCounter({ name, unit, emoji }: CounterInput): Promise<Counter> {
+/** Crea un contador privado (groupId null) o compartido con un grupo. */
+export async function createCounter(
+  { name, unit, emoji }: CounterInput,
+  groupId: string | null,
+): Promise<Counter> {
   const { data, error } = await supabase
     .from('counters')
-    .insert({ name: name.trim(), unit: emptyToNull(unit), emoji: emptyToNull(emoji) })
+    .insert({
+      name: name.trim(),
+      unit: emptyToNull(unit),
+      emoji: emptyToNull(emoji),
+      group_id: groupId,
+    })
     .select()
     .single();
   if (error) throw error;
@@ -77,11 +152,13 @@ export async function deleteCounter(id: string): Promise<void> {
 
 const ENTRIES_PAGE_SIZE = 100;
 
-export async function fetchEntries(counterId: string): Promise<Entry[]> {
+/** Mi historial en el contador (en un compartido, solo mis registros). */
+export async function fetchEntries(counterId: string, myId: string): Promise<Entry[]> {
   const { data, error } = await supabase
     .from('entries')
     .select('*')
     .eq('counter_id', counterId)
+    .eq('user_id', myId)
     .order('logged_at', { ascending: false })
     .limit(ENTRIES_PAGE_SIZE);
   if (error) throw error;
@@ -118,4 +195,25 @@ export async function removeOne(counterId: string): Promise<boolean> {
 export async function deleteEntry(id: string): Promise<void> {
   const { error } = await supabase.from('entries').delete().eq('id', id);
   if (error) throw error;
+}
+
+// --- Clasificación ----------------------------------------------------------
+
+export async function fetchLeaderboard(
+  counterId: string,
+  period: LeaderboardPeriod,
+): Promise<LeaderboardRow[]> {
+  const { data, error } = await supabase.rpc('get_leaderboard', {
+    counter_id: counterId,
+    period,
+  });
+  if (error) throw error;
+  return data.map((row) => ({
+    userId: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    total: row.total,
+    entryCount: row.entry_count,
+    position: row.position,
+  }));
 }

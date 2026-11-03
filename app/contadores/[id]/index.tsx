@@ -8,6 +8,7 @@ import type { Entry, EntryInput } from '@/features/contadores/api';
 import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { EntryDialog } from '@/features/contadores/components/EntryDialog';
 import { EntryRow } from '@/features/contadores/components/EntryRow';
+import { Leaderboard } from '@/features/contadores/components/Leaderboard';
 import { QuickAddBar } from '@/features/contadores/components/QuickAddBar';
 import {
   useAddEntry,
@@ -38,7 +39,7 @@ export default function CounterDetailScreen() {
   if (counter.isPending) return <LoadingView />;
   if (counter.error) return <ErrorView error={counter.error} onRetry={counter.refetch} />;
 
-  const { name, unit, emoji, total, entryCount } = counter.data;
+  const { name, unit, emoji, total, myTotal, myEntryCount, group, canManage } = counter.data;
   const editing = dialog !== null && dialog !== 'new' ? dialog : null;
 
   function showError(error: unknown) {
@@ -79,24 +80,42 @@ export default function CounterDetailScreen() {
       <View
         style={styles.totalBox}
         accessible
-        accessibilityLabel={`Total: ${formatWithUnit(total, unit)}`}
+        accessibilityLabel={
+          group
+            ? `Tú: ${formatWithUnit(myTotal, unit)}. Grupo ${group.name}: ${formatWithUnit(total, unit)}`
+            : `Total: ${formatWithUnit(myTotal, unit)}`
+        }
       >
         <CounterAvatar emoji={emoji} name={name} size={72} />
-        <Text style={[styles.total, { color: colors.text }]}>{formatAmount(total)}</Text>
+        <Text style={[styles.total, { color: colors.text }]}>{formatAmount(myTotal)}</Text>
         {unit ? <Text style={[styles.unit, { color: colors.textMuted }]}>{unit}</Text> : null}
         <Text style={[styles.count, { color: colors.textMuted }]}>
-          {pluralize(entryCount, 'registro', 'registros')}
+          {group ? 'Tú · ' : ''}
+          {pluralize(myEntryCount, 'registro', 'registros')}
         </Text>
+        {group ? (
+          <Text style={[styles.groupTotal, { color: colors.primary }]}>
+            👥 {group.name}: {formatWithUnit(total, unit)} entre todos
+          </Text>
+        ) : null}
       </View>
       <QuickAddBar
         unit={unit}
         onAdd={quickAdd}
         onRemoveOne={() => removeOne.mutate(id, { onError: showError })}
-        canRemove={total > 0}
+        canRemove={myTotal >= 1}
         onCustom={() => setDialog('new')}
       />
+      {group ? (
+        <>
+          <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
+            Clasificación
+          </Text>
+          <Leaderboard counterId={id} unit={unit} />
+        </>
+      ) : null}
       <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
-        Historial
+        {group ? 'Tu historial' : 'Historial'}
       </Text>
     </View>
   );
@@ -106,16 +125,17 @@ export default function CounterDetailScreen() {
       <Stack.Screen
         options={{
           title: name,
-          headerRight: () => (
-            <Pressable
-              onPress={() => router.push({ pathname: '/contadores/[id]/editar', params: { id } })}
-              accessibilityRole="button"
-              accessibilityLabel="Editar contador"
-              hitSlop={12}
-            >
-              <Ionicons name="create-outline" size={24} color={colors.primary} />
-            </Pressable>
-          ),
+          headerRight: () =>
+            canManage ? (
+              <Pressable
+                onPress={() => router.push({ pathname: '/contadores/[id]/editar', params: { id } })}
+                accessibilityRole="button"
+                accessibilityLabel="Editar contador"
+                hitSlop={12}
+              >
+                <Ionicons name="create-outline" size={24} color={colors.primary} />
+              </Pressable>
+            ) : null,
         }}
       />
       <FlatList
@@ -157,6 +177,7 @@ const styles = StyleSheet.create({
   total: { fontSize: 56, fontFamily: fonts.title },
   unit: { fontSize: 18, fontFamily: fonts.detail },
   count: { fontSize: 14, marginTop: 4, fontFamily: fonts.detail },
+  groupTotal: { fontSize: 15, marginTop: 6, fontFamily: fonts.title, textAlign: 'center' },
   sectionTitle: { fontSize: 18, fontFamily: fonts.title, marginTop: 8 },
   empty: { textAlign: 'center', paddingVertical: 24, fontFamily: fonts.detail },
 });

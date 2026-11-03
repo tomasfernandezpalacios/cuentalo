@@ -1,17 +1,18 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import { useUserId } from '@/features/auth/AuthProvider';
+import { GroupCounters } from '@/features/contadores/components/GroupCounters';
 import type { MemberWithProfile } from '@/features/social/api';
 import { InviteCodeCard } from '@/features/social/components/InviteCodeCard';
 import { PersonRow } from '@/features/social/components/PersonRow';
 import { useDeleteGroup, useGroup, useRemoveMember } from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { useThemeColors } from '@/lib/theme';
 
 function showError(error: unknown) {
   Alert.alert('Error', getErrorMessage(error));
@@ -107,6 +108,10 @@ export default function GroupScreen() {
     >
       <Stack.Screen options={{ title: name }} />
 
+      <Section title="Contadores del grupo">
+        <GroupCounters groupId={id} />
+      </Section>
+
       {isOwner ? (
         <>
           <InviteCodeCard groupId={id} groupName={name} />
@@ -146,13 +151,6 @@ export default function GroupScreen() {
         </Section>
       ) : null}
 
-      {/* Fase 4: contadores compartidos del grupo y su clasificación. */}
-      <Section title="Contadores del grupo">
-        <Text style={[styles.detail, { color: colors.textMuted }]}>
-          Muy pronto podréis tener contadores compartidos con clasificación.
-        </Text>
-      </Section>
-
       <View style={styles.danger}>
         {isOwner ? (
           <AppButton
@@ -171,6 +169,5 @@ export default function GroupScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 24 },
-  detail: { fontSize: 14, fontFamily: fonts.detail },
   danger: { marginTop: 8 },
 });

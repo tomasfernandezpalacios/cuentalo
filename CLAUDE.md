@@ -98,9 +98,8 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - Fase 2: la vista `entry_daily_totals` agrupa por día en Europe/Madrid y la app agrega días en
   semanas/meses/años con funciones puras (`src/features/estadisticas/periods.ts`, con tests).
   La consulta se pagina porque PostgREST devuelve como máximo 1000 filas.
-- **Pendiente Fase 4:** al salir de un grupo, el usuario conserva sus `entries` pero deja de ver
-  el contador (nombre y unidad). Añadir una política de lectura de `counters` para contadores en
-  los que tengo registros. Mientras tanto las estadísticas lo muestran como "Contador sin acceso".
+- Fase 4 (resuelto): al salir de un grupo se sigue viendo el contador por la política
+  `has_entries_in_counter`, así las estadísticas mantienen nombre y unidad.
 - Fase 3: amistad única por pareja (índice único sobre least/greatest de los dos ids). Solo el
   destinatario cambia `status` (grant de columna). Cualquiera de los dos puede borrar la fila
   (cancelar solicitud o dejar de ser amigos). Una solicitud rechazada desaparece para quien la
@@ -118,6 +117,22 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - «Amigos y grupos» se abre en la pestaña Grupos (petición del usuario).
 - Fase 3: los datos se refrescan al volver a la app (`focusManager` + `AppState`) y con
   "tirar para refrescar".
+- Fase 4: contador compartido = `counters.group_id`. Lo ven los miembros activos; cualquiera
+  lo crea en su grupo; lo editan/archivan el creador o el owner del grupo; **no se borran**
+  (solo se archivan). `group_id` y `owner_id` no se pueden cambiar (grants de columna). Si se
+  elimina el grupo, `group_id` pasa a null y queda privado de su creador.
+- Fase 4: cada miembro ve los registros de los miembros **activos** (`can_view_group_entry`);
+  quien sale conserva y ve solo los suyos y deja de contar en totales y clasificación.
+- Fase 4: `counter_totals` añade `my_total` y `my_entry_count`. La tarjeta y el número grande
+  del detalle muestran **lo mío**; el detalle muestra además el total del grupo. El historial
+  del detalle muestra solo mis registros (los de los demás están en la clasificación).
+- Fase 4: `get_leaderboard(counter_id, period)` es SECURITY INVOKER (respeta la RLS), usa
+  `date_trunc` sobre la hora de Europe/Madrid (semana ISO = lunes) y `rank()` para empates.
+  Devuelve también `display_name` y `entry_count`.
+- Fase 4: las pruebas de privacidad están en `supabase/tests/privacidad.sql`: se pegan en el
+  SQL Editor, crean usuarios de prueba, comprueban la RLS y hacen ROLLBACK.
+- La clasificación se refresca al registrar (misma caché), al volver a la app y al tirar para
+  refrescar. Sin tiempo real (Supabase Realtime) en la V1.
 
 ## Pendiente para la Fase 5 (cambios estéticos pedidos por el usuario)
 
