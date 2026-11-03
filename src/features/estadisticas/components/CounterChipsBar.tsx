@@ -39,7 +39,7 @@ export function CounterChipsBar({
         ]}
       >
         <Ionicons
-          name="funnel-outline"
+          name="options-outline"
           size={18}
           color={filtered ? colors.onPrimary : colors.primary}
         />
