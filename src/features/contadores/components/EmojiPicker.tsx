@@ -15,6 +15,14 @@ type Props = {
 export function EmojiPicker({ value, onChange }: Props) {
   const colors = useThemeColors();
   const isCustom = value !== '' && !SUGGESTIONS.includes(value);
+  const typed = isCustom ? value : '';
+
+  // Si se escribe un emoticono nuevo detrás del que ya había, nos quedamos solo con el nuevo:
+  // así se puede cambiar sin tener que borrar antes. Al borrar, se respeta lo que queda.
+  function handleTyping(text: string) {
+    const added = text.startsWith(typed) ? text.slice(typed.length) : text;
+    onChange((added.trim() || text).trim());
+  }
 
   return (
     <View style={styles.container}>
@@ -44,12 +52,12 @@ export function EmojiPicker({ value, onChange }: Props) {
         })}
       </View>
       <TextInput
-        value={isCustom ? value : ''}
-        onChangeText={(text) => onChange(text.trim())}
+        value={typed}
+        onChangeText={handleTyping}
         placeholder="…o escribe otro con el teclado"
         placeholderTextColor={colors.textMuted}
         accessibilityLabel="Otro emoticono"
-        maxLength={10}
+        maxLength={20}
         style={[
           styles.input,
           {
