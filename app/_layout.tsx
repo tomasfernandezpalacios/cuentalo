@@ -36,6 +36,15 @@ function RootNavigator() {
           name="contadores/[id]/editar"
           options={{ title: 'Editar contador', presentation: 'modal' }}
         />
+        <Stack.Screen
+          name="grupos/nuevo"
+          options={{ title: 'Nuevo grupo', presentation: 'modal' }}
+        />
+        <Stack.Screen name="grupos/[id]/index" options={{ title: '' }} />
+        <Stack.Screen
+          name="grupos/[id]/invitar"
+          options={{ title: 'Invitar amigos', presentation: 'modal' }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />

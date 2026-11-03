@@ -76,6 +76,47 @@ export type Database = {
         };
         Relationships: [];
       };
+      friendships: {
+        Row: {
+          id: string;
+          requester_id: string;
+          addressee_id: string;
+          status: 'pending' | 'accepted' | 'rejected';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          requester_id?: string;
+          addressee_id: string;
+          status?: 'pending';
+          created_at?: string;
+        };
+        Update: { status?: 'accepted' | 'rejected' };
+        Relationships: [];
+      };
+      groups: {
+        Row: { id: string; name: string; owner_id: string; created_at: string };
+        Insert: { id?: string; name: string; owner_id?: string; created_at?: string };
+        Update: { name?: string };
+        Relationships: [];
+      };
+      group_members: {
+        Row: {
+          group_id: string;
+          user_id: string;
+          role: 'owner' | 'member';
+          status: 'invited' | 'active';
+          joined_at: string | null;
+        };
+        Insert: {
+          group_id: string;
+          user_id: string;
+          role?: 'member';
+          status?: 'invited';
+        };
+        Update: { status?: 'active' };
+        Relationships: [];
+      };
     };
     Views: {
       counter_totals: {

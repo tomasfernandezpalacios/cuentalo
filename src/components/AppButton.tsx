@@ -12,6 +12,8 @@ type Props = {
   disabled?: boolean;
   style?: ViewStyle;
   accessibilityLabel?: string;
+  /** Versión pequeña para acciones dentro de filas de una lista. */
+  small?: boolean;
 };
 
 export function AppButton({
@@ -22,6 +24,7 @@ export function AppButton({
   disabled = false,
   style,
   accessibilityLabel,
+  small = false,
 }: Props) {
   const colors = useThemeColors();
   const isDisabled = disabled || loading;
@@ -48,6 +51,7 @@ export function AppButton({
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
         styles.button,
+        small && styles.small,
         {
           backgroundColor: background,
           borderColor: variant === 'secondary' ? colors.border : 'transparent',
@@ -59,7 +63,9 @@ export function AppButton({
       {loading ? (
         <ActivityIndicator color={foreground} />
       ) : (
-        <Text style={[styles.title, { color: foreground }]}>{title}</Text>
+        <Text style={[styles.title, small && styles.smallTitle, { color: foreground }]}>
+          {title}
+        </Text>
       )}
     </Pressable>
   );
@@ -75,4 +81,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: { fontSize: 16, fontFamily: fonts.title },
+  small: { minHeight: 36, paddingHorizontal: 12, borderRadius: 10 },
+  smallTitle: { fontSize: 14 },
 });

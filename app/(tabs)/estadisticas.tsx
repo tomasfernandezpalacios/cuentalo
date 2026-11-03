@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Section } from '@/components/Section';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import { useUserId } from '@/features/auth/AuthProvider';
@@ -190,23 +191,9 @@ export default function StatsScreen() {
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  const colors = useThemeColors();
-  return (
-    <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
-        {title}
-      </Text>
-      {children}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 24 },
   tiles: { flexDirection: 'row', gap: 12 },
-  section: { gap: 12 },
-  sectionTitle: { fontSize: 18, fontFamily: fonts.title },
   chips: { gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
 });

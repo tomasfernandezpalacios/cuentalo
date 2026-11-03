@@ -101,6 +101,17 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - **Pendiente Fase 4:** al salir de un grupo, el usuario conserva sus `entries` pero deja de ver
   el contador (nombre y unidad). Añadir una política de lectura de `counters` para contadores en
   los que tengo registros. Mientras tanto las estadísticas lo muestran como "Contador sin acceso".
+- Fase 3: amistad única por pareja (índice único sobre least/greatest de los dos ids). Solo el
+  destinatario cambia `status` (grant de columna). Cualquiera de los dos puede borrar la fila
+  (cancelar solicitud o dejar de ser amigos). Una solicitud rechazada desaparece para quien la
+  rechaza y sigue como "Enviada" para quien la envió, para no comunicar el rechazo.
+- Fase 3: al crear un grupo, un trigger mete al creador como owner activo. El owner invita (solo
+  a amigos aceptados, `are_friends`), retira invitaciones y expulsa; los miembros salen o
+  rechazan borrando su fila. **El owner no puede salir: solo eliminar el grupo** (V1).
+- Fase 3: funciones `is_group_member` (activo), `is_group_participant` (activo o invitado) e
+  `is_group_owner`, todas SECURITY DEFINER para evitar recursión en la RLS de group_members.
+- Fase 3: los datos se refrescan al volver a la app (`focusManager` + `AppState`) y con
+  "tirar para refrescar".
 
 ## Pendiente para la Fase 5 (cambios estéticos pedidos por el usuario)
 
