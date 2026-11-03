@@ -7,12 +7,12 @@ export type CounterTotal = Views<'counter_totals'>;
 
 export type CounterWithTotal = Counter & { total: number; entryCount: number };
 
-/** La unidad es opcional: una cadena vacía se guarda como null. */
-export type CounterInput = { name: string; unit: string };
+/** La unidad y el emoticono son opcionales: una cadena vacía se guarda como null. */
+export type CounterInput = { name: string; unit: string; emoji: string };
 export type EntryInput = { amount: number; loggedAt: Date; note: string | null };
 
-function normalizeUnit(unit: string): string | null {
-  return unit.trim() || null;
+function emptyToNull(value: string): string | null {
+  return value.trim() || null;
 }
 
 function withTotal(counter: Counter, totals: CounterTotal[]): CounterWithTotal {
@@ -42,10 +42,10 @@ export async function fetchCounter(id: string): Promise<CounterWithTotal> {
   return withTotal(counter.data, totals.data);
 }
 
-export async function createCounter({ name, unit }: CounterInput): Promise<Counter> {
+export async function createCounter({ name, unit, emoji }: CounterInput): Promise<Counter> {
   const { data, error } = await supabase
     .from('counters')
-    .insert({ name: name.trim(), unit: normalizeUnit(unit) })
+    .insert({ name: name.trim(), unit: emptyToNull(unit), emoji: emptyToNull(emoji) })
     .select()
     .single();
   if (error) throw error;
@@ -60,7 +60,8 @@ export async function updateCounter(
     .from('counters')
     .update({
       name: patch.name?.trim(),
-      unit: patch.unit === undefined ? undefined : normalizeUnit(patch.unit),
+      unit: patch.unit === undefined ? undefined : emptyToNull(patch.unit),
+      emoji: patch.emoji === undefined ? undefined : emptyToNull(patch.emoji),
       archived: patch.archived,
     })
     .eq('id', id);

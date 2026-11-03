@@ -6,10 +6,11 @@ export type CounterStats = {
   id: string;
   name: string;
   unit: string | null;
+  emoji: string | null;
   archived: boolean;
 } & Summary;
 
-const UNKNOWN_COUNTER = { name: 'Contador sin acceso', unit: null, archived: true };
+const UNKNOWN_COUNTER = { name: 'Contador sin acceso', unit: null, emoji: null, archived: true };
 
 /**
  * Une los resúmenes por contador con los datos de cada contador para un periodo. Incluye los
@@ -30,7 +31,14 @@ export function buildCounterStats(
   return [...ids].map((id) => {
     const counter = byId.get(id) ?? UNKNOWN_COUNTER;
     const summary = summaries.get(id)?.[period] ?? { total: 0, entryCount: 0 };
-    return { id, name: counter.name, unit: counter.unit, archived: counter.archived, ...summary };
+    return {
+      id,
+      name: counter.name,
+      unit: counter.unit,
+      emoji: counter.emoji,
+      archived: counter.archived,
+      ...summary,
+    };
   });
 }
 

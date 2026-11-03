@@ -117,6 +117,7 @@ export default function StatsScreen() {
               key={s.id}
               rank={index + 1}
               name={s.name}
+              emoji={s.emoji}
               unit={s.unit}
               total={s.total}
               entryCount={s.entryCount}
@@ -134,6 +135,7 @@ export default function StatsScreen() {
           <CounterStatRow
             key={s.id}
             name={s.name}
+            emoji={s.emoji}
             unit={s.unit}
             total={s.total}
             entryCount={s.entryCount}
@@ -170,7 +172,7 @@ export default function StatsScreen() {
                       fontFamily: fonts.title,
                     }}
                   >
-                    {s.name}
+                    {s.emoji ? `${s.emoji} ${s.name}` : s.name}
                   </Text>
                 </Pressable>
               );

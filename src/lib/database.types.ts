@@ -26,6 +26,7 @@ export type Database = {
           owner_id: string;
           name: string;
           unit: string | null;
+          emoji: string | null;
           streak_enabled: boolean;
           archived: boolean;
           created_at: string;
@@ -35,6 +36,7 @@ export type Database = {
           owner_id?: string;
           name: string;
           unit?: string | null;
+          emoji?: string | null;
           streak_enabled?: boolean;
           archived?: boolean;
           created_at?: string;
@@ -42,6 +44,7 @@ export type Database = {
         Update: {
           name?: string;
           unit?: string | null;
+          emoji?: string | null;
           streak_enabled?: boolean;
           archived?: boolean;
         };

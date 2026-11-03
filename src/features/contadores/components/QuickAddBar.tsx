@@ -102,10 +102,10 @@ export function QuickAddBar({
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
-  compactRow: { gap: 5 },
+  compactRow: { gap: 4 },
   button: { alignItems: 'center', justifyContent: 'center' },
   large: { flex: 1, height: 60, borderRadius: 16 },
-  compact: { width: 38, height: 38, borderRadius: 10 },
+  compact: { width: 36, height: 36, borderRadius: 10 },
   largeLabel: { fontSize: 19, fontFamily: fonts.title },
   compactLabel: { fontSize: 14, fontFamily: fonts.title },
 });

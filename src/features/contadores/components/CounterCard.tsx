@@ -5,6 +5,7 @@ import { fonts, useThemeColors } from '@/lib/theme';
 
 import type { CounterWithTotal } from '../api';
 
+import { CounterAvatar } from './CounterAvatar';
 import { QuickAddBar } from './QuickAddBar';
 
 type Props = {
@@ -16,7 +17,7 @@ type Props = {
   onCustomAdd: () => void;
 };
 
-/** Tarjeta de la lista: nombre · +1 +5 −1 · total. */
+/** Tarjeta de la lista: emoticono · nombre · +1 +5 −1 · total. */
 export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd }: Props) {
   const colors = useThemeColors();
   return (
@@ -34,6 +35,7 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
         },
       ]}
     >
+      <CounterAvatar emoji={counter.emoji} name={counter.name} size={42} />
       <View style={styles.name}>
         <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
           {counter.name}
@@ -76,15 +78,15 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 18,
     borderWidth: 1,
-    gap: 10,
+    gap: 8,
   },
   name: { flex: 1, gap: 2 },
-  nameText: { fontSize: 19, fontFamily: fonts.title },
-  totalBox: { alignItems: 'flex-end', minWidth: 44, maxWidth: 76 },
-  total: { fontSize: 22, fontFamily: fonts.title },
+  nameText: { fontSize: 17, fontFamily: fonts.title },
+  totalBox: { alignItems: 'flex-end', minWidth: 36, maxWidth: 64 },
+  total: { fontSize: 21, fontFamily: fonts.title },
   unit: { fontSize: 12, fontFamily: fonts.detail },
 });

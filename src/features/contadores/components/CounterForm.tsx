@@ -10,6 +10,8 @@ import { LIMITS, validateOptionalText, validateRequiredText } from '@/lib/valida
 
 import type { CounterInput } from '../api';
 
+import { EmojiPicker } from './EmojiPicker';
+
 type Props = {
   initial?: CounterInput;
   submitTitle: string;
@@ -24,6 +26,7 @@ export function CounterForm({ initial, submitTitle, saving, error, onSubmit, foo
   const colors = useThemeColors();
   const [name, setName] = useState(initial?.name ?? '');
   const [unit, setUnit] = useState(initial?.unit ?? '');
+  const [emoji, setEmoji] = useState(initial?.emoji ?? '');
   const [errors, setErrors] = useState<{ name?: string | null; unit?: string | null }>({});
 
   function handleSubmit() {
@@ -32,7 +35,7 @@ export function CounterForm({ initial, submitTitle, saving, error, onSubmit, foo
       unit: validateOptionalText(unit, 'La unidad', LIMITS.unit),
     };
     setErrors(next);
-    if (!next.name && !next.unit) onSubmit({ name, unit });
+    if (!next.name && !next.unit) onSubmit({ name, unit, emoji });
   }
 
   return (
@@ -46,6 +49,7 @@ export function CounterForm({ initial, submitTitle, saving, error, onSubmit, foo
         maxLength={LIMITS.counterName}
         autoFocus={!initial}
       />
+      <EmojiPicker value={emoji} onChange={setEmoji} />
       <TextField
         label="Unidad (opcional)"
         value={unit}

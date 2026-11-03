@@ -5,6 +5,7 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native
 
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import type { Entry, EntryInput } from '@/features/contadores/api';
+import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { EntryDialog } from '@/features/contadores/components/EntryDialog';
 import { EntryRow } from '@/features/contadores/components/EntryRow';
 import { QuickAddBar } from '@/features/contadores/components/QuickAddBar';
@@ -37,7 +38,7 @@ export default function CounterDetailScreen() {
   if (counter.isPending) return <LoadingView />;
   if (counter.error) return <ErrorView error={counter.error} onRetry={counter.refetch} />;
 
-  const { name, unit, total, entryCount } = counter.data;
+  const { name, unit, emoji, total, entryCount } = counter.data;
   const editing = dialog !== null && dialog !== 'new' ? dialog : null;
 
   function showError(error: unknown) {
@@ -80,6 +81,7 @@ export default function CounterDetailScreen() {
         accessible
         accessibilityLabel={`Total: ${formatWithUnit(total, unit)}`}
       >
+        <CounterAvatar emoji={emoji} name={name} size={72} />
         <Text style={[styles.total, { color: colors.text }]}>{formatAmount(total)}</Text>
         {unit ? <Text style={[styles.unit, { color: colors.textMuted }]}>{unit}</Text> : null}
         <Text style={[styles.count, { color: colors.textMuted }]}>
@@ -151,7 +153,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   list: { padding: 16 },
   header: { gap: 20, marginBottom: 8 },
-  totalBox: { alignItems: 'center', paddingVertical: 16 },
+  totalBox: { alignItems: 'center', paddingVertical: 16, gap: 4 },
   total: { fontSize: 56, fontFamily: fonts.title },
   unit: { fontSize: 18, fontFamily: fonts.detail },
   count: { fontSize: 14, marginTop: 4, fontFamily: fonts.detail },

@@ -16,7 +16,7 @@ export default function EditCounterScreen() {
   if (counter.isPending) return <LoadingView />;
   if (counter.error) return <ErrorView error={counter.error} onRetry={counter.refetch} />;
 
-  const { name, unit, archived } = counter.data;
+  const { name, unit, emoji, archived } = counter.data;
 
   function toggleArchived() {
     update.mutate(
@@ -49,7 +49,7 @@ export default function EditCounterScreen() {
 
   return (
     <CounterForm
-      initial={{ name, unit: unit ?? '' }}
+      initial={{ name, unit: unit ?? '', emoji: emoji ?? '' }}
       submitTitle="Guardar cambios"
       saving={update.isPending}
       error={update.error}

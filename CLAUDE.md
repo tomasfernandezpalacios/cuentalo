@@ -84,6 +84,10 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   último registro del contador (por `logged_at`) o lo borra si era ≤ 1. Nunca hay cantidades
   negativas. **Fase 4:** en contadores compartidos `canRemove` debe usar _mi_ total, no el del
   grupo.
+- Emoticono opcional por contador (`counters.emoji`), elegido de sugerencias o con el teclado.
+  `CounterAvatar` lo muestra sobre fondo suave (`primarySoft`) o, si no hay, la inicial. La
+  tarjeta es «emoticono · nombre · +1 +5 −1 · total» y la lista empieza con `TodaySummary`
+  (registros de hoy y de esta semana).
 - La unidad del contador es **opcional** (`counters.unit` puede ser null); usar
   `formatWithUnit()` para mostrar cantidades.
 - Fase 2: gráficas con `react-native-gifted-charts` (sencilla, funciona en Expo Go solo con

@@ -1,10 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { formatWithUnit, pluralize } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 type Props = {
   name: string;
+  emoji: string | null;
   unit: string | null;
   total: number;
   entryCount: number;
@@ -12,13 +14,14 @@ type Props = {
   rank?: number;
 };
 
-export function CounterStatRow({ name, unit, total, entryCount, rank }: Props) {
+export function CounterStatRow({ name, emoji, unit, total, entryCount, rank }: Props) {
   const colors = useThemeColors();
   return (
     <View style={[styles.row, { borderBottomColor: colors.border }]} accessible>
       {rank !== undefined ? (
         <Text style={[styles.rank, { color: colors.primary }]}>{rank}</Text>
       ) : null}
+      <CounterAvatar emoji={emoji} name={name} size={34} />
       <View style={styles.info}>
         <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
           {name}
