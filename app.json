@@ -21,10 +21,13 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-router", "expo-status-bar", "expo-font"],
-    "scheme": "cuentalo",
-    "experiments": {
-      "typedRoutes": true
-    }
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-font",
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
+    ],
+    "scheme": "cuentalo"
   }
 }
