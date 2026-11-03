@@ -1,6 +1,7 @@
 import {
   bucketKey,
-  buildSeries,
+  chartBuckets,
+  chartValues,
   isInPeriod,
   startOfIsoWeek,
   summarizeByCounter,
@@ -84,32 +85,59 @@ describe('summarizeByCounter', () => {
   });
 });
 
-describe('buildSeries', () => {
-  it('meses: rellena con 0 y cruza el cambio de año', () => {
-    const series = buildSeries(rows, '2026-02-15', 'month', 4);
-    expect(series.map((p) => p.key)).toEqual(['2025-11', '2025-12', '2026-01', '2026-02']);
-    expect(series.map((p) => p.total)).toEqual([0, 10, 0, 1.5]);
-    expect(series.map((p) => p.label)).toEqual(['nov', 'dic', 'ene 26', 'feb']);
-  });
-
-  it('semanas: claves por lunes y etiqueta con el día', () => {
-    const series = buildSeries(rows, '2026-11-04', 'week', 2);
-    expect(series).toEqual([
-      { key: '2026-10-26', label: '26 oct', total: 5 },
-      { key: '2026-11-02', label: '2 nov', total: 44 },
+describe('chartBuckets', () => {
+  it('semana: de lunes a hoy, con iniciales', () => {
+    const { buckets, granularity } = chartBuckets('week', '2026-11-04', null);
+    expect(granularity).toBe('day');
+    expect(buckets).toEqual([
+      { key: '2026-11-02', label: 'L' },
+      { key: '2026-11-03', label: 'M' },
+      { key: '2026-11-04', label: 'X' },
     ]);
   });
 
-  it('años', () => {
-    const series = buildSeries(rows, '2026-11-04', 'year', 3);
-    expect(series.map((p) => [p.label, p.total])).toEqual([
-      ['2024', 0],
-      ['2025', 10],
-      ['2026', 50.5],
-    ]);
+  it('mes: del día 1 a hoy', () => {
+    const { buckets } = chartBuckets('month', '2026-11-04', null);
+    expect(buckets.map((b) => b.label)).toEqual(['1', '2', '3', '4']);
   });
 
-  it('sin datos devuelve todos los periodos a 0', () => {
-    expect(buildSeries([], '2026-11-04', 'week', 3).every((p) => p.total === 0)).toBe(true);
+  it('año: de enero al mes actual', () => {
+    const { buckets, granularity } = chartBuckets('year', '2026-03-15', null);
+    expect(granularity).toBe('month');
+    expect(buckets.map((b) => b.key)).toEqual(['2026-01', '2026-02', '2026-03']);
+  });
+
+  it('histórico corto: por meses desde el primer registro', () => {
+    const { buckets, granularity } = chartBuckets('all', '2026-02-10', '2025-11-20');
+    expect(granularity).toBe('month');
+    expect(buckets.map((b) => b.key)).toEqual(['2025-11', '2025-12', '2026-01', '2026-02']);
+  });
+
+  it('histórico largo: por años', () => {
+    const { buckets, granularity } = chartBuckets('all', '2026-02-10', '2021-06-01');
+    expect(granularity).toBe('year');
+    expect(buckets.map((b) => b.key)).toEqual(['2021', '2022', '2023', '2024', '2025', '2026']);
+  });
+
+  it('histórico sin datos: solo el mes actual', () => {
+    expect(chartBuckets('all', '2026-02-10', null).buckets).toHaveLength(1);
+  });
+});
+
+describe('chartValues', () => {
+  const rowsA = rows.filter((r) => r.counterId === 'a');
+
+  it('suma por día', () => {
+    const { buckets, granularity } = chartBuckets('week', '2026-11-04', null);
+    expect(chartValues(rowsA, buckets, granularity)).toEqual([0, 2, 0]);
+  });
+
+  it('suma por mes y por año', () => {
+    const months = chartBuckets('year', '2026-11-04', null);
+    expect(chartValues(rowsA, months.buckets, months.granularity)).toEqual([
+      0, 1.5, 0, 0, 0, 0, 0, 0, 0, 0, 7,
+    ]);
+    const years = chartBuckets('all', '2026-11-04', '2019-01-01');
+    expect(chartValues(rowsA, years.buckets, years.granularity).slice(-2)).toEqual([10, 8.5]);
   });
 });

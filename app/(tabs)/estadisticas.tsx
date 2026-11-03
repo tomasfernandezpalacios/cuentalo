@@ -1,24 +1,27 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Section } from '@/components/Section';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import { useUserId } from '@/features/auth/AuthProvider';
-import { useCounterList } from '@/features/contadores/hooks';
+import { useCounterList, useMyLastCounterId } from '@/features/contadores/hooks';
 import { useMyDailyTotals } from '@/features/estadisticas/api';
 import { buildCounterStats, mostUsed } from '@/features/estadisticas/buildStats';
+import { CounterChipsBar } from '@/features/estadisticas/components/CounterChipsBar';
 import { CounterStatRow } from '@/features/estadisticas/components/CounterStatRow';
-import { EvolutionChart } from '@/features/estadisticas/components/EvolutionChart';
 import { StatTile } from '@/features/estadisticas/components/StatTile';
+import { StatsChart, type ChartType } from '@/features/estadisticas/components/StatsChart';
 import {
-  buildSeries,
+  chartBuckets,
+  chartValues,
   summarizeByCounter,
   todayInMadrid,
-  type Granularity,
   type Period,
 } from '@/features/estadisticas/periods';
+import { toggleVisible, useStatsSelection } from '@/features/estadisticas/selection';
+import { chartColor } from '@/lib/chartColors';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
@@ -28,25 +31,28 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: 'all', label: 'Histórico' },
 ];
 
-const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
-  { value: 'week', label: 'Semanas' },
-  { value: 'month', label: 'Meses' },
-  { value: 'year', label: 'Años' },
-];
-
-// Cuántas barras se muestran en la gráfica para cada granularidad.
-const SERIES_LENGTH: Record<Granularity, number> = { week: 12, month: 12, year: 5 };
-
 export default function StatsScreen() {
   const colors = useThemeColors();
   const counters = useCounterList();
   const daily = useMyDailyTotals(useUserId());
+  const selection = useStatsSelection();
   const [period, setPeriod] = useState<Period>('week');
-  const [granularity, setGranularity] = useState<Granularity>('week');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [chartType, setChartType] = useState<ChartType>('line');
 
   const today = todayInMadrid();
   const summaries = useMemo(() => summarizeByCounter(daily.data ?? [], today), [daily.data, today]);
+
+  // Contadores de la barra: los del filtro o, sin filtro, todos los míos (alfabético). Los de
+  // grupos que dejé siguen si tengo registros en ellos.
+  const pool = useMemo(() => {
+    const all = (counters.data ?? [])
+      .filter((c) => c.isActive || c.myEntryCount > 0)
+      .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+    return selection.pool ? all.filter((c) => selection.pool?.includes(c.id)) : all;
+  }, [counters.data, selection.pool]);
+
+  // Por defecto se dibuja el último contador en el que registraste algo.
+  const lastUsed = useMyLastCounterId(pool.map((c) => c.id));
 
   if (counters.isPending || daily.isPending) return <LoadingView />;
   if (counters.isError || daily.isError) {
@@ -72,23 +78,38 @@ export default function StatsScreen() {
     );
   }
 
+  const visibleIds =
+    selection.visible ?? (lastUsed.data ? [lastUsed.data] : pool[0] ? [pool[0].id] : []);
+  const chips = pool.map((c, i) => ({
+    id: c.id,
+    name: c.name,
+    emoji: c.emoji,
+    color: chartColor(i),
+  }));
+  const shown = chips.filter((c) => visibleIds.includes(c.id));
+
+  // Eje X según el periodo; en el histórico empieza en el primer registro de lo que se ve.
+  const shownDays = daily.data.filter((d) => visibleIds.includes(d.counterId));
+  const firstDay = shownDays.reduce<string | null>(
+    (min, d) => (min === null || d.day < min ? d.day : min),
+    null,
+  );
+  const { buckets, granularity } = chartBuckets(period, today, firstDay);
+  const series = shown.map((chip) => ({
+    id: chip.id,
+    name: chip.name,
+    color: chip.color,
+    values: chartValues(
+      shownDays.filter((d) => d.counterId === chip.id),
+      buckets,
+      granularity,
+    ),
+  }));
+
   const stats = buildCounterStats(counters.data, summaries, period);
   const top = mostUsed(stats);
   const entryCount = stats.reduce((sum, s) => sum + s.entryCount, 0);
   const activeCount = stats.filter((s) => s.entryCount > 0).length;
-
-  // Contador de la gráfica: el elegido o, por defecto, el más usado en el histórico.
-  const chartCounter =
-    stats.find((s) => s.id === selectedId) ??
-    mostUsed(buildCounterStats(counters.data, summaries, 'all'), 1)[0];
-  const series = chartCounter
-    ? buildSeries(
-        daily.data.filter((d) => d.counterId === chartCounter.id),
-        today,
-        granularity,
-        SERIES_LENGTH[granularity],
-      )
-    : [];
 
   return (
     <ScrollView
@@ -107,6 +128,21 @@ export default function StatsScreen() {
       }
     >
       <SegmentedControl options={PERIOD_OPTIONS} value={period} onChange={setPeriod} />
+
+      <CounterChipsBar
+        counters={chips}
+        visibleIds={visibleIds}
+        onToggle={(id) => toggleVisible(id, visibleIds)}
+        onOpenFilters={() => router.push('/estadisticas/filtros')}
+        filtered={selection.pool !== null}
+      />
+
+      <StatsChart
+        labels={buckets.map((b) => b.label)}
+        series={series}
+        type={chartType}
+        onChangeType={setChartType}
+      />
 
       <View style={styles.tiles}>
         <StatTile label="Registros" value={entryCount} />
@@ -145,57 +181,11 @@ export default function StatsScreen() {
           />
         ))}
       </Section>
-
-      {chartCounter ? (
-        <Section title="Evolución">
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chips}
-          >
-            {stats.map((s) => {
-              const selected = s.id === chartCounter.id;
-              return (
-                <Pressable
-                  key={s.id}
-                  onPress={() => setSelectedId(s.id)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: selected ? colors.primary : colors.surface,
-                      borderColor: selected ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      color: selected ? colors.onPrimary : colors.text,
-                      fontFamily: fonts.title,
-                    }}
-                  >
-                    {s.emoji ? `${s.emoji} ${s.name}` : s.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-          <SegmentedControl
-            options={GRANULARITY_OPTIONS}
-            value={granularity}
-            onChange={setGranularity}
-          />
-          <EvolutionChart series={series} name={chartCounter.name} />
-        </Section>
-      ) : null}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, gap: 24 },
+  content: { padding: 16, gap: 20 },
   tiles: { flexDirection: 'row', gap: 12 },
-  chips: { gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
 });

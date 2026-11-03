@@ -168,6 +168,17 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   `src/features/contadores/filters.ts` con tests.
 - Cabecera de «Mis contadores»: el + es un círculo morado (`colors.primary`) con el + en negro
   (decisión del usuario).
+- **Estadísticas** (rediseño pedido por el usuario): periodo arriba; debajo, barra con icono de
+  filtros (pantalla completa `app/estadisticas/filtros.tsx`: buscador, carpetas enteras,
+  casillas, Todos/Ninguno) y un botón por contador que lo muestra u oculta en la gráfica. Sin
+  filtro, la barra tiene todos los contadores y se dibuja el último usado
+  (`useMyLastCounterId`); al aplicar un filtro se dibujan todos los elegidos. La selección vive
+  en memoria (`selection.ts`, `useSyncExternalStore`) y se reinicia al abrir la app.
+- Gráfica (`StatsChart`): líneas por defecto, una por contador con color de `chartColors.ts`
+  (por posición en la barra); botón cuadrado abajo a la derecha para cambiar a barras
+  agrupadas. Eje X por periodo (`chartBuckets`): semana = días lunes→hoy, mes = días 1→hoy,
+  año = meses enero→actual, histórico = meses desde el primer registro (años si son > 24).
+  Debajo siguen los resúmenes (registros, más usados, por contador).
 
 ## Cambios estéticos pendientes
 

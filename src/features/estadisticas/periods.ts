@@ -16,8 +16,6 @@ export type DailyTotal = {
 
 export type Summary = { total: number; entryCount: number };
 
-export type SeriesPoint = { key: string; label: string; total: number };
-
 const DAY_MS = 86_400_000;
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
@@ -93,14 +91,6 @@ export function summarizeByCounter(
   return result;
 }
 
-/** Clave del periodo anterior: una semana, un mes o un año antes. */
-function previousKey(key: string, granularity: Granularity): string {
-  if (granularity === 'week') return addDays(key, -7);
-  if (granularity === 'year') return String(Number(key) - 1);
-  const [year, month] = key.split('-').map(Number) as [number, number];
-  return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, '0')}`;
-}
-
 function labelFor(key: string, granularity: Granularity): string {
   if (granularity === 'year') return key;
   if (granularity === 'month') {
@@ -110,27 +100,89 @@ function labelFor(key: string, granularity: Granularity): string {
   return `${Number(key.slice(8, 10))} ${MONTHS[Number(key.slice(5, 7)) - 1]}`;
 }
 
-/**
- * Serie temporal para la gráfica: los últimos `count` periodos hasta el actual (incluido), en orden
- * cronológico y con 0 en los periodos sin registros.
- */
-export function buildSeries(
-  days: DailyTotal[],
+// --- Gráfica por periodo ----------------------------------------------------------------------
+//
+// Semana: un punto por día de lunes a hoy. Mes: un punto por día del 1 a hoy. Año: un punto por
+// mes de enero al actual. Histórico: un punto por mes desde el primer registro o, si son más de
+// dos años, uno por año.
+
+export type ChartBucket = { key: string; label: string };
+export type ChartGranularity = 'day' | 'month' | 'year';
+
+const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const MAX_MONTHS_IN_HISTORY = 24;
+
+function nextMonth(key: string): string {
+  const [year, month] = key.split('-').map(Number) as [number, number];
+  return month === 12 ? `${year + 1}-01` : `${year}-${String(month + 1).padStart(2, '0')}`;
+}
+
+function daysBetween(from: string, to: string): string[] {
+  const days: string[] = [];
+  for (let day = from; day <= to; day = addDays(day, 1)) days.push(day);
+  return days;
+}
+
+function monthsBetween(from: string, to: string): string[] {
+  const months: string[] = [];
+  for (let month = from; month <= to; month = nextMonth(month)) months.push(month);
+  return months;
+}
+
+/** Puntos del eje X para el periodo. `firstDay` es el primer día con datos (para el histórico). */
+export function chartBuckets(
+  period: Period,
   today: string,
-  granularity: Granularity,
-  count: number,
-): SeriesPoint[] {
-  const totals = new Map<string, number>();
-  for (const row of days) {
-    const key = bucketKey(row.day, granularity);
-    totals.set(key, (totals.get(key) ?? 0) + row.total);
+  firstDay: string | null,
+): { buckets: ChartBucket[]; granularity: ChartGranularity } {
+  if (period === 'week') {
+    const days = daysBetween(startOfIsoWeek(today), today);
+    return {
+      granularity: 'day',
+      buckets: days.map((day, i) => ({ key: day, label: WEEKDAYS[i] ?? day })),
+    };
+  }
+  if (period === 'month') {
+    const days = daysBetween(`${today.slice(0, 7)}-01`, today);
+    return {
+      granularity: 'day',
+      buckets: days.map((day) => ({ key: day, label: String(Number(day.slice(8, 10))) })),
+    };
+  }
+  if (period === 'year') {
+    const months = monthsBetween(`${today.slice(0, 4)}-01`, today.slice(0, 7));
+    return {
+      granularity: 'month',
+      buckets: months.map((month) => ({ key: month, label: labelFor(month, 'month') })),
+    };
   }
 
-  const keys: string[] = [];
-  let key = bucketKey(today, granularity);
-  for (let i = 0; i < count; i++) {
-    keys.unshift(key);
-    key = previousKey(key, granularity);
+  const start = firstDay && firstDay < today ? firstDay : today;
+  const months = monthsBetween(start.slice(0, 7), today.slice(0, 7));
+  if (months.length <= MAX_MONTHS_IN_HISTORY) {
+    return {
+      granularity: 'month',
+      buckets: months.map((month) => ({ key: month, label: labelFor(month, 'month') })),
+    };
   }
-  return keys.map((k) => ({ key: k, label: labelFor(k, granularity), total: totals.get(k) ?? 0 }));
+  const years: ChartBucket[] = [];
+  for (let year = Number(start.slice(0, 4)); year <= Number(today.slice(0, 4)); year++) {
+    years.push({ key: String(year), label: String(year) });
+  }
+  return { granularity: 'year', buckets: years };
+}
+
+/** Total de cada punto del eje X (los días deben ser de un solo contador). */
+export function chartValues(
+  days: DailyTotal[],
+  buckets: ChartBucket[],
+  granularity: ChartGranularity,
+): number[] {
+  const length = granularity === 'day' ? 10 : granularity === 'month' ? 7 : 4;
+  const totals = new Map<string, number>();
+  for (const row of days) {
+    const key = row.day.slice(0, length);
+    totals.set(key, (totals.get(key) ?? 0) + row.total);
+  }
+  return buckets.map((bucket) => totals.get(bucket.key) ?? 0);
 }
