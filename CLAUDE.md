@@ -181,7 +181,8 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   (por posición en la barra); botón cuadrado abajo a la derecha para cambiar a barras
   agrupadas. Eje X por periodo (`chartBuckets`): semana = días lunes→hoy, mes = días 1→hoy,
   año = meses enero→actual, histórico = meses desde el primer registro (años si son > 24).
-  Debajo siguen los resúmenes (registros, más usados, por contador).
+  Justo debajo, `ChartTotals`: el total por escrito de cada contador dibujado (mismo filtro y
+  periodo). Después siguen los resúmenes (registros, más usados, por contador).
 
 ## Cambios estéticos pendientes
 

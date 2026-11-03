@@ -10,6 +10,7 @@ import { useCounterList, useMyLastCounterId } from '@/features/contadores/hooks'
 import { useMyDailyTotals } from '@/features/estadisticas/api';
 import { buildCounterStats, mostUsed } from '@/features/estadisticas/buildStats';
 import { CounterChipsBar } from '@/features/estadisticas/components/CounterChipsBar';
+import { ChartTotals } from '@/features/estadisticas/components/ChartTotals';
 import { CounterStatRow } from '@/features/estadisticas/components/CounterStatRow';
 import { StatTile } from '@/features/estadisticas/components/StatTile';
 import { StatsChart, type ChartType } from '@/features/estadisticas/components/StatsChart';
@@ -106,6 +107,19 @@ export default function StatsScreen() {
     ),
   }));
 
+  // Lo mismo que dibuja la gráfica, por escrito: total de cada contador en el periodo.
+  const totals = series.map((s) => {
+    const counter = pool.find((c) => c.id === s.id);
+    return {
+      id: s.id,
+      name: s.name,
+      emoji: counter?.emoji ?? null,
+      unit: counter?.unit ?? null,
+      color: s.color,
+      total: s.values.reduce((sum, value) => sum + value, 0),
+    };
+  });
+
   const stats = buildCounterStats(counters.data, summaries, period);
   const top = mostUsed(stats);
   const entryCount = stats.reduce((sum, s) => sum + s.entryCount, 0);
@@ -143,6 +157,8 @@ export default function StatsScreen() {
         type={chartType}
         onChangeType={setChartType}
       />
+
+      <ChartTotals totals={totals} />
 
       <View style={styles.tiles}>
         <StatTile label="Registros" value={entryCount} />
