@@ -31,6 +31,8 @@ export type CounterWithTotal = Counter & {
    * soy participante, lo que lleva cada participante (la media, porque suman a la vez).
    */
   displayTotal: number;
+  /** Último registro que veo (de cualquiera, en un compartido), o null si no hay. */
+  lastLoggedAt: string | null;
 };
 
 /** La unidad y el emoticono son opcionales: una cadena vacía se guarda como null. */
@@ -91,6 +93,7 @@ export function enrich(
     isActive,
     canManage,
     participantIds,
+    lastLoggedAt: t?.last_logged_at ?? null,
     displayTotal:
       counter.is_common && !participantIds.includes(myId) && participantIds.length > 0
         ? (t?.total ?? 0) / participantIds.length

@@ -33,6 +33,7 @@ const CUSTOM_MESSAGES: Record<string, string> = {
   not_counter_manager:
     'Solo el creador del contador o el administrador del grupo pueden cambiarlo.',
   no_participants: 'Elige al menos una persona para el contador común.',
+  folder_not_found: 'Esa carpeta ya no existe.',
 };
 
 export function getErrorMessage(error: unknown): string {

@@ -4,6 +4,7 @@
 export const LIMITS = {
   counterName: 60,
   groupName: 50,
+  folderName: 30,
   unit: 30,
   displayName: 50,
   note: 200,

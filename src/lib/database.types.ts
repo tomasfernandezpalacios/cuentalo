@@ -122,6 +122,18 @@ export type Database = {
         Update: { status?: 'active' };
         Relationships: [];
       };
+      folders: {
+        Row: { id: string; owner_id: string; name: string; created_at: string };
+        Insert: { id?: string; owner_id?: string; name: string; created_at?: string };
+        Update: { name?: string };
+        Relationships: [];
+      };
+      folder_counters: {
+        Row: { folder_id: string; counter_id: string };
+        Insert: { folder_id: string; counter_id: string };
+        Update: never;
+        Relationships: [];
+      };
       counter_participants: {
         Row: { counter_id: string; user_id: string };
         Insert: never;
@@ -197,6 +209,10 @@ export type Database = {
       remove_one_from_common_counter: {
         Args: { p_counter_id: string };
         Returns: number;
+      };
+      save_folder: {
+        Args: { p_folder_id: string | null; p_name: string; p_counter_ids: string[] };
+        Returns: string;
       };
       delete_my_account: {
         Args: Record<string, never>;

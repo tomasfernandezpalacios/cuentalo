@@ -78,6 +78,33 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- 1b. Carpetas: son personales
+-- ---------------------------------------------------------------------------
+
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+select public.save_folder(null, 'Carpeta de Ana', array['10000000-0000-0000-0000-000000000001']::uuid[]);
+
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}', true);
+do $$
+declare n int; v_folder uuid;
+begin
+  select count(*) into n from public.folders;
+  if n <> 0 then raise exception 'FALLO: Beto ve las carpetas de Ana'; end if;
+
+  select count(*) into n from public.folder_counters;
+  if n <> 0 then raise exception 'FALLO: Beto ve el contenido de las carpetas de Ana'; end if;
+
+  -- Beto no puede meter en su carpeta un contador que no ve.
+  v_folder := public.save_folder(null, 'Carpeta de Beto', '{}'::uuid[]);
+  begin
+    insert into public.folder_counters (folder_id, counter_id)
+      values (v_folder, '10000000-0000-0000-0000-000000000001');
+    raise exception 'FALLO: se puede meter en una carpeta un contador ajeno';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- 2. Amistades y grupos
 -- ---------------------------------------------------------------------------
 

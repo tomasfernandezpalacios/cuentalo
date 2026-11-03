@@ -157,6 +157,17 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - Accesibilidad: roles y etiquetas en botones y cabeceras, áreas táctiles ≥ 44 pt (con
   `hitSlop`), texto escalable con tope en la fila compacta de la tarjeta, colores con contraste
   AA en ambos modos y el indicador de refresco con el color de la app.
+- **Carpetas** (petición del usuario): `folders` + `folder_counters`, personales (solo las ve su
+  dueño), un contador puede estar en varias. Se guardan de una vez con la RPC `save_folder`.
+  Barra fina bajo la cabecera: «Todos» · carpetas · «+ Nueva carpeta» (se desliza). Mantener
+  pulsada una carpeta → editar/eliminar. Crear/editar es una pantalla completa con nombre,
+  buscador (ignora tildes) y contadores en orden alfabético con casillas; botón «Hecho».
+- La lista siempre empieza en «Todos» y sin filtros. Botón de filtros (icono a la izquierda del
+  +) abre un rectángulo con: carpeta, tipo (individuales/de grupo) y actividad reciente en
+  ventanas móviles (24 h, 7, 30, 365 días, según `lastLoggedAt`). Lógica en
+  `src/features/contadores/filters.ts` con tests.
+- Cabecera de «Mis contadores»: el + es un círculo morado (`colors.primary`) con el + en negro
+  (decisión del usuario).
 
 ## Cambios estéticos pendientes
 
