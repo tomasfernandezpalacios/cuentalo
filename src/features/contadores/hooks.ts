@@ -11,6 +11,7 @@ import {
   fetchCounters,
   fetchEntries,
   fetchLeaderboard,
+  fetchMyLastCounterId,
   removeOne,
   updateCounter,
   updateEntry,
@@ -27,6 +28,7 @@ export const counterKeys = {
   entries: (id: string) => [...counterKeys.all, 'entries', id] as const,
   leaderboard: (id: string, period: LeaderboardPeriod) =>
     [...counterKeys.all, 'leaderboard', id, period] as const,
+  lastUsed: (ids: string[]) => [...counterKeys.all, 'last-used', ...ids] as const,
 };
 
 // Tras cualquier cambio refrescamos todo lo de contadores: son pocas consultas y así la lista,
@@ -70,6 +72,15 @@ export function useLeaderboard(counterId: string, period: LeaderboardPeriod, ena
     queryKey: counterKeys.leaderboard(counterId, period),
     queryFn: () => fetchLeaderboard(counterId, period),
     enabled,
+  });
+}
+
+export function useMyLastCounterId(counterIds: string[]) {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: counterKeys.lastUsed(counterIds),
+    queryFn: () => fetchMyLastCounterId(counterIds, userId),
+    enabled: userId !== '' && counterIds.length > 0,
   });
 }
 

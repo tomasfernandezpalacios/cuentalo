@@ -217,3 +217,20 @@ export async function fetchLeaderboard(
     position: row.position,
   }));
 }
+
+/** De estos contadores, el último en el que he registrado algo (o null si ninguno). */
+export async function fetchMyLastCounterId(
+  counterIds: string[],
+  myId: string,
+): Promise<string | null> {
+  if (counterIds.length === 0) return null;
+  const { data, error } = await supabase
+    .from('entries')
+    .select('counter_id')
+    .eq('user_id', myId)
+    .in('counter_id', counterIds)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return data[0]?.counter_id ?? null;
+}

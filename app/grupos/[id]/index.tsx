@@ -7,6 +7,7 @@ import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { GroupCounters } from '@/features/contadores/components/GroupCounters';
+import { GroupLeaderboard } from '@/features/contadores/components/GroupLeaderboard';
 import type { MemberWithProfile } from '@/features/social/api';
 import { InviteCodeCard } from '@/features/social/components/InviteCodeCard';
 import { PersonRow } from '@/features/social/components/PersonRow';
@@ -107,6 +108,10 @@ export default function GroupScreen() {
       }
     >
       <Stack.Screen options={{ title: name }} />
+
+      <Section title="Clasificación">
+        <GroupLeaderboard groupId={id} />
+      </Section>
 
       <Section title="Contadores del grupo">
         <GroupCounters groupId={id} />
