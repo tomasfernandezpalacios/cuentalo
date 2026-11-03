@@ -16,7 +16,7 @@ type Props = {
   onCustomAdd: () => void;
 };
 
-/** Tarjeta de la lista: nombre · +1 +5 +10 −1 · total. */
+/** Tarjeta de la lista: nombre · +1 +5 −1 · total. */
 export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd }: Props) {
   const colors = useThemeColors();
   return (

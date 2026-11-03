@@ -77,8 +77,8 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   (`[id]`) como texto literal y rompe el typecheck.
 - Fase 1: autenticación en `src/features/auth` (carpeta extra a las cuatro de la especificación).
 - Tests con `jest-expo` (`npm test`), en carpetas `__tests__` junto al código.
-- Petición del usuario (tras la Fase 2): la tarjeta de la lista es «nombre · +1 +5 +10 −1 ·
-  total», sin número de registros; mantener pulsado +1 abre otra cantidad. El detalle tiene los
+- Petición del usuario (tras la Fase 2): la tarjeta de la lista es «nombre · +1 +5 −1 · total»
+  (el +10 se quitó a petición del usuario), sin número de registros; mantener pulsado +1 abre otra cantidad. El detalle tiene los
   mismos botones más «Otra». Las actualizaciones optimistas tocan lista y detalle a la vez.
 - **−1 = deshacer 1** (decisión del usuario): la RPC `remove_one_from_counter` resta 1 a _mi_
   último registro del contador (por `logged_at`) o lo borra si era ≤ 1. Nunca hay cantidades

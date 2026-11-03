@@ -3,7 +3,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatWithUnit } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
 
+// La tarjeta de la lista es compacta y solo lleva +1 y +5; el detalle añade +10.
 const QUICK_AMOUNTS = [1, 5, 10] as const;
+const COMPACT_AMOUNTS = [1, 5] as const;
 
 type Props = {
   unit: string | null;
@@ -18,7 +20,7 @@ type Props = {
   compact?: boolean;
 };
 
-/** Botones +1 +5 +10 -1 (y opcionalmente "Otra"). */
+/** Botones +1 +5 (+10) −1 y, opcionalmente, "Otra". */
 export function QuickAddBar({
   unit,
   onAdd,
@@ -34,7 +36,7 @@ export function QuickAddBar({
 
   return (
     <View style={[styles.row, compact && styles.compactRow]}>
-      {QUICK_AMOUNTS.map((amount) => (
+      {(compact ? COMPACT_AMOUNTS : QUICK_AMOUNTS).map((amount) => (
         <Pressable
           key={amount}
           onPress={() => onAdd(amount)}
