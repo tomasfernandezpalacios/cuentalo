@@ -67,13 +67,6 @@ export function FolderForm({ folder }: Props) {
       <Stack.Screen
         options={{
           title: folder ? 'Editar carpeta' : 'Nueva carpeta',
-          // En Android el título va pegado a la izquierda; centrado no choca con «Cancelar».
-          headerTitleAlign: 'center',
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={10}>
-              <Text style={[styles.headerButton, { color: colors.textMuted }]}>Cancelar</Text>
-            </Pressable>
-          ),
           headerRight: () =>
             save.isPending ? (
               <ActivityIndicator color={colors.primary} />

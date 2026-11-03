@@ -55,12 +55,6 @@ export default function StatsFiltersScreen() {
       <Stack.Screen
         options={{
           title: 'Filtrar estadísticas',
-          headerTitleAlign: 'center',
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={10}>
-              <Text style={[styles.headerButton, { color: colors.textMuted }]}>Cancelar</Text>
-            </Pressable>
-          ),
           headerRight: () => (
             <Pressable onPress={apply} accessibilityRole="button" hitSlop={10}>
               <Text style={[styles.headerButton, { color: colors.primary }]}>Aplicar</Text>

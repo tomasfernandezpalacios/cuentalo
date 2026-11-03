@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { BackButton } from '@/components/BackButton';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { usePendingInvite } from '@/features/social/pendingInvite';
 import { queryClient } from '@/lib/queryClient';
@@ -35,6 +36,9 @@ function RootNavigator() {
         headerTitleStyle: { fontFamily: fonts.title },
         contentStyle: { backgroundColor: colors.background },
         headerBackButtonDisplayMode: 'minimal',
+        // Misma flecha en todas las pantallas, también en las que se abren como ventana
+        // (donde por defecto no hay botón de volver).
+        headerLeft: ({ canGoBack }) => (canGoBack ? <BackButton /> : null),
       }}
     >
       <Stack.Protected guard={isSignedIn}>

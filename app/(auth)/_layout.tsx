@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 
+import { BackButton } from '@/components/BackButton';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 export default function AuthLayout() {
@@ -13,6 +14,7 @@ export default function AuthLayout() {
         headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.background },
         headerBackButtonDisplayMode: 'minimal',
+        headerLeft: ({ canGoBack }) => (canGoBack ? <BackButton /> : null),
       }}
     >
       <Stack.Screen name="login" options={{ headerShown: false }} />

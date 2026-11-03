@@ -166,6 +166,9 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   +) abre un rectángulo con: carpeta, tipo (individuales/de grupo) y actividad reciente en
   ventanas móviles (24 h, 7, 30, 365 días, según `lastLoggedAt`). Lógica en
   `src/features/contadores/filters.ts` con tests.
+- Todas las pantallas que se abren encima (crear, editar, filtros…) tienen la misma flecha de
+  volver (`BackButton`, puesta en `headerLeft` de los Stack); nada de «Cancelar» (petición del
+  usuario).
 - Cabecera de «Mis contadores»: el + es un círculo morado (`colors.primary`) con el + en negro
   (decisión del usuario).
 - **Estadísticas** (rediseño pedido por el usuario): periodo arriba; debajo, barra con icono de
