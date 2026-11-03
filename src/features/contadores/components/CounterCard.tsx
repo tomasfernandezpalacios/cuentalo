@@ -8,9 +8,12 @@ import type { CounterWithTotal } from '../api';
 type Props = {
   counter: CounterWithTotal;
   onPress: () => void;
+  /** Botón +1 en la propia tarjeta; manteniéndolo pulsado se pide otra cantidad. */
+  onQuickAdd?: () => void;
+  onCustomAdd?: () => void;
 };
 
-export function CounterCard({ counter, onPress }: Props) {
+export function CounterCard({ counter, onPress, onQuickAdd, onCustomAdd }: Props) {
   const colors = useThemeColors();
   return (
     <Pressable
@@ -41,6 +44,22 @@ export function CounterCard({ counter, onPress }: Props) {
           {counter.unit}
         </Text>
       </View>
+      {onQuickAdd ? (
+        <Pressable
+          onPress={onQuickAdd}
+          onLongPress={onCustomAdd}
+          accessibilityRole="button"
+          accessibilityLabel={`Añadir 1 a ${counter.name}`}
+          accessibilityHint="Mantén pulsado para añadir otra cantidad"
+          hitSlop={6}
+          style={({ pressed }) => [
+            styles.quickAdd,
+            { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 },
+          ]}
+        >
+          <Text style={[styles.quickAddLabel, { color: colors.onPrimary }]}>+1</Text>
+        </Pressable>
+      ) : null}
     </Pressable>
   );
 }
@@ -57,6 +76,14 @@ const styles = StyleSheet.create({
   info: { flex: 1, gap: 4 },
   name: { fontSize: 17, fontWeight: '600' },
   meta: { fontSize: 13 },
-  totalBox: { alignItems: 'flex-end', maxWidth: '40%' },
+  totalBox: { alignItems: 'flex-end', maxWidth: '35%' },
   total: { fontSize: 24, fontWeight: '800' },
+  quickAdd: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickAddLabel: { fontSize: 17, fontWeight: '700' },
 });

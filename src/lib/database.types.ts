@@ -84,6 +84,16 @@ export type Database = {
         };
         Relationships: [];
       };
+      entry_daily_totals: {
+        Row: {
+          counter_id: string;
+          user_id: string;
+          day: string;
+          total: number;
+          entry_count: number;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       is_username_available: {

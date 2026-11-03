@@ -1,12 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
+import type { CounterWithTotal, EntryInput } from '@/features/contadores/api';
 import { CounterCard } from '@/features/contadores/components/CounterCard';
-import { useCounterList } from '@/features/contadores/hooks';
+import { EntryDialog } from '@/features/contadores/components/EntryDialog';
+import { useAddEntry, useCounterList } from '@/features/contadores/hooks';
+import { getErrorMessage } from '@/lib/errors';
 import { useThemeColors } from '@/lib/theme';
 
 function openNewCounter() {
@@ -17,12 +20,23 @@ export default function CountersScreen() {
   const colors = useThemeColors();
   const { data, error, isPending, isRefetching, refetch } = useCounterList();
   const [showArchived, setShowArchived] = useState(false);
+  const addEntry = useAddEntry();
+  // Contador para el que se está escribiendo una cantidad personalizada.
+  const [customFor, setCustomFor] = useState<CounterWithTotal | null>(null);
 
   if (isPending) return <LoadingView />;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
 
   const archivedCount = data.filter((c) => c.archived).length;
   const counters = showArchived ? data : data.filter((c) => !c.archived);
+
+  function showError(error: unknown) {
+    Alert.alert('No se ha podido guardar', getErrorMessage(error));
+  }
+
+  function add(counterId: string, input: EntryInput, onSuccess?: () => void) {
+    addEntry.mutate({ counterId, input }, { onSuccess, onError: showError });
+  }
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -48,6 +62,12 @@ export default function CountersScreen() {
           <CounterCard
             counter={item}
             onPress={() => router.push({ pathname: '/contadores/[id]', params: { id: item.id } })}
+            onQuickAdd={
+              item.archived
+                ? undefined
+                : () => add(item.id, { amount: 1, loggedAt: new Date(), note: null })
+            }
+            onCustomAdd={() => setCustomFor(item)}
           />
         )}
         contentContainerStyle={styles.list}
@@ -71,6 +91,13 @@ export default function CountersScreen() {
             />
           ) : undefined
         }
+      />
+      <EntryDialog
+        visible={customFor !== null}
+        unit={customFor?.unit ?? ''}
+        saving={addEntry.isPending}
+        onSave={(input) => customFor && add(customFor.id, input, () => setCustomFor(null))}
+        onClose={() => setCustomFor(null)}
       />
     </View>
   );

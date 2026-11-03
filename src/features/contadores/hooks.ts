@@ -76,30 +76,43 @@ export function useDeleteCounter(id: string) {
 
 // --- Registros --------------------------------------------------------------
 
+function addToTotal(counter: CounterWithTotal, amount: number): CounterWithTotal {
+  return { ...counter, total: counter.total + amount, entryCount: counter.entryCount + 1 };
+}
+
 /**
- * Añadir un registro actualiza el total en pantalla al instante (actualización optimista) y,
- * si el servidor falla, lo deshace. Así los botones +1/+5/+10 se sienten inmediatos.
+ * Añadir un registro actualiza el total en pantalla al instante (actualización optimista), tanto
+ * en la lista como en el detalle, y si el servidor falla lo deshace. Así los botones +1/+5/+10
+ * se sienten inmediatos.
  */
-export function useAddEntry(counterId: string) {
+export function useAddEntry() {
   const queryClient = useQueryClient();
-  const detailKey = counterKeys.detail(counterId);
 
   return useMutation({
-    mutationFn: (input: EntryInput) => createEntry(counterId, input),
-    onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: detailKey });
-      const previous = queryClient.getQueryData<CounterWithTotal>(detailKey);
-      if (previous) {
-        queryClient.setQueryData<CounterWithTotal>(detailKey, {
-          ...previous,
-          total: previous.total + input.amount,
-          entryCount: previous.entryCount + 1,
-        });
+    mutationFn: ({ counterId, input }: { counterId: string; input: EntryInput }) =>
+      createEntry(counterId, input),
+    onMutate: async ({ counterId, input }) => {
+      const detailKey = counterKeys.detail(counterId);
+      const listKey = counterKeys.list();
+      await queryClient.cancelQueries({ queryKey: counterKeys.all });
+
+      const previousDetail = queryClient.getQueryData<CounterWithTotal>(detailKey);
+      const previousList = queryClient.getQueryData<CounterWithTotal[]>(listKey);
+      if (previousDetail) {
+        queryClient.setQueryData(detailKey, addToTotal(previousDetail, input.amount));
       }
-      return { previous };
+      if (previousList) {
+        queryClient.setQueryData(
+          listKey,
+          previousList.map((c) => (c.id === counterId ? addToTotal(c, input.amount) : c)),
+        );
+      }
+      return { detailKey, listKey, previousDetail, previousList };
     },
-    onError: (_error, _input, context) => {
-      if (context?.previous) queryClient.setQueryData(detailKey, context.previous);
+    onError: (_error, _variables, context) => {
+      if (!context) return;
+      queryClient.setQueryData(context.detailKey, context.previousDetail);
+      queryClient.setQueryData(context.listKey, context.previousList);
     },
     onSettled: () => invalidateCounters(queryClient),
   });

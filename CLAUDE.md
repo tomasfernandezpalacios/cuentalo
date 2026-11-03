@@ -72,3 +72,21 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   (`[id]`) como texto literal y rompe el typecheck.
 - Fase 1: autenticación en `src/features/auth` (carpeta extra a las cuatro de la especificación).
 - Tests con `jest-expo` (`npm test`), en carpetas `__tests__` junto al código.
+- Petición del usuario (tras la Fase 1): botón +1 en cada tarjeta de la lista de contadores;
+  manteniéndolo pulsado se abre el diálogo de otra cantidad. `useAddEntry` actualiza de forma
+  optimista tanto la lista como el detalle.
+- Fase 2: gráficas con `react-native-gifted-charts` (sencilla, funciona en Expo Go solo con
+  `react-native-svg`; necesita también `expo-linear-gradient`). Victory Native XL exige Skia y
+  Reanimated, demasiado para unas barras.
+- Fase 2: los periodos de las estadísticas son **naturales** (esta semana ISO, este mes, este
+  año), igual que la clasificación, no "últimos 7/30 días".
+- Fase 2: la vista `entry_daily_totals` agrupa por día en Europe/Madrid y la app agrega días en
+  semanas/meses/años con funciones puras (`src/features/estadisticas/periods.ts`, con tests).
+  La consulta se pagina porque PostgREST devuelve como máximo 1000 filas.
+- **Pendiente Fase 4:** al salir de un grupo, el usuario conserva sus `entries` pero deja de ver
+  el contador (nombre y unidad). Añadir una política de lectura de `counters` para contadores en
+  los que tengo registros. Mientras tanto las estadísticas lo muestran como "Contador sin acceso".
+
+## Pendiente para la Fase 5 (cambios estéticos pedidos por el usuario)
+
+- (vacío por ahora)

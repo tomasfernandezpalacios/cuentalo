@@ -27,7 +27,7 @@ export default function CounterDetailScreen() {
   const colors = useThemeColors();
   const counter = useCounter(id);
   const entries = useEntries(id);
-  const addEntry = useAddEntry(id);
+  const addEntry = useAddEntry();
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -43,7 +43,10 @@ export default function CounterDetailScreen() {
   }
 
   function quickAdd(amount: number) {
-    addEntry.mutate({ amount, loggedAt: new Date(), note: null }, { onError: showError });
+    addEntry.mutate(
+      { counterId: id, input: { amount, loggedAt: new Date(), note: null } },
+      { onError: showError },
+    );
   }
 
   function handleSave(input: EntryInput) {
@@ -51,7 +54,7 @@ export default function CounterDetailScreen() {
     if (editing) {
       updateEntry.mutate({ id: editing.id, input }, options);
     } else {
-      addEntry.mutate(input, options);
+      addEntry.mutate({ counterId: id, input }, options);
     }
   }
 
