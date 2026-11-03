@@ -11,14 +11,14 @@ import { useThemeColors } from '@/lib/theme';
 type Tab = 'friends' | 'groups';
 
 const TABS: { value: Tab; label: string }[] = [
-  { value: 'friends', label: 'Amigos' },
   { value: 'groups', label: 'Grupos' },
+  { value: 'friends', label: 'Amigos' },
 ];
 
 export default function SocialScreen() {
   const colors = useThemeColors();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<Tab>('friends');
+  const [tab, setTab] = useState<Tab>('groups');
   const [refreshing, setRefreshing] = useState(false);
 
   async function refresh() {
@@ -35,7 +35,7 @@ export default function SocialScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
       <SegmentedControl options={TABS} value={tab} onChange={setTab} />
-      {tab === 'friends' ? <FriendsPanel /> : <GroupsPanel />}
+      {tab === 'groups' ? <GroupsPanel /> : <FriendsPanel />}
     </ScrollView>
   );
 }

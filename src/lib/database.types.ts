@@ -95,6 +95,7 @@ export type Database = {
         Relationships: [];
       };
       groups: {
+        // invite_code no está aquí: no se puede leer directamente (ver get_group_invite_code).
         Row: { id: string; name: string; owner_id: string; created_at: string };
         Insert: { id?: string; name: string; owner_id?: string; created_at?: string };
         Update: { name?: string };
@@ -151,6 +152,22 @@ export type Database = {
       remove_one_from_counter: {
         Args: { p_counter_id: string };
         Returns: boolean;
+      };
+      get_group_invite_code: {
+        Args: { p_group_id: string };
+        Returns: string;
+      };
+      regenerate_group_invite_code: {
+        Args: { p_group_id: string };
+        Returns: string;
+      };
+      preview_group_by_code: {
+        Args: { p_code: string };
+        Returns: { group_id: string; name: string; member_count: number; is_member: boolean }[];
+      };
+      join_group_by_code: {
+        Args: { p_code: string };
+        Returns: string;
       };
     };
     Enums: Record<string, never>;

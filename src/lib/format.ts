@@ -21,6 +21,11 @@ export function formatWithUnit(value: number, unit: string | null): string {
   return unit ? `${formatAmount(value)} ${unit}` : formatAmount(value);
 }
 
+/** Con signo explícito, para el historial: "+2 cervezas", "−1 cervezas". */
+export function formatSignedWithUnit(value: number, unit: string | null): string {
+  return `${value < 0 ? '−' : '+'}${formatWithUnit(Math.abs(value), unit)}`;
+}
+
 /** "3 registros", "1 registro". */
 export function pluralize(count: number, singular: string, plural: string): string {
   return `${formatAmount(count)} ${count === 1 ? singular : plural}`;

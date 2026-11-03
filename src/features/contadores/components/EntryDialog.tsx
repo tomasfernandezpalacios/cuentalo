@@ -33,7 +33,11 @@ export function EntryDialog({ visible, onClose, ...formProps }: Props) {
 
 function EntryForm({ unit, entry, saving, onSave, onDelete, onClose }: Omit<Props, 'visible'>) {
   const colors = useThemeColors();
-  const [amount, setAmount] = useState(entry ? String(entry.amount).replace('.', ',') : '');
+  // Las restas (−1) se editan como cantidad positiva y conservan su signo al guardar.
+  const sign = entry && entry.amount < 0 ? -1 : 1;
+  const [amount, setAmount] = useState(
+    entry ? String(Math.abs(entry.amount)).replace('.', ',') : '',
+  );
   const [loggedAt, setLoggedAt] = useState(() => (entry ? new Date(entry.logged_at) : new Date()));
   const [note, setNote] = useState(entry?.note ?? '');
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +48,7 @@ function EntryForm({ unit, entry, saving, onSave, onDelete, onClose }: Omit<Prop
       setError(parsed.error);
       return;
     }
-    onSave({ amount: parsed.value, loggedAt, note: note.trim() || null });
+    onSave({ amount: sign * parsed.value, loggedAt, note: note.trim() || null });
   }
 
   return (
@@ -54,7 +58,7 @@ function EntryForm({ unit, entry, saving, onSave, onDelete, onClose }: Omit<Prop
     >
       <View style={[styles.sheet, { backgroundColor: colors.background }]}>
         <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-          {entry ? 'Editar registro' : 'Añadir cantidad'}
+          {!entry ? 'Añadir cantidad' : sign < 0 ? 'Editar resta' : 'Editar registro'}
         </Text>
         <TextField
           label={unit ? `Cantidad (${unit})` : 'Cantidad'}

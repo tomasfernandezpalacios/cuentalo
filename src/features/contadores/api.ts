@@ -106,7 +106,7 @@ export async function updateEntry(id: string, input: EntryInput): Promise<void> 
   if (error) throw error;
 }
 
-/** Resta 1 a mi último registro del contador (lo borra si era de 1 o menos). */
+/** Guarda un registro de −1 si mi total en el contador es al menos 1. */
 export async function removeOne(counterId: string): Promise<boolean> {
   const { data, error } = await supabase.rpc('remove_one_from_counter', {
     p_counter_id: counterId,

@@ -125,7 +125,7 @@ export function useAddEntry() {
   });
 }
 
-/** Botón -1: resta 1 a mi último registro. El número de registros lo corrige el servidor. */
+/** Botón −1: guarda un registro de −1 (sin bajar de 0). No cuenta como registro nuevo. */
 export function useRemoveOne() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -1,3 +1,5 @@
+import * as Linking from 'expo-linking';
+
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import { normalizeUsername } from '@/lib/validation';
@@ -22,6 +24,8 @@ export type MemberWithProfile = GroupMember & { profile: PublicProfile };
 export type GroupDetail = Group & { members: MemberWithProfile[] };
 
 const PROFILE_COLUMNS = 'id, username, display_name, avatar_url';
+// Columnas legibles de groups (invite_code solo se obtiene con get_group_invite_code).
+const GROUP_COLUMNS = 'id, name, owner_id, created_at';
 
 export async function fetchProfilesByIds(ids: string[]): Promise<Map<string, PublicProfile>> {
   if (ids.length === 0) return new Map();
@@ -102,7 +106,7 @@ export async function fetchMyGroups(myId: string): Promise<MyGroup[]> {
   const ids = memberships.data.map((m) => m.group_id);
   if (ids.length === 0) return [];
 
-  const groups = await supabase.from('groups').select('*').in('id', ids).order('name');
+  const groups = await supabase.from('groups').select(GROUP_COLUMNS).in('id', ids).order('name');
   if (groups.error) throw groups.error;
   return groups.data.flatMap((group) => {
     const membership = memberships.data.find((m) => m.group_id === group.id);
@@ -112,7 +116,7 @@ export async function fetchMyGroups(myId: string): Promise<MyGroup[]> {
 
 export async function fetchGroup(groupId: string): Promise<GroupDetail> {
   const [group, members] = await Promise.all([
-    supabase.from('groups').select('*').eq('id', groupId).single(),
+    supabase.from('groups').select(GROUP_COLUMNS).eq('id', groupId).single(),
     supabase.from('group_members').select('*').eq('group_id', groupId),
   ]);
   if (group.error) throw group.error;
@@ -135,7 +139,7 @@ export async function createGroup(name: string): Promise<Group> {
   const { data, error } = await supabase
     .from('groups')
     .insert({ name: name.trim() })
-    .select()
+    .select(GROUP_COLUMNS)
     .single();
   if (error) throw error;
   return data;
@@ -175,4 +179,62 @@ export async function removeMember(groupId: string, userId: string): Promise<voi
     .eq('group_id', groupId)
     .eq('user_id', userId);
   if (error) throw error;
+}
+
+// --- Códigos de invitación --------------------------------------------------------------------
+
+export type GroupPreview = {
+  groupId: string;
+  name: string;
+  memberCount: number;
+  isMember: boolean;
+};
+
+/** Quita guiones y espacios y pasa a mayúsculas: "abcd-efgh" → "ABCDEFGH". */
+export function normalizeInviteCode(code: string): string {
+  return code.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+}
+
+/** "ABCDEFGH" → "ABCD-EFGH", más fácil de leer y dictar. */
+export function formatInviteCode(code: string): string {
+  return code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
+}
+
+/** Enlace que abre la app en la pantalla de unirse (en Expo Go usa exp://, en la app real cuentalo://). */
+export function buildInviteLink(code: string): string {
+  return Linking.createURL(`/unirse/${code}`);
+}
+
+export async function fetchInviteCode(groupId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('get_group_invite_code', { p_group_id: groupId });
+  if (error) throw error;
+  return data;
+}
+
+export async function regenerateInviteCode(groupId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('regenerate_group_invite_code', {
+    p_group_id: groupId,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function previewGroupByCode(code: string): Promise<GroupPreview | null> {
+  const { data, error } = await supabase.rpc('preview_group_by_code', { p_code: code });
+  if (error) throw error;
+  const row = data[0];
+  return row
+    ? {
+        groupId: row.group_id,
+        name: row.name,
+        memberCount: row.member_count,
+        isMember: row.is_member,
+      }
+    : null;
+}
+
+export async function joinGroupByCode(code: string): Promise<string> {
+  const { data, error } = await supabase.rpc('join_group_by_code', { p_code: code });
+  if (error) throw error;
+  return data;
 }

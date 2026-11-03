@@ -45,6 +45,10 @@ function RootNavigator() {
           name="grupos/[id]/invitar"
           options={{ title: 'Invitar amigos', presentation: 'modal' }}
         />
+        <Stack.Screen
+          name="unirse/[code]"
+          options={{ title: 'Unirse a un grupo', presentation: 'modal' }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />

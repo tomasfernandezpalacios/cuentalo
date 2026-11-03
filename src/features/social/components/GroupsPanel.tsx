@@ -1,16 +1,18 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
+import { TextField } from '@/components/TextField';
 import { ErrorView } from '@/components/StateViews';
 import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 
-import type { MyGroup } from '../api';
+import { normalizeInviteCode, type MyGroup } from '../api';
 import { useAcceptInvitation, useMyGroups, useRemoveMember } from '../hooks';
 
 function showError(error: unknown) {
@@ -33,6 +35,7 @@ export function GroupsPanel() {
   return (
     <View style={styles.container}>
       <AppButton title="Crear grupo" onPress={() => router.push('/grupos/nuevo')} />
+      <JoinByCode />
 
       {invitations.length > 0 ? (
         <Section title="Invitaciones">
@@ -82,6 +85,42 @@ export function GroupsPanel() {
   );
 }
 
+/** Campo para escribir un código de invitación; abre la vista previa del grupo. */
+function JoinByCode() {
+  const [code, setCode] = useState('');
+  const normalized = normalizeInviteCode(code);
+
+  function submit() {
+    if (normalized.length === 0) return;
+    router.push({ pathname: '/unirse/[code]', params: { code: normalized } });
+    setCode('');
+  }
+
+  return (
+    <View style={styles.joinRow}>
+      <View style={styles.flex}>
+        <TextField
+          label="¿Tienes un código?"
+          value={code}
+          onChangeText={setCode}
+          placeholder="ABCD-EFGH"
+          autoCapitalize="characters"
+          autoCorrect={false}
+          maxLength={12}
+          onSubmitEditing={submit}
+          style={styles.codeInput}
+        />
+      </View>
+      <AppButton
+        title="Unirme"
+        onPress={submit}
+        disabled={normalized.length < 8}
+        style={styles.joinButton}
+      />
+    </View>
+  );
+}
+
 function GroupRow({ group }: { group: MyGroup }) {
   const colors = useThemeColors();
   return (
@@ -127,4 +166,7 @@ const styles = StyleSheet.create({
   detail: { fontSize: 14, fontFamily: fonts.detail },
   actions: { flexDirection: 'row', gap: 8, marginTop: 6 },
   flex: { flex: 1 },
+  joinRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
+  joinButton: { minWidth: 96 },
+  codeInput: { letterSpacing: 2, fontFamily: fonts.title },
 });

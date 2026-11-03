@@ -7,6 +7,7 @@ import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import { useUserId } from '@/features/auth/AuthProvider';
 import type { MemberWithProfile } from '@/features/social/api';
+import { InviteCodeCard } from '@/features/social/components/InviteCodeCard';
 import { PersonRow } from '@/features/social/components/PersonRow';
 import { useDeleteGroup, useGroup, useRemoveMember } from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
@@ -107,10 +108,14 @@ export default function GroupScreen() {
       <Stack.Screen options={{ title: name }} />
 
       {isOwner ? (
-        <AppButton
-          title="Invitar amigos"
-          onPress={() => router.push({ pathname: '/grupos/[id]/invitar', params: { id } })}
-        />
+        <>
+          <InviteCodeCard groupId={id} groupName={name} />
+          <AppButton
+            title="Invitar a amigos de la app"
+            variant="secondary"
+            onPress={() => router.push({ pathname: '/grupos/[id]/invitar', params: { id } })}
+          />
+        </>
       ) : null}
 
       <Section title={`Miembros (${active.length})`}>

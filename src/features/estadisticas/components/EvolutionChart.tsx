@@ -28,7 +28,9 @@ export function EvolutionChart({ series, name }: Props) {
       accessibilityLabel={`Gráfica de ${name}. ${description || 'Sin registros en este intervalo.'}`}
     >
       <BarChart
-        data={series.map((point) => ({ value: point.total, label: point.label }))}
+        // Un periodo puede quedar en negativo si un −1 deshace algo de un periodo anterior;
+        // la barra se queda en 0 para no descuadrar la gráfica.
+        data={series.map((point) => ({ value: Math.max(0, point.total), label: point.label }))}
         barWidth={18}
         spacing={12}
         initialSpacing={8}

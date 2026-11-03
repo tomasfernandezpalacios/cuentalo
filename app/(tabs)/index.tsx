@@ -9,7 +9,6 @@ import type { CounterWithTotal, EntryInput } from '@/features/contadores/api';
 import { CounterCard } from '@/features/contadores/components/CounterCard';
 import { EntryDialog } from '@/features/contadores/components/EntryDialog';
 import { useAddEntry, useCounterList, useRemoveOne } from '@/features/contadores/hooks';
-import { TodaySummary } from '@/features/estadisticas/components/TodaySummary';
 import { getErrorMessage } from '@/lib/errors';
 import { useThemeColors } from '@/lib/theme';
 
@@ -73,7 +72,6 @@ export default function CountersScreen() {
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />
         }
-        ListHeaderComponent={counters.length > 0 ? <TodaySummary /> : undefined}
         ListEmptyComponent={
           <EmptyView
             title="Aún no tienes contadores"

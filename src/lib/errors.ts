@@ -24,9 +24,16 @@ const POSTGRES_MESSAGES: Record<string, string> = {
   PGRST205: 'La base de datos no está actualizada. Falta ejecutar una migración en Supabase.',
 };
 
+// Errores lanzados a propósito desde nuestras funciones SQL (raise exception '…').
+const CUSTOM_MESSAGES: Record<string, string> = {
+  invalid_invite_code: 'Ese código no corresponde a ningún grupo.',
+  not_group_owner: 'Solo el administrador del grupo puede hacer esto.',
+};
+
 export function getErrorMessage(error: unknown): string {
   if (error && typeof error === 'object') {
     const { code, message } = error as { code?: unknown; message?: unknown };
+    if (typeof message === 'string' && CUSTOM_MESSAGES[message]) return CUSTOM_MESSAGES[message];
     if (typeof code === 'string') {
       const known = AUTH_MESSAGES[code] ?? POSTGRES_MESSAGES[code];
       if (known) return known;

@@ -80,14 +80,14 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - Petición del usuario (tras la Fase 2): la tarjeta de la lista es «nombre · +1 +5 −1 · total»
   (el +10 se quitó a petición del usuario), sin número de registros; mantener pulsado +1 abre otra cantidad. El detalle tiene los
   mismos botones más «Otra». Las actualizaciones optimistas tocan lista y detalle a la vez.
-- **−1 = deshacer 1** (decisión del usuario): la RPC `remove_one_from_counter` resta 1 a _mi_
-  último registro del contador (por `logged_at`) o lo borra si era ≤ 1. Nunca hay cantidades
-  negativas. **Fase 4:** en contadores compartidos `canRemove` debe usar _mi_ total, no el del
-  grupo.
+- **−1 = registro de −1** (decisión del usuario, que quiere verlo en el historial): la RPC
+  `remove_one_from_counter` inserta −1 solo si _mi_ total en el contador es ≥ 1, así nunca baja
+  de 0. Los −1 no cuentan en `entry_count`. **Fase 4:** en contadores compartidos `canRemove`
+  debe usar _mi_ total, no el del grupo.
 - Emoticono opcional por contador (`counters.emoji`), elegido de sugerencias o con el teclado.
   `CounterAvatar` lo muestra sobre fondo suave (`primarySoft`) o, si no hay, la inicial. La
-  tarjeta es «emoticono · nombre · +1 +5 −1 · total» y la lista empieza con `TodaySummary`
-  (registros de hoy y de esta semana).
+  tarjeta es «emoticono · nombre · +1 +5 −1 · total». El usuario **no quiere** resumen de
+  registros de hoy/semana en la pantalla de inicio (se quitó).
 - La unidad del contador es **opcional** (`counters.unit` puede ser null); usar
   `formatWithUnit()` para mostrar cantidades.
 - Fase 2: gráficas con `react-native-gifted-charts` (sencilla, funciona en Expo Go solo con
@@ -110,6 +110,12 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   rechazan borrando su fila. **El owner no puede salir: solo eliminar el grupo** (V1).
 - Fase 3: funciones `is_group_member` (activo), `is_group_participant` (activo o invitado) e
   `is_group_owner`, todas SECURITY DEFINER para evitar recursión en la RLS de group_members.
+- Unirse a grupos con **código de 8 caracteres** (`ABCD-EFGH`, alfabeto sin 0/O/1/I/L) o
+  **enlace** `cuentalo://unirse/CODIGO` (en Expo Go `exp://…/--/unirse/CODIGO`). Solo el owner
+  ve el código (`get_group_invite_code`; la columna no es legible directamente) y puede
+  cambiarlo. Con el código se entra aunque no seas amigo del owner (él decide a quién lo da).
+  Si se abre el enlace sin sesión, tras iniciar sesión hay que volver a abrirlo (V1).
+- «Amigos y grupos» se abre en la pestaña Grupos (petición del usuario).
 - Fase 3: los datos se refrescan al volver a la app (`focusManager` + `AppState`) y con
   "tirar para refrescar".
 

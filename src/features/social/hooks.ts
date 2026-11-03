@@ -9,8 +9,12 @@ import {
   deleteGroup,
   fetchFriendships,
   fetchGroup,
+  fetchInviteCode,
   fetchMyGroups,
   inviteToGroup,
+  joinGroupByCode,
+  previewGroupByCode,
+  regenerateInviteCode,
   removeMember,
   renameGroup,
   respondFriendRequest,
@@ -24,6 +28,8 @@ export const socialKeys = {
   groups: (userId: string) => [...socialKeys.all, 'groups', userId] as const,
   group: (groupId: string) => [...socialKeys.all, 'group', groupId] as const,
   search: (query: string) => [...socialKeys.all, 'search', query] as const,
+  inviteCode: (groupId: string) => [...socialKeys.all, 'invite-code', groupId] as const,
+  preview: (code: string) => [...socialKeys.all, 'preview', code] as const,
 };
 
 // Cualquier cambio social refresca amistades y grupos: son consultas pequeñas y así todas las
@@ -120,4 +126,26 @@ export function useRemoveMember() {
   return useSocialMutation(({ groupId, userId }: { groupId: string; userId: string }) =>
     removeMember(groupId, userId),
   );
+}
+
+// --- Códigos de invitación --------------------------------------------------------------------
+
+export function useInviteCode(groupId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: socialKeys.inviteCode(groupId),
+    queryFn: () => fetchInviteCode(groupId),
+    enabled,
+  });
+}
+
+export function useRegenerateInviteCode(groupId: string) {
+  return useSocialMutation(() => regenerateInviteCode(groupId));
+}
+
+export function useGroupPreview(code: string) {
+  return useQuery({ queryKey: socialKeys.preview(code), queryFn: () => previewGroupByCode(code) });
+}
+
+export function useJoinGroupByCode() {
+  return useSocialMutation(joinGroupByCode);
 }

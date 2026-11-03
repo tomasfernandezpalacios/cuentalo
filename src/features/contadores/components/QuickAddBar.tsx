@@ -61,7 +61,7 @@ export function QuickAddBar({
         disabled={!canRemove}
         accessibilityRole="button"
         accessibilityLabel="Restar 1"
-        accessibilityHint="Resta 1 a tu último registro"
+        accessibilityHint="Guarda una resta de 1 en el historial"
         accessibilityState={{ disabled: !canRemove }}
         hitSlop={compact ? 4 : 0}
         style={({ pressed }) => [
