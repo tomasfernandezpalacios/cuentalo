@@ -143,7 +143,21 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   que lleva cada participante (`displayTotal`).
 - La clasificación se refresca al registrar (misma caché), al volver a la app y al tirar para
   refrescar. Sin tiempo real (Supabase Realtime) en la V1.
+- Fase 5: eliminar cuenta con la RPC `delete_my_account` (SECURITY DEFINER, sin service_role).
+  Antes de borrar: los grupos que administra pasan al miembro activo más antiguo (o se borran
+  si no queda nadie) y sus contadores compartidos pasan al owner del grupo, para no borrar los
+  registros de los demás. Doble confirmación en la app; después `signOut({ scope: 'local' })`.
+- Fase 5: perfil con nombre, @usuario, email (solo lo ve uno mismo), grupos, editar perfil,
+  cerrar sesión y eliminar cuenta.
+- Fase 5: icono «+1» en Ubuntu Bold sobre `#5B4BDB`, generado con Pillow (script fuera del repo;
+  rehacerlo si cambia el color). Splash con `expo-splash-screen`: se mantiene hasta tener las
+  fuentes y la sesión; fondo claro/oscuro según el sistema.
+- Fase 5: un enlace de invitación abierto sin sesión se recuerda (`usePendingInvite`) y se abre
+  tras iniciar sesión.
+- Accesibilidad: roles y etiquetas en botones y cabeceras, áreas táctiles ≥ 44 pt (con
+  `hitSlop`), texto escalable con tope en la fila compacta de la tarjeta, colores con contraste
+  AA en ambos modos y el indicador de refresco con el color de la app.
 
-## Pendiente para la Fase 5 (cambios estéticos pedidos por el usuario)
+## Cambios estéticos pendientes
 
-- (vacío por ahora)
+- (ninguno por ahora)

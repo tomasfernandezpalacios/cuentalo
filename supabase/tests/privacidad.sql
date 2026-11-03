@@ -313,6 +313,24 @@ begin
   if n <> 1 then raise exception 'FALLO: el grupo sigue viendo registros de quien salió'; end if;
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- 5. Eliminar cuenta: solo borra la propia
+-- ---------------------------------------------------------------------------
+
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000c3", "role": "authenticated"}', true);
+select public.delete_my_account();
+
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.profiles where id = '00000000-0000-0000-0000-0000000000c3';
+  if n <> 0 then raise exception 'FALLO: eliminar cuenta no borra el perfil'; end if;
+
+  select count(*) into n from public.profiles where id = '00000000-0000-0000-0000-0000000000a1';
+  if n <> 1 then raise exception 'FALLO: eliminar una cuenta afecta a otros usuarios'; end if;
+end $$;
+
 -- Deshace todo: no queda ningún usuario ni dato de prueba.
 rollback;
 

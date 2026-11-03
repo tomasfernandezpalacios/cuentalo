@@ -69,6 +69,7 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
           style={[styles.total, { color: colors.primary }]}
           numberOfLines={1}
           adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.3}
         >
           {/* En un compartido la tarjeta muestra lo mío; el total del grupo está en el detalle. */}
           {formatAmount(counter.displayTotal)}

@@ -121,7 +121,7 @@ function JoinByCode() {
   );
 }
 
-function GroupRow({ group }: { group: MyGroup }) {
+export function GroupRow({ group }: { group: MyGroup }) {
   const colors = useThemeColors();
   return (
     <Pressable

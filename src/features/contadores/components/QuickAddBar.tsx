@@ -53,7 +53,12 @@ export function QuickAddBar({
             { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 },
           ]}
         >
-          <Text style={[label, { color: colors.onPrimary }]}>+{amount}</Text>
+          <Text
+            maxFontSizeMultiplier={compact ? 1.2 : 1.5}
+            style={[label, { color: colors.onPrimary }]}
+          >
+            +{amount}
+          </Text>
         </Pressable>
       ))}
       <Pressable
@@ -75,7 +80,9 @@ export function QuickAddBar({
           },
         ]}
       >
-        <Text style={[label, { color: colors.text }]}>−1</Text>
+        <Text maxFontSizeMultiplier={compact ? 1.2 : 1.5} style={[label, { color: colors.text }]}>
+          −1
+        </Text>
       </Pressable>
       {onCustom ? (
         <Pressable
@@ -93,7 +100,9 @@ export function QuickAddBar({
             },
           ]}
         >
-          <Text style={[label, { color: colors.text }]}>Otra</Text>
+          <Text maxFontSizeMultiplier={compact ? 1.2 : 1.5} style={[label, { color: colors.text }]}>
+            Otra
+          </Text>
         </Pressable>
       ) : null}
     </View>

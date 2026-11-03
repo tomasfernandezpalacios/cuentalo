@@ -72,7 +72,12 @@ export default function CountersScreen() {
         )}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />
+          <RefreshControl
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            refreshing={isRefetching}
+            onRefresh={() => void refetch()}
+          />
         }
         ListEmptyComponent={
           <EmptyView

@@ -32,7 +32,14 @@ export default function SocialScreen() {
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      refreshControl={
+        <RefreshControl
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+          refreshing={refreshing}
+          onRefresh={refresh}
+        />
+      }
     >
       <SegmentedControl options={TABS} value={tab} onChange={setTab} />
       {tab === 'groups' ? <GroupsPanel /> : <FriendsPanel />}

@@ -198,6 +198,10 @@ export type Database = {
         Args: { p_counter_id: string };
         Returns: number;
       };
+      delete_my_account: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
       get_leaderboard: {
         Args: { counter_id: string; period: string };
         Returns: {

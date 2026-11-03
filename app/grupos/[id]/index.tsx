@@ -104,7 +104,12 @@ export default function GroupScreen() {
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
       refreshControl={
-        <RefreshControl refreshing={group.isRefetching} onRefresh={() => void group.refetch()} />
+        <RefreshControl
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+          refreshing={group.isRefetching}
+          onRefresh={() => void group.refetch()}
+        />
       }
     >
       <Stack.Screen options={{ title: name }} />

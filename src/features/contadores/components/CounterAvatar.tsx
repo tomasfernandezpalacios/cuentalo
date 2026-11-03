@@ -26,9 +26,14 @@ export function CounterAvatar({ emoji, name, size = 44 }: Props) {
       ]}
     >
       {emoji ? (
-        <Text style={{ fontSize: size * 0.55 }}>{emoji}</Text>
+        <Text style={{ fontSize: size * 0.55 }} allowFontScaling={false}>
+          {emoji}
+        </Text>
       ) : (
-        <Text style={{ fontSize: size * 0.45, fontFamily: fonts.title, color: colors.primary }}>
+        <Text
+          allowFontScaling={false}
+          style={{ fontSize: size * 0.45, fontFamily: fonts.title, color: colors.primary }}
+        >
           {name.trim().charAt(0).toUpperCase()}
         </Text>
       )}

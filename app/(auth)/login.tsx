@@ -31,7 +31,9 @@ export default function LoginScreen() {
   return (
     <FormScreen>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Cuéntalo</Text>
+        <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
+          Cuéntalo
+        </Text>
         <Text style={[styles.subtitle, { color: colors.textMuted }]}>
           Cuenta lo que haces y compártelo con tus amigos.
         </Text>

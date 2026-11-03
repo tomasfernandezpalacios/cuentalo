@@ -96,6 +96,8 @@ export default function StatsScreen() {
       contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl
+          tintColor={colors.primary}
+          colors={[colors.primary]}
           refreshing={daily.isRefetching}
           onRefresh={() => {
             counters.refetch();

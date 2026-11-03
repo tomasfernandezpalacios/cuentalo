@@ -1,20 +1,32 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 
-import { LoadingView } from '@/components/StateViews';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
+import { usePendingInvite } from '@/features/social/pendingInvite';
 import { queryClient } from '@/lib/queryClient';
 import { fonts, useThemeColors } from '@/lib/theme';
+
+// La pantalla de carga (icono sobre fondo liso, ver app.json) se mantiene hasta tener las
+// fuentes y saber si hay sesión, para no enseñar un parpadeo de pantallas a medio cargar.
+SplashScreen.preventAutoHideAsync();
+SplashScreen.setOptions({ fade: true, duration: 200 });
 
 function RootNavigator() {
   const { session, isLoading } = useAuth();
   const colors = useThemeColors();
-
-  if (isLoading) return <LoadingView />;
-
   const isSignedIn = session !== null;
+  usePendingInvite(isSignedIn);
+
+  useEffect(() => {
+    if (!isLoading) SplashScreen.hideAsync();
+  }, [isLoading]);
+
+  if (isLoading) return null;
+
   return (
     <Stack
       screenOptions={{
@@ -46,6 +58,10 @@ function RootNavigator() {
           options={{ title: 'Invitar amigos', presentation: 'modal' }}
         />
         <Stack.Screen
+          name="perfil/editar"
+          options={{ title: 'Editar perfil', presentation: 'modal' }}
+        />
+        <Stack.Screen
           name="unirse/[code]"
           options={{ title: 'Unirse a un grupo', presentation: 'modal' }}
         />
@@ -64,7 +80,7 @@ export default function RootLayout() {
   });
 
   // Si las fuentes fallan seguimos con las del sistema en vez de bloquear la app.
-  if (!fontsLoaded && !fontError) return <LoadingView />;
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <QueryClientProvider client={queryClient}>
