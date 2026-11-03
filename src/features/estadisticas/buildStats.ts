@@ -5,11 +5,11 @@ import type { Period, Summary } from './periods';
 export type CounterStats = {
   id: string;
   name: string;
-  unit: string;
+  unit: string | null;
   archived: boolean;
 } & Summary;
 
-const UNKNOWN_COUNTER = { name: 'Contador sin acceso', unit: '', archived: true };
+const UNKNOWN_COUNTER = { name: 'Contador sin acceso', unit: null, archived: true };
 
 /**
  * Une los resúmenes por contador con los datos de cada contador para un periodo. Incluye los

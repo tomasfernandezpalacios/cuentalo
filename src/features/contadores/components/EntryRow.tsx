@@ -1,13 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { formatAmount, formatDateTime } from '@/lib/format';
+import { formatDateTime, formatWithUnit } from '@/lib/format';
 import { useThemeColors } from '@/lib/theme';
 
 import type { Entry } from '../api';
 
 type Props = {
   entry: Entry;
-  unit: string;
+  unit: string | null;
   onPress: () => void;
 };
 
@@ -32,7 +32,7 @@ export function EntryRow({ entry, unit, onPress }: Props) {
         ) : null}
       </View>
       <Text style={[styles.amount, { color: colors.text }]}>
-        +{formatAmount(entry.amount)} {unit}
+        +{formatWithUnit(entry.amount, unit)}
       </Text>
     </Pressable>
   );

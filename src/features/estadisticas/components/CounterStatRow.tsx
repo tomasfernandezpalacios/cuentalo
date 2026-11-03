@@ -1,11 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { formatAmount, pluralize } from '@/lib/format';
+import { formatWithUnit, pluralize } from '@/lib/format';
 import { useThemeColors } from '@/lib/theme';
 
 type Props = {
   name: string;
-  unit: string;
+  unit: string | null;
   total: number;
   entryCount: number;
   /** Posición en el ranking de más usados (opcional). */
@@ -28,7 +28,7 @@ export function CounterStatRow({ name, unit, total, entryCount, rank }: Props) {
         </Text>
       </View>
       <Text style={[styles.total, { color: colors.text }]} numberOfLines={1}>
-        {formatAmount(total)} {unit}
+        {formatWithUnit(total, unit)}
       </Text>
     </View>
   );

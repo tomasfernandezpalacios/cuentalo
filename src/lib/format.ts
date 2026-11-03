@@ -16,6 +16,11 @@ export function formatDateTime(value: string | Date): string {
   return dateTimeFormat.format(typeof value === 'string' ? new Date(value) : value);
 }
 
+/** "12 cervezas", o solo "12" si el contador no tiene unidad. */
+export function formatWithUnit(value: number, unit: string | null): string {
+  return unit ? `${formatAmount(value)} ${unit}` : formatAmount(value);
+}
+
 /** "3 registros", "1 registro". */
 export function pluralize(count: number, singular: string, plural: string): string {
   return `${formatAmount(count)} ${count === 1 ? singular : plural}`;

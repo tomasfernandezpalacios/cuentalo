@@ -8,7 +8,7 @@ import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import type { CounterWithTotal, EntryInput } from '@/features/contadores/api';
 import { CounterCard } from '@/features/contadores/components/CounterCard';
 import { EntryDialog } from '@/features/contadores/components/EntryDialog';
-import { useAddEntry, useCounterList } from '@/features/contadores/hooks';
+import { useAddEntry, useCounterList, useRemoveOne } from '@/features/contadores/hooks';
 import { getErrorMessage } from '@/lib/errors';
 import { useThemeColors } from '@/lib/theme';
 
@@ -21,6 +21,7 @@ export default function CountersScreen() {
   const { data, error, isPending, isRefetching, refetch } = useCounterList();
   const [showArchived, setShowArchived] = useState(false);
   const addEntry = useAddEntry();
+  const removeOne = useRemoveOne();
   // Contador para el que se está escribiendo una cantidad personalizada.
   const [customFor, setCustomFor] = useState<CounterWithTotal | null>(null);
 
@@ -62,11 +63,8 @@ export default function CountersScreen() {
           <CounterCard
             counter={item}
             onPress={() => router.push({ pathname: '/contadores/[id]', params: { id: item.id } })}
-            onQuickAdd={
-              item.archived
-                ? undefined
-                : () => add(item.id, { amount: 1, loggedAt: new Date(), note: null })
-            }
+            onAdd={(amount) => add(item.id, { amount, loggedAt: new Date(), note: null })}
+            onRemoveOne={() => removeOne.mutate(item.id, { onError: showError })}
             onCustomAdd={() => setCustomFor(item)}
           />
         )}
@@ -94,7 +92,7 @@ export default function CountersScreen() {
       />
       <EntryDialog
         visible={customFor !== null}
-        unit={customFor?.unit ?? ''}
+        unit={customFor?.unit ?? null}
         saving={addEntry.isPending}
         onSave={(input) => customFor && add(customFor.id, input, () => setCustomFor(null))}
         onClose={() => setCustomFor(null)}

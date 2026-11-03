@@ -25,7 +25,7 @@ export type Database = {
           id: string;
           owner_id: string;
           name: string;
-          unit: string;
+          unit: string | null;
           streak_enabled: boolean;
           archived: boolean;
           created_at: string;
@@ -34,14 +34,14 @@ export type Database = {
           id?: string;
           owner_id?: string;
           name: string;
-          unit: string;
+          unit?: string | null;
           streak_enabled?: boolean;
           archived?: boolean;
           created_at?: string;
         };
         Update: {
           name?: string;
-          unit?: string;
+          unit?: string | null;
           streak_enabled?: boolean;
           archived?: boolean;
         };
@@ -101,6 +101,10 @@ export type Database = {
         Returns: boolean;
       };
       can_log_to_counter: {
+        Args: { p_counter_id: string };
+        Returns: boolean;
+      };
+      remove_one_from_counter: {
         Args: { p_counter_id: string };
         Returns: boolean;
       };

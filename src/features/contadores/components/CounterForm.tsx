@@ -6,7 +6,7 @@ import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
 import { getErrorMessage } from '@/lib/errors';
 import { useThemeColors } from '@/lib/theme';
-import { LIMITS, validateRequiredText } from '@/lib/validation';
+import { LIMITS, validateOptionalText, validateRequiredText } from '@/lib/validation';
 
 import type { CounterInput } from '../api';
 
@@ -29,7 +29,7 @@ export function CounterForm({ initial, submitTitle, saving, error, onSubmit, foo
   function handleSubmit() {
     const next = {
       name: validateRequiredText(name, 'El nombre', LIMITS.counterName),
-      unit: validateRequiredText(unit, 'La unidad', LIMITS.unit),
+      unit: validateOptionalText(unit, 'La unidad', LIMITS.unit),
     };
     setErrors(next);
     if (!next.name && !next.unit) onSubmit({ name, unit });
@@ -47,11 +47,11 @@ export function CounterForm({ initial, submitTitle, saving, error, onSubmit, foo
         autoFocus={!initial}
       />
       <TextField
-        label="Unidad"
+        label="Unidad (opcional)"
         value={unit}
         onChangeText={setUnit}
         error={errors.unit}
-        placeholder="ej. cervezas, libros, km"
+        placeholder="ej. cervezas, libros, km. Déjalo vacío si no hace falta"
         maxLength={LIMITS.unit}
         autoCapitalize="none"
       />

@@ -176,7 +176,7 @@ export default function StatsScreen() {
             value={granularity}
             onChange={setGranularity}
           />
-          <EvolutionChart series={series} unit={chartCounter.unit} />
+          <EvolutionChart series={series} name={chartCounter.name} />
         </Section>
       ) : null}
     </ScrollView>

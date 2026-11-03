@@ -1,25 +1,30 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { formatAmount, pluralize } from '@/lib/format';
+import { formatAmount, formatWithUnit } from '@/lib/format';
 import { useThemeColors } from '@/lib/theme';
 
 import type { CounterWithTotal } from '../api';
 
+import { QuickAddBar } from './QuickAddBar';
+
 type Props = {
   counter: CounterWithTotal;
   onPress: () => void;
-  /** Botón +1 en la propia tarjeta; manteniéndolo pulsado se pide otra cantidad. */
-  onQuickAdd?: () => void;
-  onCustomAdd?: () => void;
+  onAdd: (amount: number) => void;
+  onRemoveOne: () => void;
+  /** Mantener pulsado +1 abre la cantidad personalizada. */
+  onCustomAdd: () => void;
 };
 
-export function CounterCard({ counter, onPress, onQuickAdd, onCustomAdd }: Props) {
+/** Tarjeta de la lista: nombre · +1 +5 +10 −1 · total. */
+export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd }: Props) {
   const colors = useThemeColors();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${counter.name}: ${formatAmount(counter.total)} ${counter.unit}`}
+      accessibilityLabel={`${counter.name}: ${formatWithUnit(counter.total, counter.unit)}`}
+      accessibilityHint="Abre el contador"
       style={({ pressed }) => [
         styles.card,
         {
@@ -29,37 +34,40 @@ export function CounterCard({ counter, onPress, onQuickAdd, onCustomAdd }: Props
         },
       ]}
     >
-      <View style={styles.info}>
-        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+      <View style={styles.name}>
+        <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
           {counter.name}
         </Text>
-        <Text style={[styles.meta, { color: colors.textMuted }]}>
-          {counter.archived ? 'Archivado · ' : ''}
-          {pluralize(counter.entryCount, 'registro', 'registros')}
-        </Text>
+        {counter.archived ? (
+          <Text style={[styles.unit, { color: colors.textMuted }]}>Archivado</Text>
+        ) : null}
       </View>
+
+      {counter.archived ? null : (
+        <QuickAddBar
+          compact
+          unit={counter.unit}
+          onAdd={onAdd}
+          onRemoveOne={onRemoveOne}
+          canRemove={counter.total > 0}
+          onLongPressAdd={onCustomAdd}
+        />
+      )}
+
       <View style={styles.totalBox}>
-        <Text style={[styles.total, { color: colors.primary }]}>{formatAmount(counter.total)}</Text>
-        <Text style={[styles.meta, { color: colors.textMuted }]} numberOfLines={1}>
-          {counter.unit}
-        </Text>
-      </View>
-      {onQuickAdd ? (
-        <Pressable
-          onPress={onQuickAdd}
-          onLongPress={onCustomAdd}
-          accessibilityRole="button"
-          accessibilityLabel={`Añadir 1 a ${counter.name}`}
-          accessibilityHint="Mantén pulsado para añadir otra cantidad"
-          hitSlop={6}
-          style={({ pressed }) => [
-            styles.quickAdd,
-            { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 },
-          ]}
+        <Text
+          style={[styles.total, { color: colors.primary }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
         >
-          <Text style={[styles.quickAddLabel, { color: colors.onPrimary }]}>+1</Text>
-        </Pressable>
-      ) : null}
+          {formatAmount(counter.total)}
+        </Text>
+        {counter.unit ? (
+          <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
+            {counter.unit}
+          </Text>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
@@ -68,22 +76,15 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: 16,
     borderWidth: 1,
-    gap: 12,
+    gap: 10,
   },
-  info: { flex: 1, gap: 4 },
-  name: { fontSize: 17, fontWeight: '600' },
-  meta: { fontSize: 13 },
-  totalBox: { alignItems: 'flex-end', maxWidth: '35%' },
-  total: { fontSize: 24, fontWeight: '800' },
-  quickAdd: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickAddLabel: { fontSize: 17, fontWeight: '700' },
+  name: { flex: 1, gap: 2 },
+  nameText: { fontSize: 19, fontWeight: '700' },
+  totalBox: { alignItems: 'flex-end', minWidth: 44, maxWidth: 76 },
+  total: { fontSize: 22, fontWeight: '800' },
+  unit: { fontSize: 12 },
 });

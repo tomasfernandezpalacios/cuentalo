@@ -11,7 +11,7 @@ import type { Entry, EntryInput } from '../api';
 
 type Props = {
   visible: boolean;
-  unit: string;
+  unit: string | null;
   /** Si se pasa, el diálogo edita ese registro; si no, crea uno nuevo. */
   entry?: Entry | null;
   saving?: boolean;
@@ -57,7 +57,7 @@ function EntryForm({ unit, entry, saving, onSave, onDelete, onClose }: Omit<Prop
           {entry ? 'Editar registro' : 'Añadir cantidad'}
         </Text>
         <TextField
-          label={`Cantidad (${unit})`}
+          label={unit ? `Cantidad (${unit})` : 'Cantidad'}
           value={amount}
           onChangeText={setAmount}
           error={error}

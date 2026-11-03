@@ -8,10 +8,11 @@ import type { SeriesPoint } from '../periods';
 
 type Props = {
   series: SeriesPoint[];
-  unit: string;
+  /** Nombre del contador, para el texto de accesibilidad. */
+  name: string;
 };
 
-export function EvolutionChart({ series, unit }: Props) {
+export function EvolutionChart({ series, name }: Props) {
   const colors = useThemeColors();
   const total = series.reduce((sum, point) => sum + point.total, 0);
 
@@ -24,7 +25,7 @@ export function EvolutionChart({ series, unit }: Props) {
   return (
     <View
       accessible
-      accessibilityLabel={`Gráfica de ${unit}. ${description || 'Sin registros en este intervalo.'}`}
+      accessibilityLabel={`Gráfica de ${name}. ${description || 'Sin registros en este intervalo.'}`}
     >
       <BarChart
         data={series.map((point) => ({ value: point.total, label: point.label }))}

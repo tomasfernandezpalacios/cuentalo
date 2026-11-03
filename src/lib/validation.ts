@@ -32,6 +32,11 @@ export function validateRequiredText(value: string, label: string, max: number):
   return null;
 }
 
+/** Como validateRequiredText, pero acepta el texto vacío. */
+export function validateOptionalText(value: string, label: string, max: number): string | null {
+  return value.trim() === '' ? null : validateRequiredText(value, label, max);
+}
+
 export function normalizeUsername(value: string): string {
   return value.trim().toLowerCase();
 }

@@ -13,10 +13,11 @@ import {
   useCounter,
   useDeleteEntry,
   useEntries,
+  useRemoveOne,
   useUpdateEntry,
 } from '@/features/contadores/hooks';
 import { getErrorMessage } from '@/lib/errors';
-import { formatAmount, pluralize } from '@/lib/format';
+import { formatAmount, formatWithUnit, pluralize } from '@/lib/format';
 import { useThemeColors } from '@/lib/theme';
 
 // El diálogo está cerrado (null), creando un registro ('new') o editando uno (Entry).
@@ -28,6 +29,7 @@ export default function CounterDetailScreen() {
   const counter = useCounter(id);
   const entries = useEntries(id);
   const addEntry = useAddEntry();
+  const removeOne = useRemoveOne();
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -76,15 +78,21 @@ export default function CounterDetailScreen() {
       <View
         style={styles.totalBox}
         accessible
-        accessibilityLabel={`Total: ${formatAmount(total)} ${unit}`}
+        accessibilityLabel={`Total: ${formatWithUnit(total, unit)}`}
       >
         <Text style={[styles.total, { color: colors.text }]}>{formatAmount(total)}</Text>
-        <Text style={[styles.unit, { color: colors.textMuted }]}>{unit}</Text>
+        {unit ? <Text style={[styles.unit, { color: colors.textMuted }]}>{unit}</Text> : null}
         <Text style={[styles.count, { color: colors.textMuted }]}>
           {pluralize(entryCount, 'registro', 'registros')}
         </Text>
       </View>
-      <QuickAddBar unit={unit} onAdd={quickAdd} onCustom={() => setDialog('new')} />
+      <QuickAddBar
+        unit={unit}
+        onAdd={quickAdd}
+        onRemoveOne={() => removeOne.mutate(id, { onError: showError })}
+        canRemove={total > 0}
+        onCustom={() => setDialog('new')}
+      />
       <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
         Historial
       </Text>

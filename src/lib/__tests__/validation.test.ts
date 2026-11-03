@@ -1,6 +1,7 @@
 import {
   parseAmount,
   validateEmail,
+  validateOptionalText,
   validatePassword,
   validateRequiredText,
   validateUsername,
@@ -35,6 +36,14 @@ describe('validateRequiredText', () => {
 
   it('acepta textos válidos', () => {
     expect(validateRequiredText(' Cervezas ', 'El nombre', 10)).toBeNull();
+  });
+});
+
+describe('validateOptionalText', () => {
+  it('acepta el texto vacío pero sigue limitando la longitud', () => {
+    expect(validateOptionalText('  ', 'La unidad', 5)).toBeNull();
+    expect(validateOptionalText('km', 'La unidad', 5)).toBeNull();
+    expect(validateOptionalText('kilómetros', 'La unidad', 5)).not.toBeNull();
   });
 });
 

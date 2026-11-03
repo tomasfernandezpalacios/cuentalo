@@ -49,7 +49,7 @@ export default function EditCounterScreen() {
 
   return (
     <CounterForm
-      initial={{ name, unit }}
+      initial={{ name, unit: unit ?? '' }}
       submitTitle="Guardar cambios"
       saving={update.isPending}
       error={update.error}

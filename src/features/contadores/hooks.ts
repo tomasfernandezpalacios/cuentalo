@@ -8,6 +8,7 @@ import {
   fetchCounter,
   fetchCounters,
   fetchEntries,
+  removeOne,
   updateCounter,
   updateEntry,
   type CounterInput,
@@ -23,7 +24,7 @@ export const counterKeys = {
 };
 
 // Tras cualquier cambio refrescamos todo lo de contadores: son pocas consultas y así la lista,
-// el detalle y (en la Fase 2) las estadísticas nunca se desincronizan.
+// el detalle y las estadísticas nunca se desincronizan.
 function invalidateCounters(queryClient: QueryClient) {
   return queryClient.invalidateQueries({ queryKey: counterKeys.all });
 }
@@ -76,44 +77,62 @@ export function useDeleteCounter(id: string) {
 
 // --- Registros --------------------------------------------------------------
 
-function addToTotal(counter: CounterWithTotal, amount: number): CounterWithTotal {
-  return { ...counter, total: counter.total + amount, entryCount: counter.entryCount + 1 };
-}
+type TotalChange = (counter: CounterWithTotal) => CounterWithTotal;
 
 /**
- * Añadir un registro actualiza el total en pantalla al instante (actualización optimista), tanto
- * en la lista como en el detalle, y si el servidor falla lo deshace. Así los botones +1/+5/+10
- * se sienten inmediatos.
+ * Aplica un cambio al total de un contador en la caché (lista y detalle) antes de que responda
+ * el servidor, y devuelve lo necesario para deshacerlo si falla. Así los botones se sienten
+ * inmediatos.
  */
+async function applyOptimistic(queryClient: QueryClient, counterId: string, change: TotalChange) {
+  const detailKey = counterKeys.detail(counterId);
+  const listKey = counterKeys.list();
+  await queryClient.cancelQueries({ queryKey: counterKeys.all });
+
+  const previousDetail = queryClient.getQueryData<CounterWithTotal>(detailKey);
+  const previousList = queryClient.getQueryData<CounterWithTotal[]>(listKey);
+  if (previousDetail) queryClient.setQueryData(detailKey, change(previousDetail));
+  if (previousList) {
+    queryClient.setQueryData(
+      listKey,
+      previousList.map((c) => (c.id === counterId ? change(c) : c)),
+    );
+  }
+  return { detailKey, listKey, previousDetail, previousList };
+}
+
+type OptimisticContext = Awaited<ReturnType<typeof applyOptimistic>>;
+
+function rollback(queryClient: QueryClient, context: OptimisticContext | undefined) {
+  if (!context) return;
+  queryClient.setQueryData(context.detailKey, context.previousDetail);
+  queryClient.setQueryData(context.listKey, context.previousList);
+}
+
 export function useAddEntry() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ counterId, input }: { counterId: string; input: EntryInput }) =>
       createEntry(counterId, input),
-    onMutate: async ({ counterId, input }) => {
-      const detailKey = counterKeys.detail(counterId);
-      const listKey = counterKeys.list();
-      await queryClient.cancelQueries({ queryKey: counterKeys.all });
+    onMutate: ({ counterId, input }) =>
+      applyOptimistic(queryClient, counterId, (c) => ({
+        ...c,
+        total: c.total + input.amount,
+        entryCount: c.entryCount + 1,
+      })),
+    onError: (_error, _variables, context) => rollback(queryClient, context),
+    onSettled: () => invalidateCounters(queryClient),
+  });
+}
 
-      const previousDetail = queryClient.getQueryData<CounterWithTotal>(detailKey);
-      const previousList = queryClient.getQueryData<CounterWithTotal[]>(listKey);
-      if (previousDetail) {
-        queryClient.setQueryData(detailKey, addToTotal(previousDetail, input.amount));
-      }
-      if (previousList) {
-        queryClient.setQueryData(
-          listKey,
-          previousList.map((c) => (c.id === counterId ? addToTotal(c, input.amount) : c)),
-        );
-      }
-      return { detailKey, listKey, previousDetail, previousList };
-    },
-    onError: (_error, _variables, context) => {
-      if (!context) return;
-      queryClient.setQueryData(context.detailKey, context.previousDetail);
-      queryClient.setQueryData(context.listKey, context.previousList);
-    },
+/** Botón -1: resta 1 a mi último registro. El número de registros lo corrige el servidor. */
+export function useRemoveOne() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (counterId: string) => removeOne(counterId),
+    onMutate: (counterId) =>
+      applyOptimistic(queryClient, counterId, (c) => ({ ...c, total: Math.max(0, c.total - 1) })),
+    onError: (_error, _counterId, context) => rollback(queryClient, context),
     onSettled: () => invalidateCounters(queryClient),
   });
 }

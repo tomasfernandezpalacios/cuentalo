@@ -7,8 +7,13 @@ export type CounterTotal = Views<'counter_totals'>;
 
 export type CounterWithTotal = Counter & { total: number; entryCount: number };
 
+/** La unidad es opcional: una cadena vacía se guarda como null. */
 export type CounterInput = { name: string; unit: string };
 export type EntryInput = { amount: number; loggedAt: Date; note: string | null };
+
+function normalizeUnit(unit: string): string | null {
+  return unit.trim() || null;
+}
 
 function withTotal(counter: Counter, totals: CounterTotal[]): CounterWithTotal {
   const total = totals.find((t) => t.counter_id === counter.id);
@@ -40,7 +45,7 @@ export async function fetchCounter(id: string): Promise<CounterWithTotal> {
 export async function createCounter({ name, unit }: CounterInput): Promise<Counter> {
   const { data, error } = await supabase
     .from('counters')
-    .insert({ name: name.trim(), unit: unit.trim() })
+    .insert({ name: name.trim(), unit: normalizeUnit(unit) })
     .select()
     .single();
   if (error) throw error;
@@ -53,7 +58,11 @@ export async function updateCounter(
 ): Promise<void> {
   const { error } = await supabase
     .from('counters')
-    .update({ name: patch.name?.trim(), unit: patch.unit?.trim(), archived: patch.archived })
+    .update({
+      name: patch.name?.trim(),
+      unit: patch.unit === undefined ? undefined : normalizeUnit(patch.unit),
+      archived: patch.archived,
+    })
     .eq('id', id);
   if (error) throw error;
 }
@@ -94,6 +103,15 @@ export async function updateEntry(id: string, input: EntryInput): Promise<void> 
     .update({ amount: input.amount, logged_at: input.loggedAt.toISOString(), note: input.note })
     .eq('id', id);
   if (error) throw error;
+}
+
+/** Resta 1 a mi último registro del contador (lo borra si era de 1 o menos). */
+export async function removeOne(counterId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('remove_one_from_counter', {
+    p_counter_id: counterId,
+  });
+  if (error) throw error;
+  return data;
 }
 
 export async function deleteEntry(id: string): Promise<void> {
