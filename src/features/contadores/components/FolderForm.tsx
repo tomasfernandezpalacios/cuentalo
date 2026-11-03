@@ -67,6 +67,8 @@ export function FolderForm({ folder }: Props) {
       <Stack.Screen
         options={{
           title: folder ? 'Editar carpeta' : 'Nueva carpeta',
+          // En Android el título va pegado a la izquierda; centrado no choca con «Cancelar».
+          headerTitleAlign: 'center',
           headerLeft: () => (
             <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={10}>
               <Text style={[styles.headerButton, { color: colors.textMuted }]}>Cancelar</Text>
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   list: { padding: 16 },
   header: { gap: 14, marginBottom: 8 },
-  headerButton: { fontSize: 16, fontFamily: fonts.title },
+  headerButton: { fontSize: 16, fontFamily: fonts.title, paddingHorizontal: 8 },
   detail: { fontSize: 14, fontFamily: fonts.detail },
   empty: { textAlign: 'center', paddingVertical: 24 },
   search: {
