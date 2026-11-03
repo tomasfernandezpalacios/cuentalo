@@ -126,7 +126,7 @@ export default function StatsFiltersScreen() {
                             { color: inAll ? colors.onPrimary : colors.text },
                           ]}
                         >
-                          📁 {folder.name}
+                          {folder.name}
                         </Text>
                       </Pressable>
                     );
