@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
 
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
@@ -74,5 +74,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 16, fontWeight: '600' },
+  title: { fontSize: 16, fontFamily: fonts.title },
 });

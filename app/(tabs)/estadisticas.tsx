@@ -18,7 +18,7 @@ import {
   type Granularity,
   type Period,
 } from '@/features/estadisticas/periods';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: 'week', label: 'Semana' },
@@ -123,7 +123,9 @@ export default function StatsScreen() {
             />
           ))
         ) : (
-          <Text style={{ color: colors.textMuted }}>Nada registrado en este periodo.</Text>
+          <Text style={{ color: colors.textMuted, fontFamily: fonts.detail }}>
+            Nada registrado en este periodo.
+          </Text>
         )}
       </Section>
 
@@ -163,7 +165,10 @@ export default function StatsScreen() {
                   ]}
                 >
                   <Text
-                    style={{ color: selected ? colors.onPrimary : colors.text, fontWeight: '600' }}
+                    style={{
+                      color: selected ? colors.onPrimary : colors.text,
+                      fontFamily: fonts.title,
+                    }}
                   >
                     {s.name}
                   </Text>
@@ -199,7 +204,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 24 },
   tiles: { flexDirection: 'row', gap: 12 },
   section: { gap: 12 },
-  sectionTitle: { fontSize: 18, fontWeight: '700' },
+  sectionTitle: { fontSize: 18, fontFamily: fonts.title },
   chips: { gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
 });

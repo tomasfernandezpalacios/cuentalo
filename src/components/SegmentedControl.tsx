@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 type Option<T extends string> = { value: T; label: string };
 
@@ -49,5 +49,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { fontSize: 14, fontWeight: '600' },
+  label: { fontSize: 14, fontFamily: fonts.title },
 });

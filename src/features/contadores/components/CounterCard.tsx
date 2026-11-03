@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatAmount, formatWithUnit } from '@/lib/format';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 import type { CounterWithTotal } from '../api';
 
@@ -83,8 +83,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   name: { flex: 1, gap: 2 },
-  nameText: { fontSize: 19, fontWeight: '700' },
+  nameText: { fontSize: 19, fontFamily: fonts.title },
   totalBox: { alignItems: 'flex-end', minWidth: 44, maxWidth: 76 },
-  total: { fontSize: 22, fontWeight: '800' },
-  unit: { fontSize: 12 },
+  total: { fontSize: 22, fontFamily: fonts.title },
+  unit: { fontSize: 12, fontFamily: fonts.detail },
 });

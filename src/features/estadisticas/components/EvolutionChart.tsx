@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 
 import { formatAmount } from '@/lib/format';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 import type { SeriesPoint } from '../periods';
 
@@ -42,8 +42,8 @@ export function EvolutionChart({ series, name }: Props) {
         xAxisThickness={1}
         xAxisColor={colors.border}
         rulesColor={colors.border}
-        yAxisTextStyle={{ color: colors.textMuted, fontSize: 11 }}
-        xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 10 }}
+        yAxisTextStyle={{ color: colors.textMuted, fontSize: 11, fontFamily: fonts.detail }}
+        xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 10, fontFamily: fonts.detail }}
         formatYLabel={(label) => formatAmount(Number(label))}
         scrollToEnd
         height={180}
@@ -58,5 +58,5 @@ export function EvolutionChart({ series, name }: Props) {
 }
 
 const styles = StyleSheet.create({
-  empty: { textAlign: 'center', fontSize: 13, marginTop: 8 },
+  empty: { textAlign: 'center', fontSize: 13, marginTop: 8, fontFamily: fonts.detail },
 });

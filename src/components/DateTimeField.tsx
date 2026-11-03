@@ -2,7 +2,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatDateTime } from '@/lib/format';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 type Props = {
   label: string;
@@ -52,7 +52,9 @@ export function DateTimeField({ label, value, onChange }: Props) {
           accessibilityLabel={`${label}: ${formatDateTime(value)}. Cambiar`}
           style={[styles.field, { backgroundColor: colors.surface, borderColor: colors.border }]}
         >
-          <Text style={{ color: colors.text, fontSize: 16 }}>{formatDateTime(value)}</Text>
+          <Text style={{ color: colors.text, fontSize: 16, fontFamily: fonts.detail }}>
+            {formatDateTime(value)}
+          </Text>
         </Pressable>
       )}
     </View>
@@ -61,7 +63,7 @@ export function DateTimeField({ label, value, onChange }: Props) {
 
 const styles = StyleSheet.create({
   container: { gap: 6 },
-  label: { fontSize: 14, fontWeight: '600' },
+  label: { fontSize: 15, fontFamily: fonts.detail },
   field: {
     minHeight: 48,
     borderWidth: 1,

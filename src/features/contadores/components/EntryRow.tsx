@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatDateTime, formatWithUnit } from '@/lib/format';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 import type { Entry } from '../api';
 
@@ -24,9 +24,14 @@ export function EntryRow({ entry, unit, onPress }: Props) {
       ]}
     >
       <View style={styles.info}>
-        <Text style={{ color: colors.text, fontSize: 15 }}>{formatDateTime(entry.logged_at)}</Text>
+        <Text style={{ color: colors.text, fontSize: 15, fontFamily: fonts.detail }}>
+          {formatDateTime(entry.logged_at)}
+        </Text>
         {entry.note ? (
-          <Text style={{ color: colors.textMuted, fontSize: 13 }} numberOfLines={2}>
+          <Text
+            style={{ color: colors.textMuted, fontSize: 13, fontFamily: fonts.detail }}
+            numberOfLines={2}
+          >
             {entry.note}
           </Text>
         ) : null}
@@ -47,5 +52,5 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   info: { flex: 1, gap: 2 },
-  amount: { fontSize: 16, fontWeight: '600' },
+  amount: { fontSize: 16, fontFamily: fonts.title },
 });

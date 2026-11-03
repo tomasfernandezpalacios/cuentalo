@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 type Props = TextInputProps & {
   label: string;
@@ -33,7 +33,7 @@ export function TextField({ label, error, style, ...inputProps }: Props) {
 
 const styles = StyleSheet.create({
   container: { gap: 6 },
-  label: { fontSize: 14, fontWeight: '600' },
+  label: { fontSize: 15, fontFamily: fonts.detail },
   input: {
     minHeight: 48,
     borderWidth: 1,
@@ -41,5 +41,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 16,
   },
-  error: { fontSize: 13 },
+  error: { fontSize: 13, fontFamily: fonts.detail },
 });

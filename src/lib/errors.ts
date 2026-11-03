@@ -17,6 +17,9 @@ const POSTGRES_MESSAGES: Record<string, string> = {
   '23505': 'Ese valor ya está en uso.',
   '23514': 'Algún dato no es válido.',
   '42501': 'No tienes permiso para hacer esto.',
+  // PostgREST no encuentra la tabla o la función: falta aplicar una migración en Supabase.
+  PGRST202: 'La base de datos no está actualizada. Falta ejecutar una migración en Supabase.',
+  PGRST205: 'La base de datos no está actualizada. Falta ejecutar una migración en Supabase.',
 };
 
 export function getErrorMessage(error: unknown): string {

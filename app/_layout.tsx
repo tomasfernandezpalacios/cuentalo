@@ -1,11 +1,12 @@
 import { QueryClientProvider } from '@tanstack/react-query';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { LoadingView } from '@/components/StateViews';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { queryClient } from '@/lib/queryClient';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 function RootNavigator() {
   const { session, isLoading } = useAuth();
@@ -19,6 +20,7 @@ function RootNavigator() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.text,
+        headerTitleStyle: { fontFamily: fonts.title },
         contentStyle: { backgroundColor: colors.background },
         headerBackButtonDisplayMode: 'minimal',
       }}
@@ -43,6 +45,14 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    [fonts.title]: require('../assets/fonts/Ubuntu-Bold.ttf'),
+    [fonts.detail]: require('../assets/fonts/Redaction-Regular.ttf'),
+  });
+
+  // Si las fuentes fallan seguimos con las del sistema en vez de bloquear la app.
+  if (!fontsLoaded && !fontError) return <LoadingView />;
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { formatAmount } from '@/lib/format';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 type Props = { label: string; value: number };
 
@@ -21,6 +21,6 @@ export function StatTile({ label, value }: Props) {
 
 const styles = StyleSheet.create({
   tile: { flex: 1, padding: 14, borderRadius: 14, borderWidth: 1, gap: 2 },
-  value: { fontSize: 26, fontWeight: '800' },
-  label: { fontSize: 13 },
+  value: { fontSize: 26, fontFamily: fonts.title },
+  label: { fontSize: 13, fontFamily: fonts.detail },
 });

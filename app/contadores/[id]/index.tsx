@@ -18,7 +18,7 @@ import {
 } from '@/features/contadores/hooks';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount, formatWithUnit, pluralize } from '@/lib/format';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 // El diálogo está cerrado (null), creando un registro ('new') o editando uno (Entry).
 type DialogState = null | 'new' | Entry;
@@ -152,9 +152,9 @@ const styles = StyleSheet.create({
   list: { padding: 16 },
   header: { gap: 20, marginBottom: 8 },
   totalBox: { alignItems: 'center', paddingVertical: 16 },
-  total: { fontSize: 56, fontWeight: '800' },
-  unit: { fontSize: 18 },
-  count: { fontSize: 14, marginTop: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 8 },
-  empty: { textAlign: 'center', paddingVertical: 24 },
+  total: { fontSize: 56, fontFamily: fonts.title },
+  unit: { fontSize: 18, fontFamily: fonts.detail },
+  count: { fontSize: 14, marginTop: 4, fontFamily: fonts.detail },
+  sectionTitle: { fontSize: 18, fontFamily: fonts.title, marginTop: 8 },
+  empty: { textAlign: 'center', paddingVertical: 24, fontFamily: fonts.detail },
 });

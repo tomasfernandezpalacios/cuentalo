@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatWithUnit } from '@/lib/format';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 const QUICK_AMOUNTS = [1, 5, 10] as const;
 
@@ -104,6 +104,6 @@ const styles = StyleSheet.create({
   button: { alignItems: 'center', justifyContent: 'center' },
   large: { flex: 1, height: 60, borderRadius: 16 },
   compact: { width: 38, height: 38, borderRadius: 10 },
-  largeLabel: { fontSize: 19, fontWeight: '700' },
-  compactLabel: { fontSize: 14, fontWeight: '700' },
+  largeLabel: { fontSize: 19, fontFamily: fonts.title },
+  compactLabel: { fontSize: 14, fontFamily: fonts.title },
 });

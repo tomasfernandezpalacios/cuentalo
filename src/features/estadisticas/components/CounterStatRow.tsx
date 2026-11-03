@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { formatWithUnit, pluralize } from '@/lib/format';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 type Props = {
   name: string;
@@ -23,7 +23,7 @@ export function CounterStatRow({ name, unit, total, entryCount, rank }: Props) {
         <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
           {name}
         </Text>
-        <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+        <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: fonts.detail }}>
           {pluralize(entryCount, 'registro', 'registros')}
         </Text>
       </View>
@@ -42,8 +42,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 12,
   },
-  rank: { fontSize: 18, fontWeight: '800', width: 20, textAlign: 'center' },
+  rank: { fontSize: 18, fontFamily: fonts.title, width: 20, textAlign: 'center' },
   info: { flex: 1, gap: 2 },
-  name: { fontSize: 16, fontWeight: '600' },
-  total: { fontSize: 16, fontWeight: '700', maxWidth: '45%' },
+  name: { fontSize: 16, fontFamily: fonts.title },
+  total: { fontSize: 16, fontFamily: fonts.title, maxWidth: '45%' },
 });

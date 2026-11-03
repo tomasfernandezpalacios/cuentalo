@@ -8,7 +8,7 @@ import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
 import { signIn } from '@/features/auth/api';
 import { getErrorMessage } from '@/lib/errors';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 import { validateEmail } from '@/lib/validation';
 
 export default function LoginScreen() {
@@ -55,7 +55,9 @@ export default function LoginScreen() {
         textContentType="password"
         onSubmitEditing={handleSubmit}
       />
-      {formError ? <Text style={{ color: colors.danger }}>{formError}</Text> : null}
+      {formError ? (
+        <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>{formError}</Text>
+      ) : null}
 
       <AppButton title="Entrar" onPress={handleSubmit} loading={login.isPending} />
 
@@ -70,6 +72,6 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   header: { marginTop: 80, marginBottom: 24, gap: 8 },
-  title: { fontSize: 36, fontWeight: '800' },
-  subtitle: { fontSize: 16 },
+  title: { fontSize: 36, fontFamily: fonts.title },
+  subtitle: { fontSize: 17, fontFamily: fonts.detail },
 });

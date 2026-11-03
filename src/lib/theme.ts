@@ -23,6 +23,17 @@ const palette = {
   },
 };
 
+/**
+ * Tipografías (cargadas en app/_layout.tsx):
+ * - title: Ubuntu Bold, para títulos, nombres, cifras y botones.
+ * - detail: Redaction, para detalles y textos secundarios.
+ * Con fuentes personalizadas no se usa fontWeight: cada archivo ya es un peso concreto.
+ */
+export const fonts = {
+  title: 'Ubuntu-Bold',
+  detail: 'Redaction-Regular',
+} as const;
+
 export type ThemeColors = typeof palette.light;
 
 export function useThemeColors(): ThemeColors {

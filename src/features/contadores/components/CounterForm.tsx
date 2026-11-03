@@ -5,7 +5,7 @@ import { AppButton } from '@/components/AppButton';
 import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
 import { getErrorMessage } from '@/lib/errors';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 import { LIMITS, validateOptionalText, validateRequiredText } from '@/lib/validation';
 
 import type { CounterInput } from '../api';
@@ -61,12 +61,16 @@ export function CounterForm({ initial, submitTitle, saving, error, onSubmit, foo
         style={[styles.visibility, { backgroundColor: colors.surface, borderColor: colors.border }]}
       >
         <Text style={[styles.visibilityTitle, { color: colors.text }]}>Privado</Text>
-        <Text style={{ color: colors.textMuted }}>
+        <Text style={{ color: colors.textMuted, fontFamily: fonts.detail }}>
           Solo tú lo ves. Los contadores compartidos con grupos llegarán pronto.
         </Text>
       </View>
 
-      {error ? <Text style={{ color: colors.danger }}>{getErrorMessage(error)}</Text> : null}
+      {error ? (
+        <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>
+          {getErrorMessage(error)}
+        </Text>
+      ) : null}
       <AppButton title={submitTitle} onPress={handleSubmit} loading={saving} />
       {footer}
     </FormScreen>
@@ -75,5 +79,5 @@ export function CounterForm({ initial, submitTitle, saving, error, onSubmit, foo
 
 const styles = StyleSheet.create({
   visibility: { padding: 14, borderRadius: 12, borderWidth: 1, gap: 4 },
-  visibilityTitle: { fontSize: 15, fontWeight: '600' },
+  visibilityTitle: { fontSize: 15, fontFamily: fonts.title },
 });

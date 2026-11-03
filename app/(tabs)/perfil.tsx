@@ -7,7 +7,7 @@ import { signOut } from '@/features/auth/api';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { useProfile } from '@/features/perfil/api';
 import { getErrorMessage } from '@/lib/errors';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 // Versión mínima: la pantalla completa de perfil llega en la Fase 5.
 export default function ProfileScreen() {
@@ -25,7 +25,9 @@ export default function ProfileScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.info}>
         <Text style={[styles.name, { color: colors.text }]}>{profile.data.display_name}</Text>
-        <Text style={{ color: colors.textMuted, fontSize: 16 }}>@{profile.data.username}</Text>
+        <Text style={{ color: colors.textMuted, fontSize: 16, fontFamily: fonts.detail }}>
+          @{profile.data.username}
+        </Text>
       </View>
       <AppButton
         title="Cerrar sesión"
@@ -40,5 +42,5 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, gap: 24 },
   info: { alignItems: 'center', gap: 4, marginTop: 24 },
-  name: { fontSize: 24, fontWeight: '700' },
+  name: { fontSize: 24, fontFamily: fonts.title },
 });

@@ -8,7 +8,7 @@ import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
 import { signUp } from '@/features/auth/api';
 import { getErrorMessage } from '@/lib/errors';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 import {
   LIMITS,
   validateEmail,
@@ -90,7 +90,9 @@ export default function RegisterScreen() {
         autoComplete="new-password"
         textContentType="newPassword"
       />
-      {formError ? <Text style={{ color: colors.danger }}>{formError}</Text> : null}
+      {formError ? (
+        <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>{formError}</Text>
+      ) : null}
 
       <AppButton title="Crear cuenta" onPress={handleSubmit} loading={register.isPending} />
     </FormScreen>
