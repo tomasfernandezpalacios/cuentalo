@@ -29,6 +29,10 @@ const CUSTOM_MESSAGES: Record<string, string> = {
   invalid_invite_code: 'Ese código no corresponde a ningún grupo.',
   not_group_owner: 'Solo el administrador del grupo puede hacer esto.',
   not_shared_counter: 'Este contador no es de ningún grupo del que formes parte.',
+  cannot_log_common: 'Solo los miembros del grupo pueden registrar en este contador.',
+  not_counter_manager:
+    'Solo el creador del contador o el administrador del grupo pueden cambiarlo.',
+  no_participants: 'Elige al menos una persona para el contador común.',
 };
 
 export function getErrorMessage(error: unknown): string {

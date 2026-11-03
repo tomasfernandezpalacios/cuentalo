@@ -13,6 +13,7 @@ function counter(overrides: Partial<Counter>): Counter {
     unit: null,
     emoji: null,
     group_id: null,
+    is_common: false,
     streak_enabled: false,
     archived: false,
     created_at: '2026-01-01T00:00:00Z',
@@ -58,6 +59,24 @@ describe('enrich', () => {
   it('el owner del grupo puede editar cualquier contador del grupo', () => {
     const result = enrich(counter({ owner_id: ME, group_id: 'g1' }), totals, groups, OTHER);
     expect(result.canManage).toBe(true);
+  });
+
+  it('común: guarda participantes y enseña mi total si participo', () => {
+    const participants = new Map([['c1', [ME, OTHER]]]);
+    const common = counter({ group_id: 'g1', is_common: true });
+    const result = enrich(common, totals, groups, ME, participants);
+    expect(result).toMatchObject({ participantIds: [ME, OTHER], displayTotal: 3 });
+  });
+
+  it('común sin participar: enseña lo que lleva cada participante', () => {
+    const participants = new Map([['c1', ['a', 'b']]]);
+    const common = counter({ group_id: 'g1', is_common: true });
+    expect(enrich(common, totals, groups, ME, participants).displayTotal).toBe(5);
+  });
+
+  it('no común: ignora participantes', () => {
+    const participants = new Map([['c1', [ME]]]);
+    expect(enrich(counter({}), totals, groups, ME, participants).participantIds).toEqual([]);
   });
 
   it('de un grupo del que salí: no sale en la lista ni se puede editar', () => {

@@ -24,7 +24,7 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${counter.name}${counter.group ? `, del grupo ${counter.group.name}` : ''}: ${formatWithUnit(counter.myTotal, counter.unit)}`}
+      accessibilityLabel={`${counter.name}${counter.group ? `, del grupo ${counter.group.name}` : ''}: ${formatWithUnit(counter.displayTotal, counter.unit)}`}
       accessibilityHint="Abre el contador"
       style={({ pressed }) => [
         styles.card,
@@ -44,6 +44,7 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
           <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
             {[
               counter.group ? `👥 ${counter.group.name}` : null,
+              counter.is_common ? 'Común' : null,
               counter.archived ? 'Archivado' : null,
             ]
               .filter(Boolean)
@@ -58,7 +59,7 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
           unit={counter.unit}
           onAdd={onAdd}
           onRemoveOne={onRemoveOne}
-          canRemove={counter.myTotal >= 1}
+          canRemove={counter.is_common ? counter.total >= 1 : counter.myTotal >= 1}
           onLongPressAdd={onCustomAdd}
         />
       )}
@@ -70,7 +71,7 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
           adjustsFontSizeToFit
         >
           {/* En un compartido la tarjeta muestra lo mío; el total del grupo está en el detalle. */}
-          {formatAmount(counter.myTotal)}
+          {formatAmount(counter.displayTotal)}
         </Text>
         {counter.unit ? (
           <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>

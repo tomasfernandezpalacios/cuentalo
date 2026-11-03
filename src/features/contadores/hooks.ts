@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { useUserId } from '@/features/auth/AuthProvider';
 
 import {
+  addToCommonCounter,
   createCounter,
   createEntry,
   deleteCounter,
@@ -13,6 +14,8 @@ import {
   fetchLeaderboard,
   fetchMyLastCounterId,
   removeOne,
+  removeOneFromCommonCounter,
+  setParticipants,
   updateCounter,
   updateEntry,
   type CounterInput,
@@ -86,11 +89,26 @@ export function useMyLastCounterId(counterIds: string[]) {
 
 // --- Contadores -------------------------------------------------------------
 
+type CreateCounterVariables = {
+  input: CounterInput;
+  groupId: string | null;
+  /** Participantes si es un contador común; null si no. */
+  participantIds: string[] | null;
+};
+
 export function useCreateCounter() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ input, groupId }: { input: CounterInput; groupId: string | null }) =>
-      createCounter(input, groupId),
+    mutationFn: ({ input, groupId, participantIds }: CreateCounterVariables) =>
+      createCounter(input, groupId, participantIds),
+    onSuccess: () => invalidateCounters(queryClient),
+  });
+}
+
+export function useSetParticipants(counterId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userIds: string[]) => setParticipants(counterId, userIds),
     onSuccess: () => invalidateCounters(queryClient),
   });
 }
@@ -142,38 +160,83 @@ async function applyOptimistic(queryClient: QueryClient, counterId: string, chan
 
 type OptimisticContext = Awaited<ReturnType<typeof applyOptimistic>>;
 
+/** El contador tal y como está en la caché (detalle o lista), para saber si es común. */
+function cachedCounter(queryClient: QueryClient, counterId: string) {
+  return (
+    queryClient.getQueryData<CounterWithTotal>(counterKeys.detail(counterId)) ??
+    queryClient
+      .getQueryData<CounterWithTotal[]>(counterKeys.list())
+      ?.find((c) => c.id === counterId)
+  );
+}
+
+/**
+ * Cuánto cambia el total visible y el mío al sumar `amount`. En un contador común se suma a cada
+ * participante, así que el total del grupo cambia `amount × participantes`.
+ */
+function applyAmount(c: CounterWithTotal, amount: number, userId: string): CounterWithTotal {
+  if (!c.is_common) {
+    return {
+      ...c,
+      total: c.total + amount,
+      myTotal: c.myTotal + amount,
+      displayTotal: c.displayTotal + amount,
+      entryCount: c.entryCount + (amount > 0 ? 1 : 0),
+      myEntryCount: c.myEntryCount + (amount > 0 ? 1 : 0),
+    };
+  }
+  const participants = c.participantIds.length;
+  const iParticipate = c.participantIds.includes(userId);
+  return {
+    ...c,
+    total: c.total + amount * participants,
+    myTotal: c.myTotal + (iParticipate ? amount : 0),
+    displayTotal: c.displayTotal + amount,
+    entryCount: c.entryCount + (amount > 0 ? participants : 0),
+    myEntryCount: c.myEntryCount + (amount > 0 && iParticipate ? 1 : 0),
+  };
+}
+
 function rollback(queryClient: QueryClient, context: OptimisticContext | undefined) {
   if (!context) return;
   queryClient.setQueryData(context.detailKey, context.previousDetail);
   queryClient.setQueryData(context.listKey, context.previousList);
 }
 
+/** +N. En un contador común se suma a todos sus participantes. */
 export function useAddEntry() {
   const queryClient = useQueryClient();
+  const userId = useUserId();
   return useMutation({
     mutationFn: ({ counterId, input }: { counterId: string; input: EntryInput }) =>
-      createEntry(counterId, input),
+      cachedCounter(queryClient, counterId)?.is_common
+        ? addToCommonCounter(counterId, input)
+        : createEntry(counterId, input),
     onMutate: ({ counterId, input }) =>
-      applyOptimistic(queryClient, counterId, (c) => ({
-        ...c,
-        total: c.total + input.amount,
-        entryCount: c.entryCount + 1,
-        myTotal: c.myTotal + input.amount,
-        myEntryCount: c.myEntryCount + 1,
-      })),
+      applyOptimistic(queryClient, counterId, (c) => applyAmount(c, input.amount, userId)),
     onError: (_error, _variables, context) => rollback(queryClient, context),
     onSettled: () => invalidateCounters(queryClient),
   });
 }
 
-/** Botón −1: guarda un registro de −1 (mi total nunca baja de 0). No cuenta como registro. */
+/**
+ * Botón −1: guarda un registro de −1 (nunca baja de 0) que no cuenta como registro. En un
+ * contador común resta a todos los participantes. El servidor corrige los totales exactos.
+ */
 export function useRemoveOne() {
   const queryClient = useQueryClient();
+  const userId = useUserId();
   return useMutation({
-    mutationFn: (counterId: string) => removeOne(counterId),
+    mutationFn: async (counterId: string) => {
+      if (cachedCounter(queryClient, counterId)?.is_common) {
+        await removeOneFromCommonCounter(counterId);
+      } else {
+        await removeOne(counterId);
+      }
+    },
     onMutate: (counterId) =>
       applyOptimistic(queryClient, counterId, (c) =>
-        c.myTotal < 1 ? c : { ...c, total: c.total - 1, myTotal: c.myTotal - 1 },
+        c.is_common ? applyAmount(c, -1, userId) : c.myTotal < 1 ? c : applyAmount(c, -1, userId),
       ),
     onError: (_error, _counterId, context) => rollback(queryClient, context),
     onSettled: () => invalidateCounters(queryClient),

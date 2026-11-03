@@ -214,6 +214,65 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- 3b. Contador común
+-- ---------------------------------------------------------------------------
+
+-- Ana crea un contador común con ella y Beto como participantes.
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+insert into public.counters (id, name, unit, group_id, is_common)
+  values ('10000000-0000-0000-0000-000000000003', 'Viajes', 'viajes',
+          '30000000-0000-0000-0000-000000000001', true);
+select public.set_counter_participants('10000000-0000-0000-0000-000000000003',
+  array['00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2']::uuid[]);
+
+-- Beto (miembro, no creador) suma 1: se apunta a los dos.
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}', true);
+do $$
+declare n int;
+begin
+  n := public.add_to_common_counter('10000000-0000-0000-0000-000000000003', 1);
+  if n <> 2 then raise exception 'FALLO: el contador común no suma a todos los participantes (%)', n; end if;
+
+  select count(*) into n from public.entries
+   where counter_id = '10000000-0000-0000-0000-000000000003' and amount = 1;
+  if n <> 2 then raise exception 'FALLO: no se ven los registros del contador común (%)', n; end if;
+
+  begin
+    perform public.set_counter_participants('10000000-0000-0000-0000-000000000003',
+      array['00000000-0000-0000-0000-0000000000b2']::uuid[]);
+    raise exception 'FALLO: un miembro que no es creador cambia los participantes';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+
+  n := public.remove_one_from_common_counter('10000000-0000-0000-0000-000000000003');
+  if n <> 2 then raise exception 'FALLO: el −1 común no resta a todos (%)', n; end if;
+
+  n := public.remove_one_from_common_counter('10000000-0000-0000-0000-000000000003');
+  if n <> 0 then raise exception 'FALLO: el −1 común baja de 0'; end if;
+end $$;
+
+-- Carla (ajena) no puede sumar ni cambiar participantes.
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000c3", "role": "authenticated"}', true);
+do $$
+begin
+  begin
+    perform public.add_to_common_counter('10000000-0000-0000-0000-000000000003', 1);
+    raise exception 'FALLO: alguien de fuera del grupo suma en un contador común';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+
+  begin
+    perform public.set_counter_participants('10000000-0000-0000-0000-000000000003',
+      array['00000000-0000-0000-0000-0000000000c3']::uuid[]);
+    raise exception 'FALLO: alguien de fuera cambia los participantes de un contador común';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- 4. Salir del grupo conserva las estadísticas personales
 -- ---------------------------------------------------------------------------
 

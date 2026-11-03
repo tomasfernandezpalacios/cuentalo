@@ -133,6 +133,14 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   SQL Editor, crean usuarios de prueba, comprueban la RLS y hacen ROLLBACK.
 - Pantalla del grupo: «Clasificación» con selector de contador; por defecto, el último contador
   del grupo en el que _el usuario que mira_ registró algo (petición del usuario).
+- **Contador común** (petición del usuario): `counters.is_common` + `counter_participants`. Cada
+  +N/−1 inserta una fila por participante activo (`add_to_common_counter`,
+  `remove_one_from_common_counter`, SECURITY DEFINER). **Cualquier miembro activo** puede
+  pulsar +1; el −1 resta a todos (sin bajar de 0). Los participantes se eligen al crear y se
+  cambian al editar (creador u owner del grupo, `set_counter_participants`). `is_common` no se
+  cambia tras crear. Editar/borrar una línea del historial solo toca la copia propia. La app
+  elige la RPC según `is_common` del contador en caché. En la tarjeta, un no participante ve lo
+  que lleva cada participante (`displayTotal`).
 - La clasificación se refresca al registrar (misma caché), al volver a la app y al tirar para
   refrescar. Sin tiempo real (Supabase Realtime) en la V1.
 

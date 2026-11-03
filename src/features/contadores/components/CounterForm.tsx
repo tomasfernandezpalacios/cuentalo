@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -10,7 +11,9 @@ import { LIMITS, validateOptionalText, validateRequiredText } from '@/lib/valida
 
 import type { CounterInput } from '../api';
 
+import { CommonCounterInfo } from './CommonCounterInfo';
 import { EmojiPicker } from './EmojiPicker';
+import { ParticipantsPicker } from './ParticipantsPicker';
 
 type GroupOption = { id: string; name: string };
 
@@ -19,12 +22,16 @@ type Props = {
   submitTitle: string;
   saving: boolean;
   error: unknown;
-  onSubmit: (input: CounterInput, groupId: string | null) => void;
+  /** participantIds: personas de un contador común, o null si no es común. */
+  onSubmit: (input: CounterInput, groupId: string | null, participantIds: string[] | null) => void;
   /** Al crear: grupos en los que se puede compartir. Si no se pasa, no se puede elegir. */
   groups?: GroupOption[];
   initialGroupId?: string | null;
-  /** Al editar un compartido: nombre del grupo (no se puede cambiar). */
+  /** Al editar un compartido: grupo (no se puede cambiar). */
   sharedGroupName?: string | null;
+  sharedGroupId?: string | null;
+  /** Al editar un contador común: sus participantes (se pueden cambiar). */
+  initialParticipantIds?: string[] | null;
   /** Contenido extra al final (p. ej. archivar o borrar en la pantalla de edición). */
   footer?: ReactNode;
 };
@@ -38,6 +45,8 @@ export function CounterForm({
   groups,
   initialGroupId = null,
   sharedGroupName,
+  sharedGroupId = null,
+  initialParticipantIds = null,
   footer,
 }: Props) {
   const colors = useThemeColors();
@@ -45,16 +54,75 @@ export function CounterForm({
   const [unit, setUnit] = useState(initial?.unit ?? '');
   const [emoji, setEmoji] = useState(initial?.emoji ?? '');
   const [groupId, setGroupId] = useState<string | null>(initialGroupId);
-  const [errors, setErrors] = useState<{ name?: string | null; unit?: string | null }>({});
+  // Al editar, el contador ya es (o no es) común; al crear, se elige con la casilla.
+  const [isCommon, setIsCommon] = useState(initialParticipantIds !== null);
+  const [participants, setParticipants] = useState<string[]>(initialParticipantIds ?? []);
+  const [errors, setErrors] = useState<{
+    name?: string | null;
+    unit?: string | null;
+    participants?: string | null;
+  }>({});
+
+  const creating = groups !== undefined;
+  // Grupo cuyos miembros se pueden elegir como participantes.
+  const commonGroupId = creating ? groupId : sharedGroupId;
+
+  function selectGroup(id: string | null) {
+    setGroupId(id);
+    setIsCommon(false);
+    setParticipants([]);
+  }
 
   function handleSubmit() {
+    const common = isCommon && commonGroupId !== null;
     const next = {
       name: validateRequiredText(name, 'El nombre', LIMITS.counterName),
       unit: validateOptionalText(unit, 'La unidad', LIMITS.unit),
+      participants: common && participants.length === 0 ? 'Elige al menos una persona.' : null,
     };
     setErrors(next);
-    if (!next.name && !next.unit) onSubmit({ name, unit, emoji }, groupId);
+    if (!next.name && !next.unit && !next.participants) {
+      onSubmit({ name, unit, emoji }, groupId, common ? participants : null);
+    }
   }
+
+  const commonSection =
+    commonGroupId !== null && (creating || isCommon) ? (
+      <View style={styles.visibility}>
+        <View style={styles.commonRow}>
+          {creating ? (
+            <Pressable
+              onPress={() => setIsCommon((value) => !value)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isCommon }}
+              style={styles.checkbox}
+            >
+              <Ionicons
+                name={isCommon ? 'checkbox' : 'square-outline'}
+                size={24}
+                color={isCommon ? colors.primary : colors.textMuted}
+              />
+              <Text style={[styles.optionTitle, { color: colors.text }]}>Contador común</Text>
+            </Pressable>
+          ) : (
+            <Text style={[styles.optionTitle, { color: colors.text }]}>👥 Contador común</Text>
+          )}
+          <CommonCounterInfo />
+        </View>
+        {isCommon ? (
+          <>
+            <ParticipantsPicker
+              groupId={commonGroupId}
+              selected={participants}
+              onChange={setParticipants}
+            />
+            {errors.participants ? (
+              <Text style={[styles.hint, { color: colors.danger }]}>{errors.participants}</Text>
+            ) : null}
+          </>
+        ) : null}
+      </View>
+    ) : null;
 
   return (
     <FormScreen>
@@ -85,7 +153,7 @@ export function CounterForm({
             title="Privado"
             description="Solo tú lo ves."
             selected={groupId === null}
-            onPress={() => setGroupId(null)}
+            onPress={() => selectGroup(null)}
           />
           {groups.map((group) => (
             <VisibilityOption
@@ -93,7 +161,7 @@ export function CounterForm({
               title={`👥 ${group.name}`}
               description="Cada miembro suma lo suyo y hay clasificación."
               selected={groupId === group.id}
-              onPress={() => setGroupId(group.id)}
+              onPress={() => selectGroup(group.id)}
             />
           ))}
           {groups.length === 0 ? (
@@ -115,6 +183,8 @@ export function CounterForm({
           </Text>
         </View>
       )}
+
+      {commonSection}
 
       {error ? (
         <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>
@@ -161,4 +231,6 @@ const styles = StyleSheet.create({
   option: { padding: 14, borderRadius: 12, borderWidth: 1, gap: 4 },
   optionTitle: { fontSize: 15, fontFamily: fonts.title },
   hint: { fontSize: 14, fontFamily: fonts.detail },
+  commonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  checkbox: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
 });

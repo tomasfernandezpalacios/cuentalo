@@ -18,9 +18,9 @@ export default function NewCounterScreen() {
       error={create.error}
       groups={activeGroups}
       initialGroupId={grupo ?? null}
-      onSubmit={(input, groupId) =>
+      onSubmit={(input, groupId, participantIds) =>
         create.mutate(
-          { input, groupId },
+          { input, groupId, participantIds },
           {
             onSuccess: (counter) =>
               router.replace({ pathname: '/contadores/[id]', params: { id: counter.id } }),

@@ -28,6 +28,7 @@ export type Database = {
           unit: string | null;
           emoji: string | null;
           group_id: string | null;
+          is_common: boolean;
           streak_enabled: boolean;
           archived: boolean;
           created_at: string;
@@ -39,6 +40,7 @@ export type Database = {
           unit?: string | null;
           emoji?: string | null;
           group_id?: string | null;
+          is_common?: boolean;
           streak_enabled?: boolean;
           archived?: boolean;
           created_at?: string;
@@ -120,6 +122,12 @@ export type Database = {
         Update: { status?: 'active' };
         Relationships: [];
       };
+      counter_participants: {
+        Row: { counter_id: string; user_id: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       counter_totals: {
@@ -172,6 +180,23 @@ export type Database = {
       join_group_by_code: {
         Args: { p_code: string };
         Returns: string;
+      };
+      set_counter_participants: {
+        Args: { p_counter_id: string; p_user_ids: string[] };
+        Returns: undefined;
+      };
+      add_to_common_counter: {
+        Args: {
+          p_counter_id: string;
+          p_amount: number;
+          p_logged_at?: string;
+          p_note?: string | null;
+        };
+        Returns: number;
+      };
+      remove_one_from_common_counter: {
+        Args: { p_counter_id: string };
+        Returns: number;
       };
       get_leaderboard: {
         Args: { counter_id: string; period: string };

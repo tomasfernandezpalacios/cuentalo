@@ -39,7 +39,19 @@ export default function CounterDetailScreen() {
   if (counter.isPending) return <LoadingView />;
   if (counter.error) return <ErrorView error={counter.error} onRetry={counter.refetch} />;
 
-  const { name, unit, emoji, total, myTotal, myEntryCount, group, canManage } = counter.data;
+  const {
+    name,
+    unit,
+    emoji,
+    total,
+    myTotal,
+    myEntryCount,
+    displayTotal,
+    group,
+    canManage,
+    is_common: isCommon,
+    participantIds,
+  } = counter.data;
   const editing = dialog !== null && dialog !== 'new' ? dialog : null;
 
   function showError(error: unknown) {
@@ -87,7 +99,7 @@ export default function CounterDetailScreen() {
         }
       >
         <CounterAvatar emoji={emoji} name={name} size={72} />
-        <Text style={[styles.total, { color: colors.text }]}>{formatAmount(myTotal)}</Text>
+        <Text style={[styles.total, { color: colors.text }]}>{formatAmount(displayTotal)}</Text>
         {unit ? <Text style={[styles.unit, { color: colors.textMuted }]}>{unit}</Text> : null}
         <Text style={[styles.count, { color: colors.textMuted }]}>
           {group ? 'Tú · ' : ''}
@@ -98,12 +110,17 @@ export default function CounterDetailScreen() {
             👥 {group.name}: {formatWithUnit(total, unit)} entre todos
           </Text>
         ) : null}
+        {isCommon ? (
+          <Text style={[styles.count, { color: colors.textMuted }]}>
+            Común: cada +1 se suma a {pluralize(participantIds.length, 'persona', 'personas')}
+          </Text>
+        ) : null}
       </View>
       <QuickAddBar
         unit={unit}
         onAdd={quickAdd}
         onRemoveOne={() => removeOne.mutate(id, { onError: showError })}
-        canRemove={myTotal >= 1}
+        canRemove={isCommon ? total >= 1 : myTotal >= 1}
         onCustom={() => setDialog('new')}
       />
       {group ? (

@@ -24,6 +24,13 @@ export type CounterWithTotal = Counter & {
   isActive: boolean;
   /** Puedo editarlo y archivarlo (dueño, o owner del grupo en un compartido). */
   canManage: boolean;
+  /** Contador común: cada +1/−1 se aplica a todos estos participantes. Vacío si no es común. */
+  participantIds: string[];
+  /**
+   * Número que se enseña en la tarjeta y en grande en el detalle: lo mío. En un común del que no
+   * soy participante, lo que lleva cada participante (la media, porque suman a la vez).
+   */
+  displayTotal: number;
 };
 
 /** La unidad y el emoticono son opcionales: una cadena vacía se guarda como null. */
@@ -65,10 +72,12 @@ export function enrich(
   totals: CounterTotal[],
   groups: Map<string, CounterGroup>,
   myId: string,
+  participants: Map<string, string[]> = new Map(),
 ): CounterWithTotal {
   const t = totals.find((row) => row.counter_id === counter.id);
   const group = counter.group_id ? (groups.get(counter.group_id) ?? null) : null;
   const isActive = counter.group_id ? group !== null : counter.owner_id === myId;
+  const participantIds = counter.is_common ? (participants.get(counter.id) ?? []) : [];
   const canManage = counter.group_id
     ? group !== null && (counter.owner_id === myId || group.ownerId === myId)
     : counter.owner_id === myId;
@@ -81,38 +90,63 @@ export function enrich(
     group,
     isActive,
     canManage,
+    participantIds,
+    displayTotal:
+      counter.is_common && !participantIds.includes(myId) && participantIds.length > 0
+        ? (t?.total ?? 0) / participantIds.length
+        : (t?.my_total ?? 0),
   };
+}
+
+/** Participantes de los contadores comunes que veo, agrupados por contador. */
+async function fetchParticipants(counterIds?: string[]): Promise<Map<string, string[]>> {
+  let query = supabase.from('counter_participants').select('counter_id, user_id');
+  if (counterIds) query = query.in('counter_id', counterIds);
+  const { data, error } = await query;
+  if (error) throw error;
+  const result = new Map<string, string[]>();
+  for (const row of data) {
+    result.set(row.counter_id, [...(result.get(row.counter_id) ?? []), row.user_id]);
+  }
+  return result;
 }
 
 // --- Contadores -------------------------------------------------------------
 
 export async function fetchCounters(myId: string): Promise<CounterWithTotal[]> {
-  const [counters, totals, groups] = await Promise.all([
+  const [counters, totals, groups, participants] = await Promise.all([
     supabase.from('counters').select('*').order('created_at', { ascending: true }),
     supabase.from('counter_totals').select('*'),
     fetchMyActiveGroups(myId),
+    fetchParticipants(),
   ]);
   if (counters.error) throw counters.error;
   if (totals.error) throw totals.error;
-  return counters.data.map((counter) => enrich(counter, totals.data, groups, myId));
+  return counters.data.map((counter) => enrich(counter, totals.data, groups, myId, participants));
 }
 
 export async function fetchCounter(id: string, myId: string): Promise<CounterWithTotal> {
-  const [counter, totals, groups] = await Promise.all([
+  const [counter, totals, groups, participants] = await Promise.all([
     supabase.from('counters').select('*').eq('id', id).single(),
     supabase.from('counter_totals').select('*').eq('counter_id', id),
     fetchMyActiveGroups(myId),
+    fetchParticipants([id]),
   ]);
   if (counter.error) throw counter.error;
   if (totals.error) throw totals.error;
-  return enrich(counter.data, totals.data, groups, myId);
+  return enrich(counter.data, totals.data, groups, myId, participants);
 }
 
-/** Crea un contador privado (groupId null) o compartido con un grupo. */
+/**
+ * Crea un contador privado (groupId null) o compartido con un grupo. Si se pasan participantes,
+ * es un contador común.
+ */
 export async function createCounter(
   { name, unit, emoji }: CounterInput,
   groupId: string | null,
+  participantIds: string[] | null = null,
 ): Promise<Counter> {
+  const isCommon = groupId !== null && participantIds !== null;
   const { data, error } = await supabase
     .from('counters')
     .insert({
@@ -120,11 +154,21 @@ export async function createCounter(
       unit: emptyToNull(unit),
       emoji: emptyToNull(emoji),
       group_id: groupId,
+      is_common: isCommon,
     })
     .select()
     .single();
   if (error) throw error;
+  if (isCommon) await setParticipants(data.id, participantIds);
   return data;
+}
+
+export async function setParticipants(counterId: string, userIds: string[]): Promise<void> {
+  const { error } = await supabase.rpc('set_counter_participants', {
+    p_counter_id: counterId,
+    p_user_ids: userIds,
+  });
+  if (error) throw error;
 }
 
 export async function updateCounter(
@@ -190,6 +234,25 @@ export async function removeOne(counterId: string): Promise<boolean> {
   });
   if (error) throw error;
   return data;
+}
+
+/** Contador común: suma la cantidad a todos los participantes que siguen en el grupo. */
+export async function addToCommonCounter(counterId: string, input: EntryInput): Promise<void> {
+  const { error } = await supabase.rpc('add_to_common_counter', {
+    p_counter_id: counterId,
+    p_amount: input.amount,
+    p_logged_at: input.loggedAt.toISOString(),
+    p_note: input.note,
+  });
+  if (error) throw error;
+}
+
+/** Contador común: resta 1 a todos los participantes que tengan al menos 1. */
+export async function removeOneFromCommonCounter(counterId: string): Promise<void> {
+  const { error } = await supabase.rpc('remove_one_from_common_counter', {
+    p_counter_id: counterId,
+  });
+  if (error) throw error;
 }
 
 export async function deleteEntry(id: string): Promise<void> {
