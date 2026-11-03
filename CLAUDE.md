@@ -132,7 +132,7 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - Fase 4: las pruebas de privacidad están en `supabase/tests/privacidad.sql`: se pegan en el
   SQL Editor, crean usuarios de prueba, comprueban la RLS y hacen ROLLBACK.
 - Pantalla del grupo: «Clasificación» con selector de contador; por defecto, el último contador
-  del grupo en el que *el usuario que mira* registró algo (petición del usuario).
+  del grupo en el que _el usuario que mira_ registró algo (petición del usuario).
 - La clasificación se refresca al registrar (misma caché), al volver a la app y al tirar para
   refrescar. Sin tiempo real (Supabase Realtime) en la V1.
 
