@@ -49,9 +49,9 @@ function IconButton({
 }
 
 /**
- * Tarjeta de arriba del grupo: imagen y nombre del grupo y, para el administrador, el código
- * para unirse en una línea (con copiar a su derecha) y dos botones de icono debajo (compartir
- * enlace y código nuevo).
+ * Tarjeta de arriba del grupo: imagen con el código a su derecha (solo el administrador) y el
+ * nombre debajo, a la izquierda. El código va en una línea (con copiar a su derecha) y dos
+ * botones de icono debajo (compartir enlace y código nuevo).
  */
 export function GroupHeaderCard({
   groupId,
@@ -63,14 +63,19 @@ export function GroupHeaderCard({
   const colors = useThemeColors();
   return (
     <View style={[styles.card, { backgroundColor: colors.primarySoft }]}>
-      <GroupAvatar emoji={emoji} photoPath={photoPath} size={isOwner ? 104 : 96} />
-      {/* El nombre ocupa todo el ancho hasta la derecha; el código y los botones van debajo. */}
-      <View style={styles.side}>
-        <Text style={[styles.groupName, { color: colors.text }]} numberOfLines={3}>
-          {groupName}
-        </Text>
-        {isOwner ? <InviteCode groupId={groupId} groupName={groupName} /> : null}
+      {/* Arriba: la imagen y, a su derecha y a la misma altura, el código (solo el admin). */}
+      <View style={styles.top}>
+        <GroupAvatar emoji={emoji} photoPath={photoPath} size={104} />
+        {isOwner ? (
+          <View style={styles.side}>
+            <InviteCode groupId={groupId} groupName={groupName} />
+          </View>
+        ) : null}
       </View>
+      {/* Debajo, el nombre a la izquierda y a todo lo ancho (un nombre largo no se aprieta). */}
+      <Text style={[styles.groupName, { color: colors.text }]} numberOfLines={3}>
+        {groupName}
+      </Text>
     </View>
   );
 }
@@ -179,7 +184,8 @@ function InviteCode({ groupId, groupName }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 18, padding: 14 },
+  card: { gap: 12, borderRadius: 18, padding: 14 },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   side: { flex: 1, gap: 10 },
   groupName: { fontSize: 22, fontFamily: fonts.title },
   codeBox: { alignItems: 'stretch', gap: 6 },

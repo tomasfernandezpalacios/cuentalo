@@ -324,8 +324,8 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   también los enlazados).
 - Crear/editar carpeta: botones «Todos», «Ninguno» y uno por grupo (marca o desmarca los de
   ese grupo) encima del buscador.
-- Cabecera del grupo: imagen a la izquierda y, a su derecha, el nombre a todo lo ancho con el
-  código y los botones debajo (un nombre largo no se aprieta).
+- Cabecera del grupo: arriba la imagen y, a su derecha y a la misma altura, el bloque del código
+  (solo el admin); debajo, el nombre del grupo a la izquierda y a todo lo ancho.
 
 ## Cambios estéticos pendientes
 
