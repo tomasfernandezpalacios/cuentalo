@@ -57,6 +57,7 @@ export default function CounterDetailScreen() {
     participantIds,
     linkedGroups,
     removedFromHome,
+    streak,
   } = counter.data;
   const counterId = counter.data.id;
   const board = linkedGroups.find((g) => g.counterId === boardCounterId) ?? linkedGroups[0] ?? null;
@@ -105,11 +106,20 @@ export default function CounterDetailScreen() {
         <CounterAvatar emoji={emoji} name={name} size={72} />
         <Text style={[styles.total, { color: colors.text }]}>{formatAmount(displayTotal)}</Text>
         {unit ? <Text style={[styles.unit, { color: colors.textMuted }]}>{unit}</Text> : null}
-        <Text style={[styles.count, { color: colors.textMuted }]}>
-          {group ? 'Tú · ' : ''}
-          {pluralize(myEntryCount, 'registro', 'registros')}
-        </Text>
-        {linkedGroups.map((g) => (
+        {streak ? (
+          // Formato racha: el número grande es la racha actual; debajo, días y récord.
+          <Text style={[styles.count, { color: colors.flame }]}>
+            🔥 {group ? 'Tu racha · ' : 'Racha · '}
+            {pluralize(streak.currentDays, 'día seguido', 'días seguidos')} · récord{' '}
+            {formatWithUnit(streak.best, unit)}
+          </Text>
+        ) : (
+          <Text style={[styles.count, { color: colors.textMuted }]}>
+            {group ? 'Tú · ' : ''}
+            {pluralize(myEntryCount, 'registro', 'registros')}
+          </Text>
+        )}
+        {(streak ? [] : linkedGroups).map((g) => (
           <Text key={g.counterId} style={[styles.groupTotal, { color: colors.primary }]}>
             👥 {g.group.name}: {formatWithUnit(g.total, unit)} entre todos
           </Text>
@@ -124,7 +134,7 @@ export default function CounterDetailScreen() {
         unit={unit}
         onAdd={quickAdd}
         onRemoveOne={() => actions.subtractOne(counter.data)}
-        canRemove={isCommon ? total >= 1 : myGroupTotal >= 1}
+        canRemove={streak ? displayTotal >= 1 : isCommon ? total >= 1 : myGroupTotal >= 1}
         onCustom={() => setDialog('new')}
       />
       {board ? (
@@ -163,7 +173,7 @@ export default function CounterDetailScreen() {
               })}
             </View>
           ) : null}
-          <Leaderboard counterId={board.counterId} unit={unit} />
+          <Leaderboard counterId={board.counterId} unit={unit} streak={streak !== null} />
         </>
       ) : null}
       <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">

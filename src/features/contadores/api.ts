@@ -50,6 +50,8 @@ export type CounterWithTotal = Counter & {
    * no sale en la lista, pero sigo perteneciendo a él y lo veo dentro del grupo.
    */
   removedFromHome: boolean;
+  /** Formato racha: mi racha actual y mi récord. null si el contador no es de racha. */
+  streak: CounterStreak | null;
   /** Contador común: cada +1/−1 se aplica a todos estos participantes. Vacío si no es común. */
   participantIds: string[];
   /**
@@ -77,6 +79,18 @@ export type CounterInput = {
   emoji: string;
   /** Solo en individuales: si es true, mis amigos no lo ven en mi perfil. */
   hiddenFromFriends: boolean;
+  /** Formato racha: muestra la suma de los días seguidos; un día sin registrar vuelve a 0. */
+  streakEnabled: boolean;
+};
+
+/** Mi racha en un contador en formato racha. */
+export type CounterStreak = {
+  /** Suma de los días seguidos que terminan hoy o ayer (0 si se rompió). */
+  current: number;
+  currentDays: number;
+  /** Récord: la mejor racha. */
+  best: number;
+  bestDays: number;
 };
 export type EntryInput = { amount: number; loggedAt: Date; note: string | null };
 
@@ -87,6 +101,8 @@ export type LeaderboardRow = {
   total: number;
   entryCount: number;
   position: number;
+  /** Solo en formato racha: el récord de esa persona. */
+  best?: number;
 };
 
 function emptyToNull(value: string): string | null {
@@ -127,6 +143,7 @@ export function enrich(
   aliases: Map<string, { name: string | null; emoji: string | null }> = new Map(),
   hidden: Set<string> = new Set(),
   removedFromHome: Set<string> = new Set(),
+  streaks: Map<string, CounterStreak> = new Map(),
 ): CounterWithTotal {
   const t = totals.find((row) => row.counter_id === counter.id);
   const group = counter.group_id ? (groups.get(counter.group_id) ?? null) : null;
@@ -134,6 +151,10 @@ export function enrich(
   const participantIds = counter.is_common ? (participants.get(counter.id) ?? []) : [];
   const canManage = counter.owner_id === myId && (counter.group_id === null || group !== null);
   const alias = aliases.get(counter.id);
+  // Formato racha: lo que se ve es mi racha actual, no la suma de todo.
+  const streak = counter.streak_enabled
+    ? (streaks.get(counter.id) ?? { current: 0, currentDays: 0, best: 0, bestDays: 0 })
+    : null;
   return {
     ...counter,
     name: alias?.name ?? counter.name,
@@ -152,11 +173,13 @@ export function enrich(
     lastLoggedAt: t?.last_logged_at ?? null,
     hidden: hidden.has(counter.id),
     removedFromHome: removedFromHome.has(counter.id),
+    streak,
     linkedCounterIds: [counter.id],
     linkedGroups: group && isActive ? [{ counterId: counter.id, group, total: t?.total ?? 0 }] : [],
     linkedInto: null,
-    displayTotal:
-      counter.is_common && !participantIds.includes(myId) && participantIds.length > 0
+    displayTotal: streak
+      ? streak.current
+      : counter.is_common && !participantIds.includes(myId) && participantIds.length > 0
         ? (t?.total ?? 0) / participantIds.length
         : (t?.my_total ?? 0),
   };
@@ -166,6 +189,22 @@ async function fetchHidden(): Promise<Set<string>> {
   const { data, error } = await supabase.from('hidden_counters').select('counter_id');
   if (error) throw error;
   return new Set(data.map((h) => h.counter_id));
+}
+
+async function fetchStreaks(): Promise<Map<string, CounterStreak>> {
+  const { data, error } = await supabase.from('my_counter_streaks').select('*');
+  if (error) throw error;
+  return new Map(
+    data.map((s) => [
+      s.counter_id,
+      {
+        current: Number(s.current_total),
+        currentDays: s.current_days,
+        best: Number(s.best_total),
+        bestDays: s.best_days,
+      },
+    ]),
+  );
 }
 
 async function fetchRemovedFromHome(): Promise<Set<string>> {
@@ -205,7 +244,7 @@ async function fetchParticipants(counterIds?: string[]): Promise<Map<string, str
 // --- Contadores -------------------------------------------------------------
 
 export async function fetchCounters(myId: string): Promise<CounterWithTotal[]> {
-  const [counters, totals, groups, participants, aliases, links, hidden, removed] =
+  const [counters, totals, groups, participants, aliases, links, hidden, removed, streaks] =
     await Promise.all([
       supabase.from('counters').select('*').order('created_at', { ascending: true }),
       supabase.from('counter_totals').select('*'),
@@ -215,11 +254,12 @@ export async function fetchCounters(myId: string): Promise<CounterWithTotal[]> {
       fetchLinks(),
       fetchHidden(),
       fetchRemovedFromHome(),
+      fetchStreaks(),
     ]);
   if (counters.error) throw counters.error;
   if (totals.error) throw totals.error;
   const enriched = counters.data.map((counter) =>
-    enrich(counter, totals.data, groups, myId, participants, aliases, hidden, removed),
+    enrich(counter, totals.data, groups, myId, participants, aliases, hidden, removed, streaks),
   );
   return applyLinks(enriched, links);
 }
@@ -251,7 +291,7 @@ async function fetchSingleCounter(id: string, myId: string): Promise<CounterWith
  * es un contador común.
  */
 export async function createCounter(
-  { name, unit, emoji, hiddenFromFriends }: CounterInput,
+  { name, unit, emoji, hiddenFromFriends, streakEnabled }: CounterInput,
   groupId: string | null,
   participantIds: string[] | null = null,
 ): Promise<Counter> {
@@ -265,6 +305,7 @@ export async function createCounter(
       group_id: groupId,
       is_common: isCommon,
       hidden_from_friends: groupId === null && hiddenFromFriends,
+      streak_enabled: streakEnabled,
     })
     .select()
     .single();
@@ -293,6 +334,7 @@ export async function updateCounter(
       emoji: patch.emoji === undefined ? undefined : emptyToNull(patch.emoji),
       archived: patch.archived,
       hidden_from_friends: patch.hiddenFromFriends,
+      streak_enabled: patch.streakEnabled,
     })
     .eq('id', id);
   if (error) throw error;
@@ -438,6 +480,23 @@ export async function deleteEntry(entry: Entry): Promise<void> {
 }
 
 // --- Clasificación ----------------------------------------------------------
+
+/** Clasificación de un contador de grupo en formato racha: racha actual de cada miembro. */
+export async function fetchStreakLeaderboard(counterId: string): Promise<LeaderboardRow[]> {
+  const { data, error } = await supabase.rpc('get_streak_leaderboard', {
+    p_counter_id: counterId,
+  });
+  if (error) throw error;
+  return data.map((row) => ({
+    userId: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    total: Number(row.total),
+    best: Number(row.best),
+    entryCount: 0,
+    position: row.position,
+  }));
+}
 
 export async function fetchLeaderboard(
   counterId: string,

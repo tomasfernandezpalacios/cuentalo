@@ -62,6 +62,7 @@ export default function EditCounterScreen() {
         unit: unit ?? '',
         emoji: emoji ?? '',
         hiddenFromFriends: counter.data.hidden_from_friends,
+        streakEnabled: counter.data.streak_enabled,
       }}
       sharedGroupName={group?.name}
       submitTitle="Guardar cambios"

@@ -305,6 +305,15 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   persona con + para enviarle solicitud; si me la envió él (o la rechacé), la acepta; si se la
   envié yo, un reloj.
 
+- **Formato racha** en contadores (petición del usuario, p. ej. «días sin fumar»; individuales
+  y de grupo): casilla «🔥 Formato racha» en el formulario (`counters.streak_enabled`). Se
+  muestra la racha actual = suma de los días seguidos (Madrid) que terminan hoy o ayer; un día
+  entero sin registrar la deja en 0. No se borra nada (historial y estadísticas intactos) y se
+  guarda el récord. Vista `my_counter_streaks` (mía, sin `group_only`) y RPC
+  `get_streak_leaderboard` (sin `personal_only`, sin periodos) en la migración `20261122`.
+  En la app: `streak` en `CounterWithTotal` (`displayTotal` = racha actual), llamita en la
+  tarjeta, «días seguidos · récord» en el detalle y clasificación por racha actual.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

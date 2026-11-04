@@ -55,6 +55,7 @@ export function CounterForm({
   const [emoji, setEmoji] = useState(initial?.emoji ?? '');
   // «Privado y amigos» por defecto: mis amigos ven mis individuales salvo que elija «Privado».
   const [hiddenFromFriends, setHiddenFromFriends] = useState(initial?.hiddenFromFriends ?? false);
+  const [streakEnabled, setStreakEnabled] = useState(initial?.streakEnabled ?? false);
   const [groupId, setGroupId] = useState<string | null>(initialGroupId);
   // Al editar, el contador ya es (o no es) común; al crear, se elige con la casilla.
   const [isCommon, setIsCommon] = useState(initialParticipantIds !== null);
@@ -107,7 +108,11 @@ export function CounterForm({
     };
     setErrors(next);
     if (!next.name && !next.unit && !next.participants) {
-      onSubmit({ name, unit, emoji, hiddenFromFriends }, groupId, common ? participants : null);
+      onSubmit(
+        { name, unit, emoji, hiddenFromFriends, streakEnabled },
+        groupId,
+        common ? participants : null,
+      );
     }
   }
 
@@ -208,6 +213,29 @@ export function CounterForm({
 
       {commonSection}
 
+      <Pressable
+        onPress={() => setStreakEnabled((value) => !value)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: streakEnabled }}
+        style={styles.checkbox}
+      >
+        <Ionicons
+          name={streakEnabled ? 'checkbox' : 'square-outline'}
+          size={24}
+          color={streakEnabled ? colors.primary : colors.textMuted}
+        />
+        <View style={styles.flexText}>
+          <Text style={[styles.optionTitle, { color: colors.text }]}>🔥 Formato racha</Text>
+          <Text style={[styles.hint, { color: colors.textMuted }]}>
+            Para cosas como «días sin fumar»: si pasa un día entero sin sumar nada, vuelve a 0. Tu
+            historial y tus estadísticas lo conservan todo y se guarda tu récord.
+            {(creating ? groupId !== null : Boolean(sharedGroupName))
+              ? ' En un grupo, cada uno tiene su propia racha.'
+              : ''}
+          </Text>
+        </View>
+      </Pressable>
+
       {error ? (
         <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>
           {getErrorMessage(error)}
@@ -255,4 +283,5 @@ const styles = StyleSheet.create({
   hint: { fontSize: 14, fontFamily: fonts.detail },
   commonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   checkbox: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  flexText: { flex: 1, gap: 2 },
 });

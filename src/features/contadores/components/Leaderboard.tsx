@@ -9,7 +9,7 @@ import { UserAvatar } from '@/features/perfil/PersonAvatar';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import type { LeaderboardPeriod } from '../api';
-import { useLeaderboard } from '../hooks';
+import { useLeaderboard, useStreakLeaderboard } from '../hooks';
 
 const PERIODS: { value: LeaderboardPeriod; label: string }[] = [
   { value: 'week', label: 'Semana' },
@@ -20,18 +20,31 @@ const PERIODS: { value: LeaderboardPeriod; label: string }[] = [
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-type Props = { counterId: string; unit: string | null };
+type Props = {
+  counterId: string;
+  unit: string | null;
+  /** Formato racha: se compara la racha actual de cada uno (sin periodos) y se ve su récord. */
+  streak?: boolean;
+};
 
 /** Clasificación de un contador compartido. Se refresca sola al registrar (misma caché). */
-export function Leaderboard({ counterId, unit }: Props) {
+export function Leaderboard({ counterId, unit, streak = false }: Props) {
   const colors = useThemeColors();
   const userId = useUserId();
   const [period, setPeriod] = useState<LeaderboardPeriod>('week');
-  const leaderboard = useLeaderboard(counterId, period, true);
+  const byPeriod = useLeaderboard(counterId, period, !streak);
+  const byStreak = useStreakLeaderboard(counterId, streak);
+  const leaderboard = streak ? byStreak : byPeriod;
 
   return (
     <View style={styles.container}>
-      <SegmentedControl options={PERIODS} value={period} onChange={setPeriod} />
+      {streak ? (
+        <Text style={[styles.muted, { color: colors.textMuted }]}>
+          🔥 Racha actual de cada uno: si alguien pasa un día sin sumar, vuelve a 0.
+        </Text>
+      ) : (
+        <SegmentedControl options={PERIODS} value={period} onChange={setPeriod} />
+      )}
       {leaderboard.isPending ? (
         <ActivityIndicator color={colors.primary} />
       ) : leaderboard.isError ? (
@@ -62,7 +75,10 @@ export function Leaderboard({ counterId, unit }: Props) {
                   <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
                     {isMe ? `${row.displayName} (tú)` : row.displayName}
                   </Text>
-                  <Text style={[styles.muted, { color: colors.textMuted }]}>@{row.username}</Text>
+                  <Text style={[styles.muted, { color: colors.textMuted }]} numberOfLines={1}>
+                    @{row.username}
+                    {row.best !== undefined ? ` · récord ${formatWithUnit(row.best, unit)}` : ''}
+                  </Text>
                 </View>
                 <Text style={[styles.total, { color: colors.text }]} numberOfLines={1}>
                   {formatWithUnit(row.total, unit)}

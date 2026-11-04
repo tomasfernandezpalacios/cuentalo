@@ -12,6 +12,7 @@ import {
   fetchCounters,
   fetchEntries,
   fetchLeaderboard,
+  fetchStreakLeaderboard,
   fetchMyLastCounterId,
   mergeCounters,
   removeOne,
@@ -73,6 +74,14 @@ export function useEntries(counterId: string, counterIds: string[] | undefined) 
     queryKey: [...counterKeys.entries(counterId), ...(counterIds ?? [])],
     queryFn: () => fetchEntries(counterIds ?? [counterId], userId),
     enabled: userId !== '' && counterIds !== undefined,
+  });
+}
+
+export function useStreakLeaderboard(counterId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...counterKeys.leaderboard(counterId, 'all'), 'streak'],
+    queryFn: () => fetchStreakLeaderboard(counterId),
+    enabled,
   });
 }
 

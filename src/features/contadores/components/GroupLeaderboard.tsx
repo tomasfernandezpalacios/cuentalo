@@ -72,7 +72,7 @@ export function GroupLeaderboard({ groupId }: { groupId: string }) {
           );
         })}
       </ScrollView>
-      <Leaderboard counterId={selected.id} unit={selected.unit} />
+      <Leaderboard counterId={selected.id} unit={selected.unit} streak={selected.streak_enabled} />
     </View>
   );
 }

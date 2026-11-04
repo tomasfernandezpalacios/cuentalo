@@ -242,6 +242,16 @@ export type Database = {
       };
     };
     Views: {
+      my_counter_streaks: {
+        Row: {
+          counter_id: string;
+          current_total: number;
+          current_days: number;
+          best_total: number;
+          best_days: number;
+        };
+        Relationships: [];
+      };
       counter_totals: {
         Row: {
           counter_id: string;
@@ -374,6 +384,17 @@ export type Database = {
       delete_my_account: {
         Args: Record<string, never>;
         Returns: undefined;
+      };
+      get_streak_leaderboard: {
+        Args: { p_counter_id: string };
+        Returns: {
+          user_id: string;
+          username: string;
+          display_name: string;
+          total: number;
+          best: number;
+          position: number;
+        }[];
       };
       get_leaderboard: {
         Args: { counter_id: string; period: string };

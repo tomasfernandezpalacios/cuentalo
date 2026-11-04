@@ -41,7 +41,7 @@ export function CounterCard({
       onLongPress={onLongPress}
       accessibilityRole={selectionMode ? 'checkbox' : 'button'}
       accessibilityState={selectionMode ? { checked: selected } : undefined}
-      accessibilityLabel={`${counter.name}${counter.group ? `, del grupo ${counter.group.name}` : ''}: ${formatWithUnit(counter.displayTotal, counter.unit)}`}
+      accessibilityLabel={`${counter.name}${counter.group ? `, del grupo ${counter.group.name}` : ''}: ${counter.streak ? 'racha de ' : ''}${formatWithUnit(counter.displayTotal, counter.unit)}`}
       accessibilityHint={
         selectionMode ? undefined : 'Abre el contador. Mantén pulsado para seleccionar'
       }
@@ -88,7 +88,13 @@ export function CounterCard({
           unit={counter.unit}
           onAdd={onAdd}
           onRemoveOne={onRemoveOne}
-          canRemove={counter.is_common ? counter.total >= 1 : counter.myGroupTotal >= 1}
+          canRemove={
+            counter.streak
+              ? counter.displayTotal >= 1
+              : counter.is_common
+                ? counter.total >= 1
+                : counter.myGroupTotal >= 1
+          }
           onLongPressAdd={onCustomAdd}
         />
       )}
@@ -103,6 +109,15 @@ export function CounterCard({
           {/* En un compartido la tarjeta muestra lo mío; el total del grupo está en el detalle. */}
           {formatAmount(counter.displayTotal)}
         </Text>
+        {counter.streak ? (
+          // Formato racha: una llamita indica que el número es la racha actual.
+          <Ionicons
+            name="flame"
+            size={13}
+            color={counter.displayTotal > 0 ? colors.flame : colors.textMuted}
+            accessibilityLabel="Formato racha"
+          />
+        ) : null}
         {counter.unit ? (
           <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
             {counter.unit}

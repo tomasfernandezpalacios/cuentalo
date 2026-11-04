@@ -105,3 +105,27 @@ describe('enrich', () => {
     expect(result).toMatchObject({ isActive: false, canManage: false, group: null });
   });
 });
+
+describe('enrich: formato racha', () => {
+  const streaks = new Map([['c1', { current: 2, currentDays: 2, best: 9, bestDays: 9 }]]);
+  const args = [new Map(), new Map(), new Set<string>(), new Set<string>(), streaks] as const;
+
+  it('muestra la racha actual en vez de la suma de todo', () => {
+    const result = enrich(counter({ streak_enabled: true }), totals, groups, ME, ...args);
+    expect(result.displayTotal).toBe(2);
+    expect(result.myTotal).toBe(3);
+    expect(result.streak).toEqual({ current: 2, currentDays: 2, best: 9, bestDays: 9 });
+  });
+
+  it('sin días registrados la racha es 0', () => {
+    const result = enrich(counter({ id: 'c2', streak_enabled: true }), totals, groups, ME, ...args);
+    expect(result.displayTotal).toBe(0);
+    expect(result.streak?.best).toBe(0);
+  });
+
+  it('un contador normal no tiene racha', () => {
+    const result = enrich(counter({}), totals, groups, ME, ...args);
+    expect(result.streak).toBeNull();
+    expect(result.displayTotal).toBe(3);
+  });
+});
