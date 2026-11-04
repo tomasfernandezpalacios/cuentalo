@@ -40,6 +40,8 @@ export function DateTimeField({ label, value, onChange }: Props) {
           value={value}
           mode="datetime"
           display="compact"
+          // Sobre el fondo oscuro de la app, el selector en su versión oscura.
+          themeVariant={colors.statusBar === 'light' ? 'dark' : 'light'}
           maximumDate={now}
           locale="es-ES"
           onValueChange={(_event, date) => onChange(date)}
