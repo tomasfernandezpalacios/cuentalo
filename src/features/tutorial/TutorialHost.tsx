@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, usePathname } from 'expo-router';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Animated,
@@ -488,6 +488,16 @@ const MOVE_MS = 950;
  * (posición y tamaño) en vez de saltar. Todo lo demás (oscurecido, anillo, flecha, bocadillo)
  * sigue a este foco, así se mueve todo junto y con calma.
  */
+/** Diferencia de menos de un cuarto de píxel: a la vista, el mismo hueco. */
+function sameHole(a: Hole, b: Hole): boolean {
+  return (
+    Math.abs(a.x - b.x) < 0.25 &&
+    Math.abs(a.y - b.y) < 0.25 &&
+    Math.abs(a.width - b.width) < 0.25 &&
+    Math.abs(a.height - b.height) < 0.25
+  );
+}
+
 function useGlidingHole(target: Hole | null): Hole | null {
   const [shown, setShown] = useState<Hole | null>(null);
   const [t] = useState(() => new Animated.Value(0));
@@ -498,6 +508,8 @@ function useGlidingHole(target: Hole | null): Hole | null {
     const from = current.current;
     const id = t.addListener(({ value }) => {
       const hole = from ? lerpHole(from, target, value) : target;
+      const last = current.current;
+      if (last && sameHole(last, hole)) return;
       current.current = hole;
       setShown(hole);
     });
@@ -533,19 +545,6 @@ function Spotlight({ step, index, total, origin, size }: SpotlightProps) {
 
   const target = useMemo(() => (rect && !missing ? holeFor(rect) : null), [rect, missing]);
   const hole = useGlidingHole(target);
-
-  // El texto del bocadillo cambia con un fundido y un pequeño desplazamiento.
-  const [textIn] = useState(() => new Animated.Value(0));
-  useEffect(() => {
-    textIn.setValue(0);
-    Animated.timing(textIn, {
-      toValue: 1,
-      duration: 650,
-      delay: 250,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [textIn, step.id]);
 
   const screen = { width, height, top: insets.top, bottom: insets.bottom };
   const shownHole = missing ? null : hole;
@@ -655,40 +654,76 @@ function Spotlight({ step, index, total, origin, size }: SpotlightProps) {
           },
         ]}
       >
-        <Animated.View
-          style={{
-            gap: 8,
-            opacity: textIn,
-            transform: [
-              { translateX: textIn.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) },
-            ],
-          }}
-        >
-          <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-            {step.title}
-          </Text>
-          <Text style={[styles.text, { color: colors.textMuted }]}>{step.text}</Text>
-        </Animated.View>
-        <View style={styles.footer}>
-          <Progress index={index} total={total} style={styles.progressInBubble} />
-          {/* Pasos que solo enseñan algo (o sin el elemento en pantalla): «Siguiente». */}
-          {!step.action || missing ? (
-            <AppButton small title="Siguiente" onPress={continueTutorial} />
-          ) : null}
-          <Pressable
-            onPress={skipTutorial}
-            accessibilityRole="button"
-            accessibilityLabel="Saltar el tutorial"
-            hitSlop={10}
-            style={styles.skip}
-          >
-            <Text style={[styles.skipText, { color: colors.textMuted }]}>Saltar</Text>
-          </Pressable>
-        </View>
+        <BubbleContent step={step} index={index} total={total} showNext={!step.action || missing} />
       </View>
     </Animated.View>
   );
 }
+
+/**
+ * Lo de dentro del bocadillo: título y texto (entran con un fundido y un pequeño
+ * desplazamiento al cambiar de paso), la barra de progreso, «Siguiente» y «Saltar».
+ * Memorizado: solo se vuelve a pintar al cambiar de paso, no con cada fotograma del foco.
+ */
+const BubbleContent = memo(function BubbleContent({
+  step,
+  index,
+  total,
+  showNext,
+}: {
+  step: Step;
+  index: number;
+  total: number;
+  showNext: boolean;
+}) {
+  const colors = useThemeColors();
+  const [textIn] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    textIn.setValue(0);
+    Animated.timing(textIn, {
+      toValue: 1,
+      duration: 650,
+      delay: 250,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [textIn, step.id]);
+
+  return (
+    <>
+      <Animated.View
+        style={[
+          styles.bubbleText,
+          {
+            opacity: textIn,
+            transform: [
+              { translateX: textIn.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) },
+            ],
+          },
+        ]}
+      >
+        <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
+          {step.title}
+        </Text>
+        <Text style={[styles.text, { color: colors.textMuted }]}>{step.text}</Text>
+      </Animated.View>
+      <View style={styles.footer}>
+        <Progress index={index} total={total} style={styles.progressInBubble} />
+        {/* Pasos que solo enseñan algo (o sin el elemento en pantalla): «Siguiente». */}
+        {showNext ? <AppButton small title="Siguiente" onPress={continueTutorial} /> : null}
+        <Pressable
+          onPress={skipTutorial}
+          accessibilityRole="button"
+          accessibilityLabel="Saltar el tutorial"
+          hitSlop={10}
+          style={styles.skip}
+        >
+          <Text style={[styles.skipText, { color: colors.textMuted }]}>Saltar</Text>
+        </Pressable>
+      </View>
+    </>
+  );
+});
 
 /** Zona que se traga los toques (para que solo funcione el hueco o el bocadillo). */
 function Blocker({ style }: { style: object }) {
@@ -704,7 +739,15 @@ const DOT = 14;
  * grande), y los que faltan, bolitas huecas. Al completar un paso la barra avanza hasta el
  * siguiente: la bolita que se deja se funde en la barra y la nueva se llena y crece.
  */
-function Progress({ index, total, style }: { index: number; total: number; style?: object }) {
+const Progress = memo(function Progress({
+  index,
+  total,
+  style,
+}: {
+  index: number;
+  total: number;
+  style?: object;
+}) {
   const colors = useThemeColors();
   const [width, setWidth] = useState(0);
   const [progress] = useState(() => new Animated.Value(Math.min(shownProgress, index)));
@@ -788,7 +831,7 @@ function Progress({ index, total, style }: { index: number; total: number; style
       ))}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   welcome: { paddingHorizontal: 24, zIndex: 1000, elevation: 1000 },
@@ -822,6 +865,7 @@ const styles = StyleSheet.create({
   blocker: { position: 'absolute' },
   ring: { position: 'absolute', borderWidth: 3 },
   arrow: { position: 'absolute', width: 30, alignItems: 'center' },
+  bubbleText: { gap: 8 },
   bubble: {
     position: 'absolute',
     left: 16,
