@@ -32,3 +32,49 @@ export function confirmDeleteCounters(
     ],
   );
 }
+
+const names = (counters: Pick<CounterWithTotal, 'name'>[]) =>
+  counters.map((c) => `«${c.name}»`).join(', ');
+
+/** Explicación para los contadores de grupo que no puedo borrar porque no soy su administrador. */
+export function removeFromHomeMessage(counters: Pick<CounterWithTotal, 'name'>[]): string {
+  const one = counters.length === 1;
+  return (
+    `No puedes eliminar ${names(counters)} porque no eres ${one ? 'su' : 'el'} administrador. ` +
+    `Lo que sí puedes es quitar${one ? 'lo' : 'los'} de tu pantalla principal: seguirás ` +
+    `perteneciendo a ${one ? 'él' : 'ellos'}, contando en la clasificación del grupo y ` +
+    `viéndo${one ? 'lo' : 'los'} dentro del grupo.\n\n` +
+    'Se puede deshacer: entra en el contador desde el grupo y pulsa el botón de la casa, arriba ' +
+    'a la derecha, para añadirlo de nuevo a tu pantalla principal.'
+  );
+}
+
+/**
+ * Borrar desde la selección: los que administro se borran; los de grupo que no administro solo
+ * se quitan de mi pantalla principal (con su propia explicación).
+ */
+export function confirmDeleteOrRemove(
+  toDelete: Pick<CounterWithTotal, 'name' | 'group'>[],
+  toRemove: Pick<CounterWithTotal, 'name'>[],
+  onConfirm: () => void,
+) {
+  if (toRemove.length === 0) {
+    confirmDeleteCounters(toDelete, onConfirm);
+    return;
+  }
+  if (toDelete.length === 0) {
+    appAlert('Quitar de tu pantalla principal', removeFromHomeMessage(toRemove), [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Quitar de mi pantalla', onPress: onConfirm },
+    ]);
+    return;
+  }
+  appAlert(
+    'Borrar contadores',
+    `${deleteMessage(toDelete)}\n\n${removeFromHomeMessage(toRemove)}`,
+    [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Continuar', style: 'destructive', onPress: onConfirm },
+    ],
+  );
+}

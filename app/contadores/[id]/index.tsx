@@ -15,6 +15,7 @@ import {
   useCounter,
   useDeleteEntry,
   useEntries,
+  useSetRemovedFromHome,
   useUpdateEntry,
 } from '@/features/contadores/hooks';
 import { useCounterActions } from '@/features/contadores/useCounterActions';
@@ -33,6 +34,7 @@ export default function CounterDetailScreen() {
   const actions = useCounterActions();
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
+  const addToHome = useSetRemovedFromHome();
   const [dialog, setDialog] = useState<DialogState>(null);
   // Si cuenta en varios grupos (contadores enlazados), de qué grupo se ve la clasificación.
   const [boardCounterId, setBoardCounterId] = useState<string | null>(null);
@@ -54,6 +56,7 @@ export default function CounterDetailScreen() {
     is_common: isCommon,
     participantIds,
     linkedGroups,
+    removedFromHome,
   } = counter.data;
   const counterId = counter.data.id;
   const board = linkedGroups.find((g) => g.counterId === boardCounterId) ?? linkedGroups[0] ?? null;
@@ -174,19 +177,44 @@ export default function CounterDetailScreen() {
       <Stack.Screen
         options={{
           title: name,
-          headerRight: () =>
-            canManage ? (
-              <Pressable
-                onPress={() =>
-                  router.push({ pathname: '/contadores/[id]/editar', params: { id: counterId } })
-                }
-                accessibilityRole="button"
-                accessibilityLabel="Editar contador"
-                hitSlop={12}
-              >
-                <Ionicons name="create-outline" size={24} color={colors.primary} />
-              </Pressable>
-            ) : null,
+          headerRight: () => (
+            <View style={styles.headerActions}>
+              {removedFromHome ? (
+                <Pressable
+                  onPress={() =>
+                    addToHome.mutate(
+                      { ids: [counterId], removed: false },
+                      {
+                        onSuccess: () =>
+                          appAlert(
+                            'Añadido a tu pantalla principal',
+                            `«${name}» vuelve a salir en Mis contadores.`,
+                          ),
+                        onError: showError,
+                      },
+                    )
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel="Añadir a la pantalla principal"
+                  hitSlop={12}
+                >
+                  <Ionicons name="home-outline" size={24} color={colors.primary} />
+                </Pressable>
+              ) : null}
+              {canManage ? (
+                <Pressable
+                  onPress={() =>
+                    router.push({ pathname: '/contadores/[id]/editar', params: { id: counterId } })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel="Editar contador"
+                  hitSlop={12}
+                >
+                  <Ionicons name="create-outline" size={24} color={colors.primary} />
+                </Pressable>
+              ) : null}
+            </View>
+          ),
         }}
       />
       <FlatList
@@ -221,6 +249,7 @@ export default function CounterDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   flex: { flex: 1 },
   list: { padding: 16 },
   header: { gap: 20, marginBottom: 8 },

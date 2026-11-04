@@ -18,6 +18,7 @@ import {
   removeOneFromCommonCounter,
   requestCommonChange,
   setHidden,
+  setRemovedFromHome,
   setParticipants,
   updateCounter,
   updateEntry,
@@ -155,6 +156,15 @@ export function useSetHidden() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ ids, hidden }: { ids: string[]; hidden: boolean }) => setHidden(ids, hidden),
+    onSuccess: () => invalidateCounters(queryClient),
+  });
+}
+
+export function useSetRemovedFromHome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, removed }: { ids: string[]; removed: boolean }) =>
+      setRemovedFromHome(ids, removed),
     onSuccess: () => invalidateCounters(queryClient),
   });
 }

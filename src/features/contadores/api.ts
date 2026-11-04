@@ -45,6 +45,11 @@ export type CounterWithTotal = Counter & {
   canManage: boolean;
   /** Lo he ocultado de mi lista (sale al final, en «Ocultos»). */
   hidden: boolean;
+  /**
+   * Lo he quitado de mi pantalla principal (contador de grupo del que no soy administrador):
+   * no sale en la lista, pero sigo perteneciendo a él y lo veo dentro del grupo.
+   */
+  removedFromHome: boolean;
   /** Contador común: cada +1/−1 se aplica a todos estos participantes. Vacío si no es común. */
   participantIds: string[];
   /**
@@ -121,6 +126,7 @@ export function enrich(
   participants: Map<string, string[]> = new Map(),
   aliases: Map<string, { name: string | null; emoji: string | null }> = new Map(),
   hidden: Set<string> = new Set(),
+  removedFromHome: Set<string> = new Set(),
 ): CounterWithTotal {
   const t = totals.find((row) => row.counter_id === counter.id);
   const group = counter.group_id ? (groups.get(counter.group_id) ?? null) : null;
@@ -145,6 +151,7 @@ export function enrich(
     participantIds,
     lastLoggedAt: t?.last_logged_at ?? null,
     hidden: hidden.has(counter.id),
+    removedFromHome: removedFromHome.has(counter.id),
     linkedCounterIds: [counter.id],
     linkedGroups: group && isActive ? [{ counterId: counter.id, group, total: t?.total ?? 0 }] : [],
     linkedInto: null,
@@ -157,6 +164,12 @@ export function enrich(
 
 async function fetchHidden(): Promise<Set<string>> {
   const { data, error } = await supabase.from('hidden_counters').select('counter_id');
+  if (error) throw error;
+  return new Set(data.map((h) => h.counter_id));
+}
+
+async function fetchRemovedFromHome(): Promise<Set<string>> {
+  const { data, error } = await supabase.from('home_removed_counters').select('counter_id');
   if (error) throw error;
   return new Set(data.map((h) => h.counter_id));
 }
@@ -192,19 +205,21 @@ async function fetchParticipants(counterIds?: string[]): Promise<Map<string, str
 // --- Contadores -------------------------------------------------------------
 
 export async function fetchCounters(myId: string): Promise<CounterWithTotal[]> {
-  const [counters, totals, groups, participants, aliases, links, hidden] = await Promise.all([
-    supabase.from('counters').select('*').order('created_at', { ascending: true }),
-    supabase.from('counter_totals').select('*'),
-    fetchMyActiveGroups(myId),
-    fetchParticipants(),
-    fetchAliases(),
-    fetchLinks(),
-    fetchHidden(),
-  ]);
+  const [counters, totals, groups, participants, aliases, links, hidden, removed] =
+    await Promise.all([
+      supabase.from('counters').select('*').order('created_at', { ascending: true }),
+      supabase.from('counter_totals').select('*'),
+      fetchMyActiveGroups(myId),
+      fetchParticipants(),
+      fetchAliases(),
+      fetchLinks(),
+      fetchHidden(),
+      fetchRemovedFromHome(),
+    ]);
   if (counters.error) throw counters.error;
   if (totals.error) throw totals.error;
   const enriched = counters.data.map((counter) =>
-    enrich(counter, totals.data, groups, myId, participants, aliases, hidden),
+    enrich(counter, totals.data, groups, myId, participants, aliases, hidden, removed),
   );
   return applyLinks(enriched, links);
 }
@@ -320,6 +335,17 @@ export async function setHidden(counterIds: string[], hidden: boolean): Promise<
         { ignoreDuplicates: true },
       )
     : await supabase.from('hidden_counters').delete().in('counter_id', counterIds);
+  if (error) throw error;
+}
+
+/** Quita contadores de mi pantalla principal o los vuelve a poner. */
+export async function setRemovedFromHome(counterIds: string[], removed: boolean): Promise<void> {
+  const { error } = removed
+    ? await supabase.from('home_removed_counters').upsert(
+        counterIds.map((counter_id) => ({ counter_id })),
+        { ignoreDuplicates: true },
+      )
+    : await supabase.from('home_removed_counters').delete().in('counter_id', counterIds);
   if (error) throw error;
 }
 

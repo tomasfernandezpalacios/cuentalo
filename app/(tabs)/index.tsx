@@ -20,7 +20,7 @@ import { EntryDialog } from '@/features/contadores/components/EntryDialog';
 import { FilterMenu } from '@/features/contadores/components/FilterMenu';
 import { FolderBar } from '@/features/contadores/components/FolderBar';
 import { FolderPicker } from '@/features/contadores/components/FolderPicker';
-import { confirmDeleteCounters } from '@/features/contadores/confirmDelete';
+import { confirmDeleteOrRemove } from '@/features/contadores/confirmDelete';
 import {
   activeFilterCount,
   DEFAULT_FILTERS,
@@ -33,7 +33,12 @@ import {
   useAddToFolder,
   type Folder,
 } from '@/features/contadores/folders';
-import { useCounterList, useDeleteCounters, useSetHidden } from '@/features/contadores/hooks';
+import {
+  useCounterList,
+  useDeleteCounters,
+  useSetHidden,
+  useSetRemovedFromHome,
+} from '@/features/contadores/hooks';
 import { useCounterActions } from '@/features/contadores/useCounterActions';
 import { StreakBadge } from '@/features/estadisticas/components/StreakBadge';
 import { getErrorMessage } from '@/lib/errors';
@@ -56,6 +61,7 @@ export default function CountersScreen() {
   const deleteFolder = useDeleteFolder();
   const deleteCounters = useDeleteCounters();
   const setHidden = useSetHidden();
+  const removeFromHome = useSetRemovedFromHome();
   const actions = useCounterActions();
   const [showArchived, setShowArchived] = useState(false);
   // Al abrir la app siempre se empieza en «Todos» y sin filtros.
@@ -89,7 +95,8 @@ export default function CountersScreen() {
   const filterCount = activeFilterCount(filters);
 
   // Solo los míos y los de grupos donde sigo; los de grupos que dejé quedan para estadísticas.
-  const active = data.filter((c) => c.isActive && !c.linkedInto);
+  // Los quitados de la pantalla principal tampoco (siguen dentro de su grupo).
+  const active = data.filter((c) => c.isActive && !c.linkedInto && !c.removedFromHome);
   const filtered = filterCounters(active, filters, folderList);
   const archivedCount = filtered.filter((c) => c.archived && !c.hidden).length;
   const shown = filtered.filter((c) => !c.hidden && (showArchived || !c.archived));
@@ -108,19 +115,21 @@ export default function CountersScreen() {
   // --- Acciones del modo selección ---------------------------------------------------------
 
   function deleteSelected() {
-    // Los individuales los borra su dueño; los de grupo, solo su administrador.
-    const notAllowed = selected.filter((c) => !c.canManage);
-    if (notAllowed.length > 0) {
-      appAlert(
-        'No puedes borrar algunos',
-        `Solo el administrador puede borrar ${notAllowed.map((c) => `«${c.name}»`).join(', ')}. ` +
-          'Quítalos de la selección para borrar el resto.',
-      );
-      return;
-    }
-    confirmDeleteCounters(selected, () =>
-      deleteCounters.mutate(selected, { onSuccess: clearSelection, onError: showError }),
-    );
+    // Los que administro se borran; los de grupo que no administro solo se quitan de mi
+    // pantalla principal (sigo perteneciendo a ellos).
+    const toDelete = selected.filter((c) => c.canManage);
+    const toRemove = selected.filter((c) => !c.canManage);
+    confirmDeleteOrRemove(toDelete, toRemove, async () => {
+      try {
+        if (toRemove.length > 0) {
+          await removeFromHome.mutateAsync({ ids: toRemove.map((c) => c.id), removed: true });
+        }
+        if (toDelete.length > 0) await deleteCounters.mutateAsync(toDelete);
+        clearSelection();
+      } catch (error) {
+        showError(error);
+      }
+    });
   }
 
   function toggleHiddenSelected() {

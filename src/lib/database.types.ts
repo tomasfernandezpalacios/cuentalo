@@ -205,6 +205,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      home_removed_counters: {
+        Row: { user_id: string; counter_id: string };
+        Insert: { counter_id: string; user_id?: string };
+        Update: never;
+        Relationships: [];
+      };
       user_activity_days: {
         Row: { user_id: string; day: string };
         Insert: never;

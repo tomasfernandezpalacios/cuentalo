@@ -287,6 +287,13 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   grupo). El nuevo administrador recibe un aviso `group_admin` en el buzón.
 - Los campos de contraseña (`TextField` con `secureTextEntry`) llevan un ojo para verla.
 
+- **Quitar de la pantalla principal** (petición del usuario): al borrar desde la selección un
+  contador de grupo del que no soy administrador, el aviso explica que no se puede eliminar y
+  que solo se quita de mi pantalla (sigo perteneciendo, cuento en la clasificación). Tabla
+  personal `home_removed_counters` (migración `20261121`), campo `removedFromHome`. Se deshace
+  con el botón de la casa en la cabecera del contador (se llega desde el grupo). Distinto de
+  «ocultos», que siguen al final de la lista. Mezcla de borrables y no: un solo aviso.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)
