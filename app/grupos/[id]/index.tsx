@@ -13,7 +13,13 @@ import type { MemberWithProfile } from '@/features/social/api';
 import { GroupAvatar } from '@/features/social/components/GroupAvatar';
 import { InviteCodeCard } from '@/features/social/components/InviteCodeCard';
 import { PersonRow } from '@/features/social/components/PersonRow';
-import { useDeleteGroup, useGroup, useRemoveMember } from '@/features/social/hooks';
+import {
+  useDeleteGroup,
+  useGroup,
+  useLeaveGroup,
+  useRemoveMember,
+  useResignGroupAdmin,
+} from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 
@@ -28,6 +34,8 @@ export default function GroupScreen() {
   const group = useGroup(id);
   const removeMember = useRemoveMember();
   const deleteGroup = useDeleteGroup();
+  const leaveGroup = useLeaveGroup();
+  const resign = useResignGroupAdmin();
 
   if (group.isPending) return <LoadingView />;
   if (group.isError) return <ErrorView error={group.error} onRetry={group.refetch} />;
@@ -56,19 +64,61 @@ export default function GroupScreen() {
     );
   }
 
+  const othersActive = active.filter((m) => m.user_id !== userId).length;
+
+  function leave() {
+    leaveGroup.mutate(id, { onSuccess: () => router.back(), onError: showError });
+  }
+
   function confirmLeave() {
-    appAlert('Salir del grupo', `¿Seguro que quieres salir de «${name}»?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Salir',
-        style: 'destructive',
-        onPress: () =>
-          removeMember.mutate(
-            { groupId: id, userId },
-            { onSuccess: () => router.back(), onError: showError },
-          ),
-      },
-    ]);
+    if (isOwner && othersActive === 0) {
+      appAlert(
+        'Eres el único miembro',
+        'No hay nadie a quien pasarle la administración. Si quieres irte, elimina el grupo.',
+      );
+      return;
+    }
+    appAlert(
+      'Abandonar el grupo',
+      isOwner
+        ? `Eres el administrador de «${name}». Si sales ahora, la administración pasará a un ` +
+            'miembro elegido al azar. Si prefieres elegir tú, designa antes a alguien con el ' +
+            'escudo junto a su nombre.\n\nConservarás tus estadísticas personales.'
+        : `¿Seguro que quieres salir de «${name}»? Conservarás tus estadísticas personales.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Abandonar', style: 'destructive', onPress: leave },
+      ],
+    );
+  }
+
+  function confirmResign() {
+    if (othersActive === 0) {
+      appAlert(
+        'Eres el único miembro',
+        'No hay nadie a quien pasarle la administración del grupo.',
+      );
+      return;
+    }
+    appAlert(
+      'Dejar de ser administrador',
+      'Te recomendamos designar tú a alguien antes: toca el escudo junto al nombre de otro ' +
+        'miembro. Si te retiras sin hacerlo, la administración pasará a un miembro elegido al ' +
+        'azar.\n\nSeguirás en el grupo como un miembro más.',
+      [
+        { text: 'Designar a alguien', style: 'cancel' },
+        {
+          text: 'Retirarme igualmente',
+          style: 'destructive',
+          onPress: () =>
+            resign.mutate(id, {
+              onSuccess: () =>
+                appAlert('Ya no eres administrador', 'La administración ha pasado a otro miembro.'),
+              onError: showError,
+            }),
+        },
+      ],
+    );
   }
 
   function confirmDelete() {
@@ -88,16 +138,46 @@ export default function GroupScreen() {
   }
 
   function memberActions(member: MemberWithProfile) {
-    if (!isOwner || member.role === 'owner') return undefined;
+    if (!isOwner) return undefined;
+    // Mi propia fila: retirarme como administrador.
+    if (member.user_id === userId) {
+      return (
+        <Pressable
+          onPress={confirmResign}
+          accessibilityRole="button"
+          accessibilityLabel="Dejar de ser administrador"
+          hitSlop={10}
+        >
+          <Ionicons name="shield-half-outline" size={24} color={colors.textMuted} />
+        </Pressable>
+      );
+    }
     return (
-      <Pressable
-        onPress={() => confirmRemove(member)}
-        accessibilityRole="button"
-        accessibilityLabel={`Quitar a ${member.profile.display_name}`}
-        hitSlop={10}
-      >
-        <Ionicons name="close-circle-outline" size={24} color={colors.textMuted} />
-      </Pressable>
+      <View style={styles.actions}>
+        {member.status === 'active' ? (
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/grupos/[id]/administrador',
+                params: { id, usuario: member.user_id },
+              })
+            }
+            accessibilityRole="button"
+            accessibilityLabel={`Hacer administrador a ${member.profile.display_name}`}
+            hitSlop={10}
+          >
+            <Ionicons name="shield-checkmark-outline" size={24} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
+        <Pressable
+          onPress={() => confirmRemove(member)}
+          accessibilityRole="button"
+          accessibilityLabel={`Quitar a ${member.profile.display_name}`}
+          hitSlop={10}
+        >
+          <Ionicons name="close-circle-outline" size={24} color={colors.textMuted} />
+        </Pressable>
+      </View>
     );
   }
 
@@ -161,7 +241,15 @@ export default function GroupScreen() {
             <PersonRow
               key={m.user_id}
               profile={m.profile}
-              note={m.role === 'owner' ? 'Administrador' : m.user_id === userId ? 'Tú' : undefined}
+              note={
+                m.role === 'owner'
+                  ? m.user_id === userId
+                    ? 'Tú · Administrador'
+                    : 'Administrador'
+                  : m.user_id === userId
+                    ? 'Tú'
+                    : undefined
+              }
               actions={memberActions(m)}
             />
           ))}
@@ -184,6 +272,12 @@ export default function GroupScreen() {
       ) : null}
 
       <View style={styles.danger}>
+        <AppButton
+          title="Abandonar el grupo"
+          variant="secondary"
+          onPress={confirmLeave}
+          loading={leaveGroup.isPending}
+        />
         {isOwner ? (
           <AppButton
             title="Eliminar grupo"
@@ -191,9 +285,7 @@ export default function GroupScreen() {
             onPress={confirmDelete}
             loading={deleteGroup.isPending}
           />
-        ) : (
-          <AppButton title="Salir del grupo" variant="secondary" onPress={confirmLeave} />
-        )}
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -203,5 +295,6 @@ const styles = StyleSheet.create({
   hero: { alignItems: 'center', gap: 8 },
   heroName: { fontSize: 22, fontFamily: fonts.title, textAlign: 'center' },
   content: { padding: 16, gap: 24 },
-  danger: { marginTop: 8 },
+  danger: { marginTop: 8, gap: 10 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
 });

@@ -18,6 +18,9 @@ import {
   removeMember,
   updateGroup,
   fetchGroupPhotoUrl,
+  leaveGroup,
+  resignGroupAdmin,
+  transferGroupAdmin,
   type Group,
   type GroupInput,
   respondFriendRequest,
@@ -144,6 +147,25 @@ export function useInviteToGroup(groupId: string) {
 export function useAcceptInvitation() {
   const userId = useUserId();
   return useSocialMutation((groupId: string) => acceptInvitation(groupId, userId));
+}
+
+export function useTransferGroupAdmin() {
+  return useSocialMutation(({ groupId, userId }: { groupId: string; userId: string }) =>
+    transferGroupAdmin(groupId, userId),
+  );
+}
+
+export function useResignGroupAdmin() {
+  return useSocialMutation(resignGroupAdmin);
+}
+
+/** Salir de un grupo: también cambian mis contadores (dejo de ver los del grupo). */
+export function useLeaveGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: leaveGroup,
+    onSuccess: () => queryClient.invalidateQueries(),
+  });
 }
 
 export function useRemoveMember() {

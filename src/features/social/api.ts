@@ -244,6 +244,27 @@ export async function acceptInvitation(groupId: string, myId: string): Promise<v
 }
 
 /** Expulsar a alguien, retirar su invitación, rechazar la mía o salir del grupo. */
+/** El administrador pasa la administración a otro miembro activo (él queda como miembro). */
+export async function transferGroupAdmin(groupId: string, userId: string): Promise<void> {
+  const { error } = await supabase.rpc('transfer_group_admin', {
+    p_group_id: groupId,
+    p_user_id: userId,
+  });
+  if (error) throw error;
+}
+
+/** El administrador deja de serlo; se elige a otro miembro activo al azar. */
+export async function resignGroupAdmin(groupId: string): Promise<void> {
+  const { error } = await supabase.rpc('resign_group_admin', { p_group_id: groupId });
+  if (error) throw error;
+}
+
+/** Salir del grupo. Si soy el administrador, antes se elige a otro al azar. */
+export async function leaveGroup(groupId: string): Promise<void> {
+  const { error } = await supabase.rpc('leave_group', { p_group_id: groupId });
+  if (error) throw error;
+}
+
 export async function removeMember(groupId: string, userId: string): Promise<void> {
   const { error } = await supabase
     .from('group_members')

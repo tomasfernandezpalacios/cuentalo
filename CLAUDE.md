@@ -113,7 +113,7 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   rechaza y sigue como "Enviada" para quien la envió, para no comunicar el rechazo.
 - Fase 3: al crear un grupo, un trigger mete al creador como owner activo. El owner invita (solo
   a amigos aceptados, `are_friends`), retira invitaciones y expulsa; los miembros salen o
-  rechazan borrando su fila. **El owner no puede salir: solo eliminar el grupo** (V1).
+  rechazan borrando su fila. Ver más abajo cómo se cambia de administrador.
 - Fase 3: funciones `is_group_member` (activo), `is_group_participant` (activo o invitado) e
   `is_group_owner`, todas SECURITY DEFINER para evitar recursión en la RLS de group_members.
 - Unirse a grupos con **código de 8 caracteres** (`ABCD-EFGH`, alfabeto sin 0/O/1/I/L) o
@@ -277,6 +277,15 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   `PersonRow`, perfiles de otros y Configuración; `UserAvatar` busca la imagen por id en las
   clasificaciones. Al eliminar la cuenta se borran antes sus fotos desde la app (Storage no se
   borra desde SQL). Configuración empieza con un bloque «Perfil» que abre «Editar perfil».
+
+- **Cambio de administrador de grupo** (petición del usuario; sigue habiendo **uno** por grupo,
+  el usuario eligió traspasar y no varios). Migración `20261120`: `transfer_group_admin`
+  (escudo junto a «expulsar» → pantalla de confirmación `app/grupos/[id]/administrador.tsx`),
+  `resign_group_admin` (escudo en mi propia fila; aconseja designar antes porque si no se
+  elige un miembro activo al azar) y `leave_group` («Abandonar el grupo» abajo para todos; el
+  administrador sale tras pasar la administración al azar; el último miembro debe eliminar el
+  grupo). El nuevo administrador recibe un aviso `group_admin` en el buzón.
+- Los campos de contraseña (`TextField` con `secureTextEntry`) llevan un ojo para verla.
 
 ## Cambios estéticos pendientes
 

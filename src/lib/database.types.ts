@@ -172,7 +172,8 @@ export type Database = {
             | 'request_approved'
             | 'request_rejected'
             | 'counter_deleted'
-            | 'group_deleted';
+            | 'group_deleted'
+            | 'group_admin';
           actor_id: string | null;
           counter_name: string | null;
           group_name: string | null;
@@ -333,6 +334,18 @@ export type Database = {
       };
       decide_counter_request: {
         Args: { p_request_id: string; p_approve: boolean };
+        Returns: undefined;
+      };
+      transfer_group_admin: {
+        Args: { p_group_id: string; p_user_id: string };
+        Returns: undefined;
+      };
+      resign_group_admin: {
+        Args: { p_group_id: string };
+        Returns: string;
+      };
+      leave_group: {
+        Args: { p_group_id: string };
         Returns: undefined;
       };
       delete_group_counter: {

@@ -47,6 +47,8 @@ function noticeText(n: Notice): string {
       return `${who} ha quitado ${counter} del grupo${group}. Tus registros siguen en tu contador personal.`;
     case 'group_deleted':
       return `${who} ha eliminado el grupo${group}. Tus registros de ${counter} siguen en tu contador personal.`;
+    case 'group_admin':
+      return `${who} te ha pasado la administración del grupo${n.group_name ? ` «${n.group_name}»` : ''}. Ahora eres su administrador.`;
   }
 }
 
