@@ -1,18 +1,20 @@
-import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { appAlert } from '@/components/AppDialog';
+import { EditablePhoto } from '@/components/EditablePhoto';
 import { AppButton } from '@/components/AppButton';
 import { FormScreen } from '@/components/FormScreen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { TextField } from '@/components/TextField';
 import { EmojiPicker } from '@/features/contadores/components/EmojiPicker';
 import { getErrorMessage } from '@/lib/errors';
+import { pickPhoto } from '@/lib/photos';
 import { fonts, useThemeColors } from '@/lib/theme';
 import { LIMITS, validateRequiredText } from '@/lib/validation';
 
 import type { Group, GroupInput, PickedPhoto } from '../api';
+
+import { useGroupPhotoUrl } from '../hooks';
 
 import { GroupAvatar } from './GroupAvatar';
 
@@ -37,22 +39,12 @@ export function GroupForm({ group, submitTitle, saving, error, onSubmit }: Props
   const [nameError, setNameError] = useState<string | null>(null);
 
   const hasPhoto = newPhoto !== null || (mode === 'photo' && Boolean(group?.photo_path));
+  // Enlace de la foto guardada, para poder editarla.
+  const savedPhoto = useGroupPhotoUrl(group?.photo_path ?? null);
 
-  async function pickPhoto() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images',
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.6,
-      base64: true,
-    });
-    if (result.canceled) return;
-    const asset = result.assets[0];
-    if (!asset?.base64) {
-      appAlert('No se ha podido usar la foto', 'Prueba con otra imagen.');
-      return;
-    }
-    setNewPhoto({ uri: asset.uri, base64: asset.base64, mimeType: asset.mimeType ?? 'image/jpeg' });
+  function removePhoto() {
+    setNewPhoto(null);
+    setMode('emoji');
   }
 
   function handleSubmit() {
@@ -67,12 +59,22 @@ export function GroupForm({ group, submitTitle, saving, error, onSubmit }: Props
   return (
     <FormScreen>
       <View style={styles.preview}>
-        <GroupAvatar
-          emoji={emoji || null}
-          photoPath={mode === 'photo' ? (group?.photo_path ?? null) : null}
-          localUri={mode === 'photo' ? newPhoto?.uri : null}
-          size={96}
-        />
+        <EditablePhoto
+          hasPhoto={hasPhoto}
+          editUri={newPhoto?.uri ?? (mode === 'photo' ? (savedPhoto.data ?? null) : null)}
+          onPicked={(photo) => {
+            setNewPhoto(photo);
+            setMode('photo');
+          }}
+          onRemove={removePhoto}
+        >
+          <GroupAvatar
+            emoji={emoji || null}
+            photoPath={mode === 'photo' ? (group?.photo_path ?? null) : null}
+            localUri={mode === 'photo' ? newPhoto?.uri : null}
+            size={112}
+          />
+        </EditablePhoto>
       </View>
 
       <TextField
@@ -98,22 +100,15 @@ export function GroupForm({ group, submitTitle, saving, error, onSubmit }: Props
         <EmojiPicker value={emoji} onChange={setEmoji} />
       ) : (
         <View style={styles.photoActions}>
-          <AppButton
-            title={hasPhoto ? 'Cambiar foto' : 'Elegir foto de la galería'}
-            variant="secondary"
-            onPress={pickPhoto}
-          />
-          {hasPhoto ? (
+          {hasPhoto ? null : (
             <AppButton
-              title="Quitar foto"
-              variant="ghost"
-              onPress={() => {
-                setNewPhoto(null);
-                setMode('emoji');
-              }}
+              title="Elegir foto de la galería"
+              variant="secondary"
+              onPress={() => pickPhoto('library').then((p) => p && setNewPhoto(p))}
             />
-          ) : null}
+          )}
           <Text style={[styles.hint, { color: colors.textMuted }]}>
+            {hasPhoto ? 'Toca «Editar» sobre la foto para cambiarla, editarla o borrarla. ' : ''}
             La foto solo la ven los miembros del grupo.
           </Text>
         </View>

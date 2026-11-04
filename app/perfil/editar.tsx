@@ -1,10 +1,9 @@
-import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
+import { EditablePhoto } from '@/components/EditablePhoto';
 import { FormScreen } from '@/components/FormScreen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { ErrorView, LoadingView } from '@/components/StateViews';
@@ -13,12 +12,14 @@ import { useUserId } from '@/features/auth/AuthProvider';
 import { EmojiPicker } from '@/features/contadores/components/EmojiPicker';
 import {
   useProfile,
+  useProfilePhotoUrl,
   useUpdateProfile,
   type PickedPhoto,
   type Profile,
 } from '@/features/perfil/api';
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { getErrorMessage } from '@/lib/errors';
+import { pickPhoto } from '@/lib/photos';
 import { fonts, useThemeColors } from '@/lib/theme';
 import { LIMITS, validateRequiredText, validateUsername } from '@/lib/validation';
 
@@ -44,33 +45,12 @@ function EditProfileForm({ profile }: { profile: Profile }) {
   );
 
   const hasPhoto = newPhoto !== null || (mode === 'photo' && Boolean(profile.photo_path));
+  // Enlace de la foto guardada, para poder editarla.
+  const savedPhoto = useProfilePhotoUrl(profile.photo_path);
 
-  async function pickPhoto(source: 'library' | 'camera') {
-    const options: ImagePicker.ImagePickerOptions = {
-      mediaTypes: 'images',
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.6,
-      base64: true,
-    };
-    if (source === 'camera') {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        appAlert('Sin acceso a la cámara', 'Permite el uso de la cámara en los ajustes del móvil.');
-        return;
-      }
-    }
-    const result =
-      source === 'camera'
-        ? await ImagePicker.launchCameraAsync(options)
-        : await ImagePicker.launchImageLibraryAsync(options);
-    if (result.canceled) return;
-    const asset = result.assets[0];
-    if (!asset?.base64) {
-      appAlert('No se ha podido usar la foto', 'Prueba con otra imagen.');
-      return;
-    }
-    setNewPhoto({ uri: asset.uri, base64: asset.base64, mimeType: asset.mimeType ?? 'image/jpeg' });
+  function removePhoto() {
+    setNewPhoto(null);
+    setMode('emoji');
   }
 
   function handleSubmit() {
@@ -88,13 +68,25 @@ function EditProfileForm({ profile }: { profile: Profile }) {
   return (
     <FormScreen>
       <View style={styles.preview}>
-        <PersonAvatar
-          name={displayName || profile.display_name}
-          emoji={emoji || null}
-          photoPath={mode === 'photo' ? profile.photo_path : null}
-          localUri={mode === 'photo' ? newPhoto?.uri : null}
-          size={104}
-        />
+        <EditablePhoto
+          hasPhoto={hasPhoto}
+          editUri={newPhoto?.uri ?? (mode === 'photo' ? (savedPhoto.data ?? null) : null)}
+          camera
+          round
+          onPicked={(photo) => {
+            setNewPhoto(photo);
+            setMode('photo');
+          }}
+          onRemove={removePhoto}
+        >
+          <PersonAvatar
+            name={displayName || profile.display_name}
+            emoji={emoji || null}
+            photoPath={mode === 'photo' ? profile.photo_path : null}
+            localUri={mode === 'photo' ? newPhoto?.uri : null}
+            size={120}
+          />
+        </EditablePhoto>
       </View>
 
       <Text style={[styles.label, { color: colors.text }]}>Imagen de perfil (opcional)</Text>
@@ -115,27 +107,22 @@ function EditProfileForm({ profile }: { profile: Profile }) {
         </>
       ) : (
         <View style={styles.photoActions}>
-          <AppButton
-            title={hasPhoto ? 'Cambiar foto de la galería' : 'Elegir de la galería'}
-            variant="secondary"
-            onPress={() => pickPhoto('library')}
-          />
-          <AppButton
-            title="Hacer una foto"
-            variant="secondary"
-            onPress={() => pickPhoto('camera')}
-          />
-          {hasPhoto ? (
+          {hasPhoto ? null : (
             <AppButton
-              title="Quitar foto"
-              variant="ghost"
-              onPress={() => {
-                setNewPhoto(null);
-                setMode('emoji');
-              }}
+              title="Elegir de la galería"
+              variant="secondary"
+              onPress={() => pickPhoto('library').then((p) => p && setNewPhoto(p))}
             />
-          ) : null}
+          )}
+          {hasPhoto ? null : (
+            <AppButton
+              title="Hacer una foto"
+              variant="secondary"
+              onPress={() => pickPhoto('camera').then((p) => p && setNewPhoto(p))}
+            />
+          )}
           <Text style={[styles.hint, { color: colors.textMuted }]}>
+            {hasPhoto ? 'Toca «Editar» sobre la foto para cambiarla, editarla o borrarla. ' : ''}
             Tu foto la ven las personas con cuenta en Cuéntalo, como tu nombre.
           </Text>
         </View>

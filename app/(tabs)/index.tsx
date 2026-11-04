@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 16, paddingVertical: 8 },
   flex: { flex: 1 },
-  title: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  title: { flexDirection: 'row', alignItems: 'center', gap: 24 },
   titleText: { fontSize: 18, fontFamily: fonts.title },
   list: { padding: 12, gap: 10, flexGrow: 1 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18, marginRight: 14 },

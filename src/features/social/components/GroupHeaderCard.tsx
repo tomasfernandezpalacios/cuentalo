@@ -160,10 +160,11 @@ function InviteCode({ groupId, groupName }: Props) {
 const styles = StyleSheet.create({
   card: { gap: 12, borderRadius: 18, padding: 14 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  side: { flex: 1, gap: 10 },
+  // El código y «Compartir» van abajo, a la altura del final de la imagen, y juntos.
+  side: { flex: 1, alignSelf: 'stretch', justifyContent: 'flex-end' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   groupName: { flex: 1, fontSize: 22, fontFamily: fonts.title },
-  codeBox: { alignItems: 'stretch', gap: 6 },
+  codeBox: { alignItems: 'stretch', gap: 2 },
   label: { fontSize: 13, fontFamily: fonts.detail },
   // Misma altura de línea que el código para que el icono quede centrado con él.
   codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },

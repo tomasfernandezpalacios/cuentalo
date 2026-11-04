@@ -303,6 +303,11 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   elige un miembro activo al azar) y `leave_group` («Abandonar el grupo» abajo para todos; el
   administrador sale tras pasar la administración al azar; el último miembro debe eliminar el
   grupo). El nuevo administrador recibe un aviso `group_admin` en el buzón.
+- **Editar la imagen** (perfil y grupo, petición del usuario): `EditablePhoto` pone un botón
+  «Editar» (o «Añadir foto») sobre la imagen que abre: cambiar foto (galería, y cámara en el
+  perfil), editar foto y borrar foto. `PhotoEditor` (Modal): arrastrar, pellizcar y girar 90°
+  dentro del marco; recorta con `expo-image-manipulator` (512 px, JPEG) y la foto guardada se
+  descarga antes con `expo-file-system` (`localCopy`). Cuentas en `src/lib/photoCrop.ts` (tests).
 - Los campos de contraseña (`TextField` con `secureTextEntry`) llevan un ojo para verla.
 
 - **Quitar de la pantalla principal** (petición del usuario): al borrar desde la selección un
