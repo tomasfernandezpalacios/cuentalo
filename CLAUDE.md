@@ -342,7 +342,9 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   `app/_layout.tsx`, solo se ve en «Mis contadores»): oscurecido con hueco (SVG evenodd),
   anillo que late, flecha, bocadillo arriba o abajo (`layout.ts`, con tests), puntos de
   progreso, confeti al primer +1. Los elementos se marcan con `TutorialTarget` (View con
-  `collapsable={false}`) y se miden con `measureInWindow` cada 250 ms; si no aparece en 1,5 s,
+  `collapsable={false}`) y se miden con `measureInWindow` cada 250 ms **restando la posición de
+  la propia capa del tutorial** (medida igual): la ventana y la vista raíz no empiezan en el
+  mismo sitio en Android y, sin restarla, el foco caía desplazado; si no aparece en 1,5 s,
   el paso sale sin foco y con «Siguiente». Pestañas: `tabBarButton` envuelve
   `PlatformPressable` (de `expo-router/react-navigation`).
 - Valores de `Animated` en componentes: `useState(() => new Animated.Value(0))[0]`, no

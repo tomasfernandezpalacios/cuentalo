@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { usePathname } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Animated,
@@ -19,7 +19,7 @@ import { fonts, useThemeColors } from '@/lib/theme';
 
 import { dimPath, holeFor, placeBubble, type Rect } from './layout';
 import type { Step } from './steps';
-import { getTarget, nextStep, skipTutorial, useTutorial } from './store';
+import { getTarget, nextStep, skipTutorial, useTutorial, type ViewRef } from './store';
 
 const DIM = 'rgba(8, 8, 16, 0.66)';
 /** Si el elemento no aparece en este tiempo, el paso se enseña sin foco (con «Siguiente»). */
@@ -39,23 +39,67 @@ export function TutorialHost() {
   if (!step.target) return <Welcome step={step} />;
   if (pathname !== '/') return null;
   return (
-    <Spotlight
-      key={step.id}
-      step={step}
-      index={index}
-      total={steps.length}
-      celebrating={celebrating}
-    />
+    <Layer>
+      {(origin, size) => (
+        <Spotlight
+          key={step.id}
+          step={step}
+          index={index}
+          total={steps.length}
+          celebrating={celebrating}
+          origin={origin}
+          size={size}
+        />
+      )}
+    </Layer>
   );
 }
 
-/** Mide el elemento del paso cada poco (sigue al elemento si se mueve). */
-function useTargetRect(step: Step): { rect: Rect | null; missing: boolean } {
+type Size = { width: number; height: number };
+
+/**
+ * Capa que ocupa toda la app y sirve de referencia: se mide a sí misma con measureInWindow y
+ * los elementos se colocan respecto a ella. Así el foco cae justo encima del elemento aunque la
+ * ventana y la vista raíz no empiecen en el mismo sitio (barra de estado, edge-to-edge…).
+ */
+function Layer({
+  children,
+}: {
+  children: (origin: ViewRef | null, size: Size | null) => ReactNode;
+}) {
+  const [origin, setOrigin] = useState<ViewRef | null>(null);
+  const [size, setSize] = useState<Size | null>(null);
+  return (
+    <View
+      ref={setOrigin}
+      collapsable={false}
+      pointerEvents="box-none"
+      style={[StyleSheet.absoluteFill, styles.layer]}
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+        setSize((old) =>
+          old && old.width === width && old.height === height ? old : { width, height },
+        );
+      }}
+    >
+      {children(origin, size)}
+    </View>
+  );
+}
+
+/**
+ * Mide el elemento del paso cada poco (sigue al elemento si se mueve), relativo a la capa del
+ * tutorial: se miden los dos en coordenadas de la ventana y se restan.
+ */
+function useTargetRect(
+  step: Step,
+  origin: ViewRef | null,
+): { rect: Rect | null; missing: boolean } {
   const [rect, setRect] = useState<Rect | null>(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
-    if (!step.target) return;
+    if (!step.target || !origin) return;
     const target = step.target;
     const startedAt = Date.now();
     const measure = () => {
@@ -64,24 +108,28 @@ function useTargetRect(step: Step): { rect: Rect | null; missing: boolean } {
         if (Date.now() - startedAt > TARGET_TIMEOUT_MS) setMissing(true);
         return;
       }
-      view.measureInWindow((x, y, width, height) => {
-        if (width <= 0 || height <= 0) return;
-        setMissing(false);
-        setRect((old) =>
-          old &&
-          Math.abs(old.x - x) < 1 &&
-          Math.abs(old.y - y) < 1 &&
-          old.width === width &&
-          old.height === height
-            ? old
-            : { x, y, width, height },
-        );
+      origin.measureInWindow((ox, oy) => {
+        view.measureInWindow((tx, ty, width, height) => {
+          if (width <= 0 || height <= 0) return;
+          const x = tx - ox;
+          const y = ty - oy;
+          setMissing(false);
+          setRect((old) =>
+            old &&
+            Math.abs(old.x - x) < 1 &&
+            Math.abs(old.y - y) < 1 &&
+            old.width === width &&
+            old.height === height
+              ? old
+              : { x, y, width, height },
+          );
+        });
       });
     };
     measure();
     const timer = setInterval(measure, MEASURE_EVERY_MS);
     return () => clearInterval(timer);
-  }, [step.target]);
+  }, [step.target, origin]);
 
   return { rect, missing };
 }
@@ -169,13 +217,23 @@ function Welcome({ step }: { step: Step }) {
   );
 }
 
-type SpotlightProps = { step: Step; index: number; total: number; celebrating: boolean };
+type SpotlightProps = {
+  step: Step;
+  index: number;
+  total: number;
+  celebrating: boolean;
+  origin: ViewRef | null;
+  size: Size | null;
+};
 
-function Spotlight({ step, index, total, celebrating }: SpotlightProps) {
+function Spotlight({ step, index, total, celebrating, origin, size }: SpotlightProps) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
-  const { rect, missing } = useTargetRect(step);
+  const windowSize = useWindowDimensions();
+  // Tamaño de la capa (no de la ventana): es donde se dibuja todo.
+  const width = size?.width ?? windowSize.width;
+  const height = size?.height ?? windowSize.height;
+  const { rect, missing } = useTargetRect(step, origin);
   const [bubbleHeight, setBubbleHeight] = useState(170);
   const opacity = useFadeIn();
   const pulse = useLoop(800);
@@ -194,10 +252,7 @@ function Spotlight({ step, index, total, celebrating }: SpotlightProps) {
   }
 
   return (
-    <Animated.View
-      style={[StyleSheet.absoluteFill, styles.layer, { opacity }]}
-      pointerEvents="box-none"
-    >
+    <Animated.View style={[StyleSheet.absoluteFill, { opacity }]} pointerEvents="box-none">
       {hole ? (
         <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
           <Path d={dimPath(width, height, hole)} fill={DIM} fillRule="evenodd" />
