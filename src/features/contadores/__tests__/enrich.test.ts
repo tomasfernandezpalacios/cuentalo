@@ -1,4 +1,10 @@
-import { enrich, type Counter, type CounterGroup, type CounterTotal } from '../api';
+import {
+  countersFromBundle,
+  enrich,
+  type Counter,
+  type CounterGroup,
+  type CounterTotal,
+} from '../api';
 
 jest.mock('@/lib/supabase', () => ({ supabase: {} }));
 
@@ -135,5 +141,54 @@ describe('enrich: archivados de antes', () => {
   it('para otro miembro del grupo es un contador normal', () => {
     const archivedByOther = counter({ archived: true, group_id: 'g1', owner_id: OTHER });
     expect(enrich(archivedByOther, totals, groups, ME).hidden).toBe(false);
+  });
+});
+
+describe('countersFromBundle (todo en una petición)', () => {
+  it('da lo mismo que montar la lista consulta a consulta', () => {
+    const shared = counter({ id: 'c2', owner_id: OTHER, group_id: 'g1', is_common: true });
+    const bundle = {
+      counters: [counter({ streak_enabled: true }), shared],
+      totals,
+      groups: [{ id: 'g1', name: 'Amigos', owner_id: OTHER, emoji: null, photo_path: null }],
+      participants: [
+        { counter_id: 'c2', user_id: ME },
+        { counter_id: 'c2', user_id: OTHER },
+      ],
+      aliases: [{ counter_id: 'c1', name: 'Mis cervezas', emoji: '🍺' }],
+      links: [],
+      hidden: ['c2'],
+      removed: [],
+      streaks: [
+        {
+          counter_id: 'c1',
+          current_total: 2,
+          current_days: 2,
+          best_total: 5,
+          best_days: 5,
+          today_done: true,
+          today_amount: 1,
+        },
+      ],
+    };
+    const [mine, group] = countersFromBundle(bundle, ME);
+    expect(mine).toEqual(
+      enrich(
+        bundle.counters[0]!,
+        totals,
+        groups,
+        ME,
+        new Map(),
+        new Map([['c1', { name: 'Mis cervezas', emoji: '🍺' }]]),
+        new Set(['c2']),
+        new Set(),
+        new Map([['c1', { current: 2, best: 5, todayDone: true, todayAmount: 1 }]]),
+      ),
+    );
+    expect(mine?.name).toBe('Mis cervezas');
+    expect(mine?.streak).toEqual({ current: 2, best: 5, todayDone: true, todayAmount: 1 });
+    expect(group?.participantIds).toEqual([ME, OTHER]);
+    expect(group?.hidden).toBe(true);
+    expect(group?.group?.name).toBe('Amigos');
   });
 });

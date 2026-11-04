@@ -128,8 +128,17 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   mismo bloque grande de la cabecera del grupo (`GroupHeaderCard` con `onPress`), con el código.
 - En la pantalla del grupo, el + morado de la cabecera (como en inicio) crea un contador
   compartido; el botón «Nuevo contador compartido» de la lista solo sale si no hay ninguno.
+- **Rendimiento** (migración `20261201`): la lista de contadores llega en **una** petición
+  (`get_my_home`: contadores, totales, grupos, participantes, alias, enlaces, ocultos, quitados
+  y rachas) en vez de nueve. `my_visible_counter_ids()` y `my_counter_totals()` aplican las
+  mismas reglas que la RLS con joins e índices (antes la RLS recorría todos los registros y
+  contadores de la base de datos con una función por fila); `privacidad.sql` comprueba que
+  coinciden. Sin la migración, la app hace las nueve consultas de antes (`PGRST202`). El
+  detalle de un contador sale de la carga de la lista (`useCounter` → `fetchQuery`).
+  `my_time_zone()` pasa a SQL sencilla (sin SECURITY DEFINER) para calcularse una vez por
+  consulta. `refreshAll` refresca todo menos enlaces de fotos, avatares y códigos de grupo.
 - **Cambios al instante** (petición del usuario): toda mutación (contadores, social, carpetas,
-  perfil) refresca **todas** las consultas (`invalidateQueries()` sin clave; solo se vuelven a
+  perfil) refresca **todas** las consultas (`refreshAll`; solo se vuelven a
   pedir las que están en pantalla). `ChartPlot` lleva `key` con series, valores y etiquetas:
   gifted-charts no redibujaba al cambiar de contador (solo al cambiar de tipo).
 - Fase 3: los datos se refrescan al volver a la app (`focusManager` + `AppState`) y con

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useUserId } from '@/features/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { refreshAll } from '@/lib/queryClient';
 
 export type Folder = { id: string; name: string; counterIds: string[] };
 
@@ -53,7 +54,7 @@ export function useSaveFolder(id: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: FolderInput) => saveFolder(id, input),
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => refreshAll(queryClient),
   });
 }
 
@@ -66,7 +67,7 @@ export function useAddToFolder() {
         name: folder.name,
         counterIds: [...new Set([...folder.counterIds, ...counterIds])],
       }),
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => refreshAll(queryClient),
   });
 }
 
@@ -74,6 +75,6 @@ export function useDeleteFolder() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteFolder,
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => refreshAll(queryClient),
   });
 }

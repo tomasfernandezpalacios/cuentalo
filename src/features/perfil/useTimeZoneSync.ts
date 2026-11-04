@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 
 import { useUserId } from '@/features/auth/AuthProvider';
 import { deviceTimeZone } from '@/features/estadisticas/periods';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient, refreshAll } from '@/lib/queryClient';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -27,7 +27,7 @@ export function useTimeZoneSync(isSignedIn: boolean) {
       // Sin la migración (no hay columna) o ya está al día: nada que hacer.
       if (!data || data.time_zone === zone) return;
       const { error } = await supabase.rpc('set_my_time_zone', { p_time_zone: zone });
-      if (!error) await queryClient.invalidateQueries();
+      if (!error) await refreshAll(queryClient);
     })();
   }, [isSignedIn, userId]);
 }

@@ -1,4 +1,4 @@
-import type { Tables, Views } from '@/lib/database.types';
+import type { HomeBundle, Tables, Views } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 
 import { applyLinks, type CounterLink, type LinkedGroup } from './links';
@@ -202,8 +202,12 @@ async function fetchHidden(): Promise<Set<string>> {
 async function fetchStreaks(): Promise<Map<string, CounterStreak>> {
   const { data, error } = await supabase.from('my_counter_streaks').select('*');
   if (error) throw error;
+  return streaksFromRows(data);
+}
+
+function streaksFromRows(rows: HomeBundle['streaks']): Map<string, CounterStreak> {
   return new Map(
-    data.map((s) => [
+    rows.map((s) => [
       s.counter_id,
       {
         current: s.current_days,
@@ -251,7 +255,49 @@ async function fetchParticipants(counterIds?: string[]): Promise<Map<string, str
 
 // --- Contadores -------------------------------------------------------------
 
+/**
+ * La lista de contadores con todo lo que necesita (totales, grupos, alias, enlaces, ocultos,
+ * rachas…) en UNA petición (get_my_home). Si la base de datos aún no tiene esa función (falta
+ * la migración de rendimiento), se hace como antes, con varias consultas.
+ */
 export async function fetchCounters(myId: string): Promise<CounterWithTotal[]> {
+  const { data, error } = await supabase.rpc('get_my_home');
+  if (!error && data) return countersFromBundle(data, myId);
+  if (error && error.code !== 'PGRST202') throw error;
+  return fetchCountersSeparately(myId);
+}
+
+/** Monta la lista a partir de lo que devuelve get_my_home (exportada para los tests). */
+export function countersFromBundle(bundle: HomeBundle, myId: string): CounterWithTotal[] {
+  const groups = new Map<string, CounterGroup>(
+    bundle.groups.map((g) => [
+      g.id,
+      { id: g.id, name: g.name, ownerId: g.owner_id, emoji: g.emoji, photoPath: g.photo_path },
+    ]),
+  );
+  const participants = new Map<string, string[]>();
+  for (const row of bundle.participants) {
+    participants.set(row.counter_id, [...(participants.get(row.counter_id) ?? []), row.user_id]);
+  }
+  const aliases = new Map(
+    bundle.aliases.map((a) => [a.counter_id, { name: a.name, emoji: a.emoji }]),
+  );
+  const links: CounterLink[] = bundle.links.map((l) => ({
+    counterId: l.counter_id,
+    linkId: l.link_id,
+    isPrimary: l.is_primary,
+  }));
+  const hidden = new Set(bundle.hidden);
+  const removed = new Set(bundle.removed);
+  const streaks = streaksFromRows(bundle.streaks);
+  const enriched = bundle.counters.map((counter) =>
+    enrich(counter, bundle.totals, groups, myId, participants, aliases, hidden, removed, streaks),
+  );
+  return applyLinks(enriched, links);
+}
+
+/** Como antes de get_my_home: nueve consultas en paralelo. */
+async function fetchCountersSeparately(myId: string): Promise<CounterWithTotal[]> {
   const [counters, totals, groups, participants, aliases, links, hidden, removed, streaks] =
     await Promise.all([
       supabase.from('counters').select('*').order('created_at', { ascending: true }),
@@ -273,8 +319,12 @@ export async function fetchCounters(myId: string): Promise<CounterWithTotal[]> {
 }
 
 /** Un contador ya combinado con sus enlazados (se apoya en la lista completa). */
-export async function fetchCounter(id: string, myId: string): Promise<CounterWithTotal> {
-  const all = await fetchCounters(myId);
+export async function fetchCounter(
+  id: string,
+  myId: string,
+  list?: CounterWithTotal[],
+): Promise<CounterWithTotal> {
+  const all = list ?? (await fetchCounters(myId));
   const counter = all.find((c) => c.id === id);
   if (counter)
     return counter.linkedInto ? (all.find((c) => c.id === counter.linkedInto) ?? counter) : counter;

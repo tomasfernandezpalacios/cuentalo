@@ -661,6 +661,48 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- 4b. Rendimiento: las funciones rápidas dan lo mismo que la RLS (migración 20261201)
+-- ---------------------------------------------------------------------------
+
+-- Para cada usuario de prueba: los contadores de get_my_home() son los que deja ver la RLS y
+-- my_counter_totals() da los mismos totales que la vista counter_totals.
+do $$
+declare
+  u text;
+  diff int;
+begin
+  foreach u in array array[
+    '00000000-0000-0000-0000-0000000000a1',
+    '00000000-0000-0000-0000-0000000000b2',
+    '00000000-0000-0000-0000-0000000000c3'
+  ] loop
+    perform set_config('request.jwt.claims', json_build_object('sub', u, 'role', 'authenticated')::text, true);
+
+    select count(*) into diff from (
+      (select id from public.counters except select public.my_visible_counter_ids())
+      union all
+      (select public.my_visible_counter_ids() except select id from public.counters)
+    ) x;
+    if diff <> 0 then raise exception 'FALLO: my_visible_counter_ids no coincide con la RLS (%)', u; end if;
+
+    select count(*) into diff from (
+      (select counter_id, total, entry_count, last_logged_at, my_total, my_entry_count, my_group_total
+         from public.counter_totals
+       except
+       select counter_id, total, entry_count, last_logged_at, my_total, my_entry_count, my_group_total
+         from public.my_counter_totals())
+      union all
+      (select counter_id, total, entry_count, last_logged_at, my_total, my_entry_count, my_group_total
+         from public.my_counter_totals()
+       except
+       select counter_id, total, entry_count, last_logged_at, my_total, my_entry_count, my_group_total
+         from public.counter_totals)
+    ) x;
+    if diff <> 0 then raise exception 'FALLO: my_counter_totals no coincide con counter_totals (%)', u; end if;
+  end loop;
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- 5. Eliminar cuenta: solo borra la propia
 -- ---------------------------------------------------------------------------
 

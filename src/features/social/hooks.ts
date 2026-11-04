@@ -32,6 +32,7 @@ import {
   fetchPublicProfile,
   fetchUserCounters,
 } from './api';
+import { refreshAll } from '@/lib/queryClient';
 
 export const socialKeys = {
   all: ['social'] as const,
@@ -52,7 +53,7 @@ function useSocialMutation<TVariables, TResult>(fn: (variables: TVariables) => P
   return useMutation({
     mutationFn: fn,
     // Todo, no solo lo social: un cambio en un grupo también cambia contadores y clasificaciones.
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => refreshAll(queryClient),
   });
 }
 
@@ -136,7 +137,7 @@ export function useDeleteGroup() {
     onSuccess: (_result, groupId) => {
       queryClient.removeQueries({ queryKey: socialKeys.group(groupId) });
       // Al borrar el grupo sus contadores pasan a privados: se refresca todo.
-      return queryClient.invalidateQueries();
+      return refreshAll(queryClient);
     },
   });
 }
@@ -165,7 +166,7 @@ export function useLeaveGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: leaveGroup,
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => refreshAll(queryClient),
   });
 }
 
@@ -182,6 +183,8 @@ export function useInviteCode(groupId: string, enabled: boolean) {
     queryKey: socialKeys.inviteCode(groupId),
     queryFn: () => fetchInviteCode(groupId),
     enabled,
+    // El código de un grupo no cambia nunca: se pide una vez.
+    staleTime: Infinity,
   });
 }
 
@@ -219,7 +222,7 @@ export function useDecideCounterRequest() {
     mutationFn: ({ id, approve }: { id: string; approve: boolean }) =>
       decideCounterRequest(id, approve),
     // Si se acepta, cambian los totales: refrescamos todo.
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => refreshAll(queryClient),
   });
 }
 

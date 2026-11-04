@@ -1,6 +1,25 @@
 // Tipos de la base de datos, escritos a mano a partir de supabase/migrations.
 // Si se cambia una migración, hay que actualizar este archivo.
 
+/** Lo que devuelve get_my_home(): todo lo de la pantalla principal en una petición. */
+export type HomeBundle = {
+  counters: Database['public']['Tables']['counters']['Row'][];
+  totals: Database['public']['Views']['counter_totals']['Row'][];
+  groups: {
+    id: string;
+    name: string;
+    owner_id: string;
+    emoji: string | null;
+    photo_path: string | null;
+  }[];
+  participants: { counter_id: string; user_id: string }[];
+  aliases: { counter_id: string; name: string | null; emoji: string | null }[];
+  links: { counter_id: string; link_id: string; is_primary: boolean }[];
+  hidden: string[];
+  removed: string[];
+  streaks: Database['public']['Views']['my_counter_streaks']['Row'][];
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -400,6 +419,10 @@ export type Database = {
       set_my_time_zone: {
         Args: { p_time_zone: string };
         Returns: undefined;
+      };
+      get_my_home: {
+        Args: Record<string, never>;
+        Returns: HomeBundle;
       };
       get_group_counter_daily: {
         Args: { p_counter_id: string };

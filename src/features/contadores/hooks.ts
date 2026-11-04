@@ -31,6 +31,7 @@ import {
   type EntryInput,
   type LeaderboardPeriod,
 } from './api';
+import { refreshAll } from '@/lib/queryClient';
 
 export const counterKeys = {
   all: ['counters'] as const,
@@ -47,7 +48,7 @@ export const counterKeys = {
 // el buzón se ven al instante y nunca se desincronizan. Solo se vuelven a pedir las que están
 // en pantalla; el resto se marca como antiguo y se pide al abrirlas.
 function invalidateCounters(queryClient: QueryClient) {
-  return queryClient.invalidateQueries();
+  return refreshAll(queryClient);
 }
 
 // --- Consultas --------------------------------------------------------------
@@ -64,9 +65,20 @@ export function useCounterList() {
 
 export function useCounter(id: string) {
   const userId = useUserId();
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: counterKeys.detail(id),
-    queryFn: () => fetchCounter(id, userId),
+    // El detalle sale de la misma carga que la lista (si está reciente, sin pedir nada; si se
+    // están pidiendo las dos a la vez, una sola petición). Solo si no está en la lista (p. ej.
+    // un contador de un grupo que dejé) se pide aparte.
+    queryFn: async () => {
+      const all = await queryClient.fetchQuery({
+        queryKey: counterKeys.list(),
+        queryFn: () => fetchCounters(userId),
+        staleTime: 2_000,
+      });
+      return fetchCounter(id, userId, all);
+    },
     enabled: userId !== '',
   });
 }
@@ -139,7 +151,7 @@ export function useMergeCounters() {
     mutationFn: ({ ids, name, emoji }: { ids: string[]; name: string; emoji: string }) =>
       mergeCounters(ids, name, emoji),
     // Cambian contadores y carpetas: refrescamos todo.
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => refreshAll(queryClient),
   });
 }
 
@@ -169,7 +181,7 @@ export function useDeleteCounters() {
     onSuccess: (_result, counters) => {
       for (const c of counters) queryClient.removeQueries({ queryKey: counterKeys.detail(c.id) });
       // También cambian carpetas y estadísticas.
-      return queryClient.invalidateQueries();
+      return refreshAll(queryClient);
     },
   });
 }
