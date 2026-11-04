@@ -1,22 +1,23 @@
 import { useColorScheme } from 'react-native';
 
 // Paleta cálida (petición del usuario): que la app transmita calma y hogar, no obligación.
-// Ahora en versión invertida: fondo marrón oscuro #2E190B, texto crema #FFEDA1 y verde
-// #009146 como color principal. De momento es igual en modo claro y oscuro.
-// Diseños anteriores en Git: etiqueta `diseno-morado` (morado) y commit 71f637e (crema).
+// Fondo de cada página crema #FFEDA1, tarjetas en un crema más claro, texto marrón #2E190B y
+// verde #009146 como color principal. De momento es igual en modo claro y oscuro.
+// Diseños anteriores en Git: etiqueta `diseno-morado`, commits 71f637e (crema, texto #3D1813)
+// y 05ed122 (fondo marrón).
 const warm = {
-  background: '#2E190B',
-  surface: '#3E2414',
-  text: '#FFEDA1',
-  textMuted: '#D8C38B',
-  border: '#5A3A22',
+  background: '#FFEDA1',
+  surface: '#FFF7D6',
+  text: '#2E190B',
+  textMuted: '#6B4A31',
+  border: '#E9D48C',
   primary: '#009146',
-  primarySoft: '#1F3B26',
-  flame: '#FF8A3D',
+  primarySoft: '#DDEFC4',
+  flame: '#E8650F',
   onPrimary: '#FFFFFF',
-  danger: '#FF7B6B',
-  /** Iconos de la barra de estado (hora, batería): claros sobre fondo oscuro. */
-  statusBar: 'light' as 'light' | 'dark',
+  danger: '#C62828',
+  /** Iconos de la barra de estado (hora, batería): oscuros sobre el fondo claro. */
+  statusBar: 'dark' as 'light' | 'dark',
 };
 
 const palette = {

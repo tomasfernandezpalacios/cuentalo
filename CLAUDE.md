@@ -28,10 +28,10 @@ convenciones y decisiones; anota aquí cualquier decisión menor nueva.
   `src/features` y rutas en español como pide la especificación.
 - Alias de importación `@/` → `src/`.
 - Colores siempre desde `useThemeColors()` (`src/lib/theme.ts`), con modo claro y oscuro.
-- Paleta cálida (petición del usuario, «calma y hogar»), ahora invertida: fondo marrón
-  `#2E190B`, texto crema `#FFEDA1`, principal verde `#009146`; igual en claro y oscuro de
-  momento, con barra de estado clara (`colors.statusBar`). Versiones anteriores: etiqueta
-  `diseno-morado` (morado) y commit `71f637e` (fondo crema).
+- Paleta cálida (petición del usuario, «calma y hogar»): fondo de página crema `#FFEDA1`,
+  tarjetas crema claro `#FFF7D6`, texto marrón `#2E190B`, principal verde `#009146`; igual en
+  claro y oscuro de momento. Versiones anteriores: etiqueta `diseno-morado`, commits `71f637e`
+  (crema con texto `#3D1813`) y `05ed122` (fondo marrón).
 - Tipografías (petición del usuario): **Ubuntu Bold** (`fonts.title`) para títulos, nombres,
   cifras, botones, cabeceras y pestañas; **Redaction** (`fonts.detail`) para detalles y textos
   secundarios (fechas, notas, unidades, etiquetas, descripciones, errores). Los campos de texto
