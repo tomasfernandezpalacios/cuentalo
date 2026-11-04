@@ -51,7 +51,7 @@ export function StatsChart({ labels, series, type, onChangeType }: Props) {
         ]}
       >
         <Text style={[styles.empty, { color: colors.textMuted }]}>
-          Toca un contador de la barra para verlo en la gráfica.
+          Toca un contador para verlo en la gráfica
         </Text>
       </View>
     );
