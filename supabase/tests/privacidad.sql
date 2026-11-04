@@ -300,6 +300,74 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- 3c. Fusionar un contador individual con uno de grupo
+-- ---------------------------------------------------------------------------
+
+-- Beto tiene 100 en un contador privado y lo fusiona con el compartido del grupo (donde lleva 4).
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}', true);
+insert into public.counters (id, name, unit)
+  values ('10000000-0000-0000-0000-000000000004', 'Cervezas de Beto', 'cosas');
+insert into public.entries (counter_id, amount)
+  values ('10000000-0000-0000-0000-000000000004', 100);
+
+do $$
+declare n int; v_total numeric; v_target uuid;
+begin
+  -- No se pueden fusionar dos de grupo ni contadores comunes.
+  begin
+    perform public.merge_counters(
+      array['10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000003']::uuid[],
+      null, null);
+    raise exception 'FALLO: se pueden fusionar dos contadores de grupo o uno común';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+
+  v_target := public.merge_counters(
+    array['10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002']::uuid[],
+    'Mis cervezas', '🍺');
+  if v_target <> '10000000-0000-0000-0000-000000000002' then
+    raise exception 'FALLO: al fusionar con uno de grupo no se queda el de grupo';
+  end if;
+
+  select count(*) into n from public.counters where id = '10000000-0000-0000-0000-000000000004';
+  if n <> 0 then raise exception 'FALLO: el contador individual fusionado no desaparece'; end if;
+
+  select my_total into v_total from public.counter_totals
+   where counter_id = '10000000-0000-0000-0000-000000000002';
+  if v_total <> 104 then raise exception 'FALLO: Beto no conserva su total personal (%)', v_total; end if;
+
+  select total into v_total from public.get_leaderboard('10000000-0000-0000-0000-000000000002', 'all')
+   where username = 'beto_prueba';
+  if v_total <> 4 then raise exception 'FALLO: lo fusionado cuenta en la clasificación (%)', v_total; end if;
+
+  select count(*) into n from public.counter_aliases
+   where counter_id = '10000000-0000-0000-0000-000000000002' and name = 'Mis cervezas';
+  if n <> 1 then raise exception 'FALLO: el nombre elegido no se guarda como alias personal'; end if;
+
+  select count(*) into n from public.counters
+   where id = '10000000-0000-0000-0000-000000000002' and name = 'Compartido';
+  if n <> 1 then raise exception 'FALLO: fusionar cambia el nombre del contador del grupo'; end if;
+end $$;
+
+-- Ana no ve los registros antiguos de Beto ni le cuentan en el total del grupo.
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+do $$
+declare n int; v_total numeric;
+begin
+  select count(*) into n from public.entries
+   where counter_id = '10000000-0000-0000-0000-000000000002' and personal_only;
+  if n <> 0 then raise exception 'FALLO: Ana ve los registros solo personales de Beto'; end if;
+
+  select total into v_total from public.counter_totals
+   where counter_id = '10000000-0000-0000-0000-000000000002';
+  if v_total <> 7 then raise exception 'FALLO: lo fusionado suma en el total del grupo (%)', v_total; end if;
+
+  select count(*) into n from public.counter_aliases;
+  if n <> 0 then raise exception 'FALLO: Ana ve los alias de Beto'; end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- 4. Salir del grupo conserva las estadísticas personales
 -- ---------------------------------------------------------------------------
 
@@ -313,7 +381,7 @@ begin
   select count(*) into n from public.entries
    where counter_id = '10000000-0000-0000-0000-000000000002'
      and user_id = '00000000-0000-0000-0000-0000000000b2';
-  if n <> 1 then raise exception 'FALLO: al salir del grupo se pierden los registros propios'; end if;
+  if n < 1 then raise exception 'FALLO: al salir del grupo se pierden los registros propios'; end if;
 
   select count(*) into n from public.entries
    where counter_id = '10000000-0000-0000-0000-000000000002'

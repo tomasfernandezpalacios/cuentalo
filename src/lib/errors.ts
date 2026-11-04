@@ -34,6 +34,9 @@ const CUSTOM_MESSAGES: Record<string, string> = {
     'Solo el creador del contador o el administrador del grupo pueden cambiarlo.',
   no_participants: 'Elige al menos una persona para el contador común.',
   folder_not_found: 'Esa carpeta ya no existe.',
+  merge_needs_two: 'Elige al menos dos contadores para fusionar.',
+  merge_two_groups: 'Solo puedes fusionar un contador de grupo cada vez.',
+  merge_invalid_counters: 'Alguno de esos contadores no se puede fusionar.',
 };
 
 export function getErrorMessage(error: unknown): string {

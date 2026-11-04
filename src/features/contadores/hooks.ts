@@ -13,6 +13,7 @@ import {
   fetchEntries,
   fetchLeaderboard,
   fetchMyLastCounterId,
+  mergeCounters,
   removeOne,
   removeOneFromCommonCounter,
   setParticipants,
@@ -105,6 +106,16 @@ export function useCreateCounter() {
   });
 }
 
+export function useMergeCounters() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, name, emoji }: { ids: string[]; name: string; emoji: string }) =>
+      mergeCounters(ids, name, emoji),
+    // Cambian contadores y carpetas: refrescamos todo.
+    onSuccess: () => queryClient.invalidateQueries(),
+  });
+}
+
 export function useSetParticipants(counterId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -180,6 +191,7 @@ function applyAmount(c: CounterWithTotal, amount: number, userId: string): Count
       ...c,
       total: c.total + amount,
       myTotal: c.myTotal + amount,
+      myGroupTotal: c.myGroupTotal + amount,
       displayTotal: c.displayTotal + amount,
       entryCount: c.entryCount + (amount > 0 ? 1 : 0),
       myEntryCount: c.myEntryCount + (amount > 0 ? 1 : 0),
@@ -191,6 +203,7 @@ function applyAmount(c: CounterWithTotal, amount: number, userId: string): Count
     ...c,
     total: c.total + amount * participants,
     myTotal: c.myTotal + (iParticipate ? amount : 0),
+    myGroupTotal: c.myGroupTotal + (iParticipate ? amount : 0),
     displayTotal: c.displayTotal + amount,
     entryCount: c.entryCount + (amount > 0 ? participants : 0),
     myEntryCount: c.myEntryCount + (amount > 0 && iParticipate ? 1 : 0),
@@ -236,7 +249,11 @@ export function useRemoveOne() {
     },
     onMutate: (counterId) =>
       applyOptimistic(queryClient, counterId, (c) =>
-        c.is_common ? applyAmount(c, -1, userId) : c.myTotal < 1 ? c : applyAmount(c, -1, userId),
+        c.is_common
+          ? applyAmount(c, -1, userId)
+          : c.myGroupTotal < 1
+            ? c
+            : applyAmount(c, -1, userId),
       ),
     onError: (_error, _counterId, context) => rollback(queryClient, context),
     onSettled: () => invalidateCounters(queryClient),

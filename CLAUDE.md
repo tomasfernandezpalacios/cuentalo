@@ -183,6 +183,15 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   año = meses enero→actual, histórico = meses desde el primer registro (años si son > 24).
   Justo debajo, `ChartTotals`: el total por escrito de cada contador dibujado (mismo filtro y
   periodo). Después siguen los resúmenes (registros, más usados, por contador).
+- **Fusionar contadores** (petición del usuario; botón junto a los filtros, pantalla completa
+  `app/contadores/fusionar.tsx`, RPC `merge_counters`, SECURITY INVOKER). Solo individuales:
+  todo pasa al primero elegido y los demás se borran. Individual(es) + uno de grupo: queda el de
+  grupo y mis registros antiguos se mueven como `entries.personal_only = true`: cuentan en mi
+  total (`my_total`) y mis estadísticas, pero no en `total`, la clasificación ni los ve nadie
+  más. Máximo un contador de grupo; nunca comunes; irreversible. El −1 usa `my_group_total`.
+- Alias personales (`counter_aliases`): nombre/icono que solo ve uno (se crean al fusionar con
+  un contador de grupo). `enrich` los aplica a `name`/`emoji`; editar usa
+  `sharedName`/`sharedEmoji` para no guardar el alias como nombre del grupo.
 
 ## Cambios estéticos pendientes
 

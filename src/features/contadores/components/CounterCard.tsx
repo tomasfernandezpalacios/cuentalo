@@ -59,7 +59,7 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
           unit={counter.unit}
           onAdd={onAdd}
           onRemoveOne={onRemoveOne}
-          canRemove={counter.is_common ? counter.total >= 1 : counter.myTotal >= 1}
+          canRemove={counter.is_common ? counter.total >= 1 : counter.myGroupTotal >= 1}
           onLongPressAdd={onCustomAdd}
         />
       )}

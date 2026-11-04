@@ -63,6 +63,7 @@ export type Database = {
           logged_at: string;
           note: string | null;
           created_at: string;
+          personal_only: boolean;
         };
         Insert: {
           id?: string;
@@ -134,6 +135,17 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      counter_aliases: {
+        Row: { counter_id: string; user_id: string; name: string | null; emoji: string | null };
+        Insert: {
+          counter_id: string;
+          user_id?: string;
+          name?: string | null;
+          emoji?: string | null;
+        };
+        Update: { name?: string | null; emoji?: string | null };
+        Relationships: [];
+      };
       counter_participants: {
         Row: { counter_id: string; user_id: string };
         Insert: never;
@@ -150,6 +162,7 @@ export type Database = {
           last_logged_at: string;
           my_total: number;
           my_entry_count: number;
+          my_group_total: number;
         };
         Relationships: [];
       };
@@ -212,6 +225,10 @@ export type Database = {
       };
       save_folder: {
         Args: { p_folder_id: string | null; p_name: string; p_counter_ids: string[] };
+        Returns: string;
+      };
+      merge_counters: {
+        Args: { p_counter_ids: string[]; p_name: string | null; p_emoji: string | null };
         Returns: string;
       };
       delete_my_account: {

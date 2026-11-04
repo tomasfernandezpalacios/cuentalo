@@ -22,7 +22,15 @@ export default function EditCounterScreen() {
   if (counter.isPending) return <LoadingView />;
   if (counter.error) return <ErrorView error={counter.error} onRetry={counter.refetch} />;
 
-  const { name, unit, emoji, archived, group, is_common, participantIds } = counter.data;
+  const {
+    sharedName: name,
+    sharedEmoji: emoji,
+    unit,
+    archived,
+    group,
+    is_common,
+    participantIds,
+  } = counter.data;
 
   function toggleArchived() {
     update.mutate(

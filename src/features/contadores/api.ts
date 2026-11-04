@@ -12,9 +12,17 @@ export type CounterWithTotal = Counter & {
   /** Lo que veo: en un compartido, la suma de todo el grupo. */
   total: number;
   entryCount: number;
-  /** Solo lo mío. En un privado coincide con total. */
+  /** Solo lo mío (incluye registros solo personales de una fusión). */
   myTotal: number;
   myEntryCount: number;
+  /** Lo mío que cuenta para el contador (sin solo personales). Decide si se puede pulsar −1. */
+  myGroupTotal: number;
+  /**
+   * Nombre e icono reales, compartidos con el grupo. `name`/`emoji` pueden ser un alias que
+   * solo veo yo (al fusionar un contador de grupo); al editar se usan estos.
+   */
+  sharedName: string;
+  sharedEmoji: string | null;
   /** Grupo con el que se comparte (null si es privado o ya no soy miembro). */
   group: CounterGroup | null;
   /**
@@ -75,6 +83,7 @@ export function enrich(
   groups: Map<string, CounterGroup>,
   myId: string,
   participants: Map<string, string[]> = new Map(),
+  aliases: Map<string, { name: string | null; emoji: string | null }> = new Map(),
 ): CounterWithTotal {
   const t = totals.find((row) => row.counter_id === counter.id);
   const group = counter.group_id ? (groups.get(counter.group_id) ?? null) : null;
@@ -83,8 +92,14 @@ export function enrich(
   const canManage = counter.group_id
     ? group !== null && (counter.owner_id === myId || group.ownerId === myId)
     : counter.owner_id === myId;
+  const alias = aliases.get(counter.id);
   return {
     ...counter,
+    name: alias?.name ?? counter.name,
+    emoji: alias?.emoji ?? counter.emoji,
+    sharedName: counter.name,
+    sharedEmoji: counter.emoji,
+    myGroupTotal: t?.my_group_total ?? 0,
     total: t?.total ?? 0,
     entryCount: t?.entry_count ?? 0,
     myTotal: t?.my_total ?? 0,
@@ -99,6 +114,13 @@ export function enrich(
         ? (t?.total ?? 0) / participantIds.length
         : (t?.my_total ?? 0),
   };
+}
+
+/** Mis alias (nombre e icono personales) por contador. */
+async function fetchAliases(): Promise<Map<string, { name: string | null; emoji: string | null }>> {
+  const { data, error } = await supabase.from('counter_aliases').select('counter_id, name, emoji');
+  if (error) throw error;
+  return new Map(data.map((a) => [a.counter_id, { name: a.name, emoji: a.emoji }]));
 }
 
 /** Participantes de los contadores comunes que veo, agrupados por contador. */
@@ -117,27 +139,31 @@ async function fetchParticipants(counterIds?: string[]): Promise<Map<string, str
 // --- Contadores -------------------------------------------------------------
 
 export async function fetchCounters(myId: string): Promise<CounterWithTotal[]> {
-  const [counters, totals, groups, participants] = await Promise.all([
+  const [counters, totals, groups, participants, aliases] = await Promise.all([
     supabase.from('counters').select('*').order('created_at', { ascending: true }),
     supabase.from('counter_totals').select('*'),
     fetchMyActiveGroups(myId),
     fetchParticipants(),
+    fetchAliases(),
   ]);
   if (counters.error) throw counters.error;
   if (totals.error) throw totals.error;
-  return counters.data.map((counter) => enrich(counter, totals.data, groups, myId, participants));
+  return counters.data.map((counter) =>
+    enrich(counter, totals.data, groups, myId, participants, aliases),
+  );
 }
 
 export async function fetchCounter(id: string, myId: string): Promise<CounterWithTotal> {
-  const [counter, totals, groups, participants] = await Promise.all([
+  const [counter, totals, groups, participants, aliases] = await Promise.all([
     supabase.from('counters').select('*').eq('id', id).single(),
     supabase.from('counter_totals').select('*').eq('counter_id', id),
     fetchMyActiveGroups(myId),
     fetchParticipants([id]),
+    fetchAliases(),
   ]);
   if (counter.error) throw counter.error;
   if (totals.error) throw totals.error;
-  return enrich(counter.data, totals.data, groups, myId, participants);
+  return enrich(counter.data, totals.data, groups, myId, participants, aliases);
 }
 
 /**
@@ -188,6 +214,24 @@ export async function updateCounter(
     })
     .eq('id', id);
   if (error) throw error;
+}
+
+/**
+ * Fusiona contadores. Devuelve el id del contador que queda. Ver la migración
+ * fusionar_contadores para las reglas (como mucho uno de grupo, nunca comunes).
+ */
+export async function mergeCounters(
+  counterIds: string[],
+  name: string,
+  emoji: string,
+): Promise<string> {
+  const { data, error } = await supabase.rpc('merge_counters', {
+    p_counter_ids: counterIds,
+    p_name: name.trim() || null,
+    p_emoji: emoji.trim() || null,
+  });
+  if (error) throw error;
+  return data;
 }
 
 export async function deleteCounter(id: string): Promise<void> {

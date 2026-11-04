@@ -46,6 +46,7 @@ export default function CounterDetailScreen() {
     total,
     myTotal,
     myEntryCount,
+    myGroupTotal,
     displayTotal,
     group,
     canManage,
@@ -120,7 +121,7 @@ export default function CounterDetailScreen() {
         unit={unit}
         onAdd={quickAdd}
         onRemoveOne={() => removeOne.mutate(id, { onError: showError })}
-        canRemove={isCommon ? total >= 1 : myTotal >= 1}
+        canRemove={isCommon ? total >= 1 : myGroupTotal >= 1}
         onCustom={() => setDialog('new')}
       />
       {group ? (

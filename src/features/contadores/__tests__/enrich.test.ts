@@ -29,6 +29,7 @@ const totals: CounterTotal[] = [
     last_logged_at: '2026-01-02T00:00:00Z',
     my_total: 3,
     my_entry_count: 1,
+    my_group_total: 3,
   },
 ];
 
@@ -77,6 +78,19 @@ describe('enrich', () => {
   it('no común: ignora participantes', () => {
     const participants = new Map([['c1', [ME]]]);
     expect(enrich(counter({}), totals, groups, ME, participants).participantIds).toEqual([]);
+  });
+
+  it('un alias cambia lo que veo pero conserva el nombre compartido', () => {
+    const aliases = new Map([['c1', { name: 'Mis cañas', emoji: '🍻' }]]);
+    const shared = counter({ group_id: 'g1', emoji: '🍺' });
+    const result = enrich(shared, totals, groups, ME, new Map(), aliases);
+    expect(result).toMatchObject({
+      name: 'Mis cañas',
+      emoji: '🍻',
+      sharedName: 'Cervezas',
+      sharedEmoji: '🍺',
+      myGroupTotal: 3,
+    });
   });
 
   it('de un grupo del que salí: no sale en la lista ni se puede editar', () => {

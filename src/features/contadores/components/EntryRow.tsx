@@ -27,6 +27,11 @@ export function EntryRow({ entry, unit, onPress }: Props) {
         <Text style={{ color: colors.text, fontSize: 15, fontFamily: fonts.detail }}>
           {formatDateTime(entry.logged_at)}
         </Text>
+        {entry.personal_only ? (
+          <Text style={{ color: colors.textMuted, fontSize: 12, fontFamily: fonts.detail }}>
+            Solo personal (de antes de unir)
+          </Text>
+        ) : null}
         {entry.note ? (
           <Text
             style={{ color: colors.textMuted, fontSize: 13, fontFamily: fonts.detail }}
