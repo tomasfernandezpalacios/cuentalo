@@ -172,49 +172,70 @@ export default function CounterDetailScreen() {
     </View>
   );
 
+  function addBackToHome() {
+    addToHome.mutate(
+      { ids: [counterId], removed: false },
+      {
+        onSuccess: () =>
+          appAlert(
+            'Añadido a tu pantalla principal',
+            `«${name}» vuelve a salir en Mis contadores.`,
+          ),
+        onError: showError,
+      },
+    );
+  }
+
+  // Botones de la cabecera. En Android, un contenedor de solo diseño puede «aplanarse» y dejar
+  // los botones de la cabecera nativa sin recibir toques: si hay uno solo va suelto, y si hay
+  // dos, el contenedor lleva collapsable={false}.
+  const headerButtons = [
+    removedFromHome ? (
+      <Pressable
+        key="home"
+        onPress={addBackToHome}
+        disabled={addToHome.isPending}
+        accessibilityRole="button"
+        accessibilityLabel="Añadir a la pantalla principal"
+        hitSlop={12}
+        style={({ pressed }) => ({ opacity: pressed || addToHome.isPending ? 0.5 : 1 })}
+      >
+        <Ionicons name="home-outline" size={24} color={colors.primary} />
+      </Pressable>
+    ) : null,
+    canManage ? (
+      <Pressable
+        key="edit"
+        onPress={() =>
+          router.push({ pathname: '/contadores/[id]/editar', params: { id: counterId } })
+        }
+        accessibilityRole="button"
+        accessibilityLabel="Editar contador"
+        hitSlop={12}
+        style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+      >
+        <Ionicons name="create-outline" size={24} color={colors.primary} />
+      </Pressable>
+    ) : null,
+  ].filter((button) => button !== null);
+  const headerRight =
+    headerButtons.length === 0
+      ? undefined
+      : () =>
+          headerButtons.length === 1 ? (
+            headerButtons[0]
+          ) : (
+            <View collapsable={false} style={styles.headerActions}>
+              {headerButtons}
+            </View>
+          );
+
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: name,
-          headerRight: () => (
-            <View style={styles.headerActions}>
-              {removedFromHome ? (
-                <Pressable
-                  onPress={() =>
-                    addToHome.mutate(
-                      { ids: [counterId], removed: false },
-                      {
-                        onSuccess: () =>
-                          appAlert(
-                            'Añadido a tu pantalla principal',
-                            `«${name}» vuelve a salir en Mis contadores.`,
-                          ),
-                        onError: showError,
-                      },
-                    )
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel="Añadir a la pantalla principal"
-                  hitSlop={12}
-                >
-                  <Ionicons name="home-outline" size={24} color={colors.primary} />
-                </Pressable>
-              ) : null}
-              {canManage ? (
-                <Pressable
-                  onPress={() =>
-                    router.push({ pathname: '/contadores/[id]/editar', params: { id: counterId } })
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel="Editar contador"
-                  hitSlop={12}
-                >
-                  <Ionicons name="create-outline" size={24} color={colors.primary} />
-                </Pressable>
-              ) : null}
-            </View>
-          ),
+          headerRight,
         }}
       />
       <FlatList

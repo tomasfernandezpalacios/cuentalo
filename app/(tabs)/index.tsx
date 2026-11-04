@@ -64,6 +64,7 @@ export default function CountersScreen() {
   const removeFromHome = useSetRemovedFromHome();
   const actions = useCounterActions();
   const [showArchived, setShowArchived] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
   // Al abrir la app siempre se empieza en «Todos» y sin filtros.
   const [filters, setFilters] = useState<CounterFilters>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -405,10 +406,32 @@ export default function CountersScreen() {
             ) : null}
             {hidden.length > 0 ? (
               <View style={styles.hidden}>
-                <Text style={[styles.hiddenTitle, { color: colors.textMuted }]}>
-                  Ocultos ({hidden.length})
-                </Text>
-                {hidden.map(renderCard)}
+                {/* Desplegable cerrado por defecto: los ocultos no estorban en la lista. */}
+                <Pressable
+                  onPress={() => setShowHidden((v) => !v)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showHidden }}
+                  accessibilityLabel={`Ocultos, ${hidden.length}`}
+                  style={({ pressed }) => [
+                    styles.hiddenToggle,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      opacity: pressed ? 0.7 : 1,
+                    },
+                  ]}
+                >
+                  <Ionicons name="eye-off-outline" size={20} color={colors.textMuted} />
+                  <Text style={[styles.hiddenTitle, { color: colors.text }]}>
+                    Ocultos ({hidden.length})
+                  </Text>
+                  <Ionicons
+                    name={showHidden ? 'chevron-up' : 'chevron-down'}
+                    size={20}
+                    color={colors.textMuted}
+                  />
+                </Pressable>
+                {showHidden ? hidden.map(renderCard) : null}
               </View>
             ) : null}
           </View>
@@ -464,5 +487,14 @@ const styles = StyleSheet.create({
   badge: { position: 'absolute', top: -1, right: -2, width: 9, height: 9, borderRadius: 5 },
   footer: { gap: 10 },
   hidden: { gap: 10, marginTop: 16 },
-  hiddenTitle: { fontSize: 15, fontFamily: fonts.title, marginLeft: 4 },
+  hiddenTitle: { flex: 1, fontSize: 15, fontFamily: fonts.title },
+  hiddenToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 48,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
 });

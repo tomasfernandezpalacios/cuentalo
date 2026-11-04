@@ -243,7 +243,8 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - **Modo selección** en «Mis contadores»: mantener pulsado un contador. Cabecera «N
   seleccionados» con borrar, añadir a carpeta (`FolderPicker` o carpeta nueva con los
   seleccionados), ocultar/mostrar, editar (solo con uno) y fusionar. Atrás de Android sale del
-  modo. **Ocultos** personales (`hidden_counters`) al final de la lista.
+  modo. **Ocultos** personales (`hidden_counters`) al final de la lista, en un desplegable «Ocultos (N)»
+  cerrado al abrir la app.
 - **Perfil de otros** (`app/usuario/[id].tsx`, se abre tocando a cualquier persona en
   `PersonRow`): si no sois amigos, botón de solicitud; si lo sois, su racha y sus contadores
   visibles. Siempre, los contadores en común (los de grupos de los dos) con su total y el mío.
@@ -293,6 +294,8 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   personal `home_removed_counters` (migración `20261121`), campo `removedFromHome`. Se deshace
   con el botón de la casa en la cabecera del contador (se llega desde el grupo). Distinto de
   «ocultos», que siguen al final de la lista. Mezcla de borrables y no: un solo aviso.
+- Cabecera nativa (Stack) en Android: con varios botones en `headerRight`, el contenedor lleva
+  `collapsable={false}` y con uno solo va suelto; si no, los toques pueden no llegar.
 
 ## Cambios estéticos pendientes
 
