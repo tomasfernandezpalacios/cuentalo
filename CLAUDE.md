@@ -252,8 +252,9 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   `PersonRow`): si no sois amigos, botón de solicitud; si lo sois, su racha y sus contadores
   visibles. Siempre, los contadores en común (los de grupos de los dos) con su total y el mío.
   Datos por la RPC `get_user_counters` (SECURITY DEFINER, solo totales). Los individuales son
-  visibles para amigos salvo `counters.hidden_from_friends` (casilla «Ocultar a mis amigos»,
-  desmarcada por defecto, editable). Los de grupo los ven los miembros del grupo; al fusionar
+  visibles para amigos salvo `counters.hidden_from_friends`. En «¿Quién lo ve?» son dos
+  opciones (petición del usuario): «Privado» (hidden_from_friends = true) y «Privado y
+  amigos» (false, la marcada por defecto), entre ellas y los grupos; editables al editar. Los de grupo los ven los miembros del grupo; al fusionar
   con uno de grupo se avisa de que pasa a ser visible para sus miembros.
 
 - **Configuración** (petición del usuario; rueda arriba a la derecha en «Mi perfil»,

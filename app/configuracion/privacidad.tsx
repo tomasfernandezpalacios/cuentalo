@@ -15,8 +15,8 @@ const SECTIONS: { title: string; body: string }[] = [
   {
     title: 'Quién lo ve',
     body:
-      'Tu email solo lo ves tú. Tus contadores individuales los ven tus amigos (salvo los que ' +
-      'ocultes) y nunca sus registros, solo el total. En un grupo, sus miembros ven los ' +
+      'Tu email solo lo ves tú. Tus contadores «Privado y amigos» los ven tus amigos (los ' +
+      '«Privado», nadie) y nunca sus registros, solo el total. En un grupo, sus miembros ven los ' +
       'contadores del grupo, la clasificación y los registros de cada uno. Tus días de racha ' +
       'son privados: tus amigos solo ven el número, y puedes ocultarlo.',
   },

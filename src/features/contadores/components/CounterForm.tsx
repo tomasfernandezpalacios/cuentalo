@@ -53,7 +53,7 @@ export function CounterForm({
   const [name, setName] = useState(initial?.name ?? '');
   const [unit, setUnit] = useState(initial?.unit ?? '');
   const [emoji, setEmoji] = useState(initial?.emoji ?? '');
-  // Desmarcada por defecto: mis amigos ven mis contadores individuales salvo que lo marque.
+  // «Privado y amigos» por defecto: mis amigos ven mis individuales salvo que elija «Privado».
   const [hiddenFromFriends, setHiddenFromFriends] = useState(initial?.hiddenFromFriends ?? false);
   const [groupId, setGroupId] = useState<string | null>(initialGroupId);
   // Al editar, el contador ya es (o no es) común; al crear, se elige con la casilla.
@@ -74,6 +74,29 @@ export function CounterForm({
     setIsCommon(false);
     setParticipants([]);
   }
+
+  /** Individual: «Privado» (solo yo) o «Privado y amigos» (lo ven mis amigos en mi perfil). */
+  function selectPrivate(hidden: boolean) {
+    selectGroup(null);
+    setHiddenFromFriends(hidden);
+  }
+
+  const privateOptions = (
+    <>
+      <VisibilityOption
+        title="Privado"
+        description="Solo tú lo ves."
+        selected={groupId === null && hiddenFromFriends}
+        onPress={() => selectPrivate(true)}
+      />
+      <VisibilityOption
+        title="Privado y amigos"
+        description="Tus amigos ven este contador y su total en tu perfil, nunca tus registros."
+        selected={groupId === null && !hiddenFromFriends}
+        onPress={() => selectPrivate(false)}
+      />
+    </>
+  );
 
   function handleSubmit() {
     const common = isCommon && commonGroupId !== null;
@@ -151,12 +174,7 @@ export function CounterForm({
       {groups ? (
         <View style={styles.visibility}>
           <Text style={[styles.label, { color: colors.text }]}>¿Quién lo ve?</Text>
-          <VisibilityOption
-            title="Privado"
-            description="Solo tú lo ves."
-            selected={groupId === null}
-            onPress={() => selectGroup(null)}
-          />
+          {privateOptions}
           {groups.map((group) => (
             <VisibilityOption
               key={group.id}
@@ -173,42 +191,22 @@ export function CounterForm({
           ) : null}
           {/* Fuera de la V1: compartir con un grupo un contador privado ya existente. */}
         </View>
-      ) : (
+      ) : sharedGroupName ? (
         <View
           style={[styles.option, { backgroundColor: colors.surface, borderColor: colors.border }]}
         >
-          <Text style={[styles.optionTitle, { color: colors.text }]}>
-            {sharedGroupName ? `👥 ${sharedGroupName}` : 'Privado'}
-          </Text>
-          <Text style={[styles.hint, { color: colors.textMuted }]}>
-            {sharedGroupName ? 'Compartido con el grupo.' : 'Solo tú lo ves.'}
-          </Text>
+          <Text style={[styles.optionTitle, { color: colors.text }]}>👥 {sharedGroupName}</Text>
+          <Text style={[styles.hint, { color: colors.textMuted }]}>Compartido con el grupo.</Text>
+        </View>
+      ) : (
+        // Al editar un individual se puede cambiar entre «Privado» y «Privado y amigos».
+        <View style={styles.visibility}>
+          <Text style={[styles.label, { color: colors.text }]}>¿Quién lo ve?</Text>
+          {privateOptions}
         </View>
       )}
 
       {commonSection}
-
-      {/* Solo en individuales: los de grupo los ven siempre los miembros del grupo. */}
-      {(creating ? groupId === null : !sharedGroupName) ? (
-        <Pressable
-          onPress={() => setHiddenFromFriends((value) => !value)}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: hiddenFromFriends }}
-          style={styles.checkbox}
-        >
-          <Ionicons
-            name={hiddenFromFriends ? 'checkbox' : 'square-outline'}
-            size={24}
-            color={hiddenFromFriends ? colors.primary : colors.textMuted}
-          />
-          <View style={styles.flexText}>
-            <Text style={[styles.optionTitle, { color: colors.text }]}>Ocultar a mis amigos</Text>
-            <Text style={[styles.hint, { color: colors.textMuted }]}>
-              Si no lo marcas, tus amigos verán este contador y su total en tu perfil.
-            </Text>
-          </View>
-        </Pressable>
-      ) : null}
 
       {error ? (
         <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>
@@ -257,5 +255,4 @@ const styles = StyleSheet.create({
   hint: { fontSize: 14, fontFamily: fonts.detail },
   commonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   checkbox: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  flexText: { flex: 1, gap: 2 },
 });
