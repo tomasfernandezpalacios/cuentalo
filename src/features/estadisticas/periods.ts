@@ -159,3 +159,32 @@ export function chartValues(
   }
   return buckets.map((bucket) => totals.get(bucket.key) ?? 0);
 }
+
+const LONG_WEEKDAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+const LONG_MONTHS = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+
+/**
+ * Nombre completo de un punto del eje X para el recuadro que sale al tocarlo: «lun 3 nov 2026»
+ * (día), «noviembre 2026» (mes) o «2026» (año).
+ */
+export function bucketTitle(key: string): string {
+  if (key.length === 10) {
+    const weekday = new Date(`${key}T00:00:00Z`).getUTCDay();
+    return `${LONG_WEEKDAYS[weekday]} ${Number(key.slice(8, 10))} ${MONTHS[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`;
+  }
+  if (key.length === 7) return `${LONG_MONTHS[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`;
+  return key;
+}

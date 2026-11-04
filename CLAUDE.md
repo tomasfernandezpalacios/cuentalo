@@ -192,10 +192,15 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   (`useMyLastCounterId`); al aplicar un filtro se dibujan todos los elegidos. La selección vive
   en memoria (`selection.ts`, `useSyncExternalStore`) y se reinicia al abrir la app.
 - Gráficas interactivas (petición del usuario): al tocar `StatsChart` (Estadísticas y grupo)
-  se abre `ChartViewer` a pantalla completa (Modal): zoom pellizcando (PanResponder con dos
-  dedos, sin librería de gestos) o con + y −, deslizar por el eje X y mantener pulsado para ver
-  los valores (`pointerConfig` de gifted-charts). Bajo la gráfica, «Toca la gráfica para
+  se abre `ChartViewer` a pantalla completa (Modal): zoom **solo pellizcando** (PanResponder
+  con dos dedos, sin librería de gestos; sin botones, petición del usuario), deslizar por el eje
+  X y **tocar un punto o barra** para ver su dato en un recuadro (líneas: `focusEnabled` +
+  `onFocus` + `dataPointLabelComponent` en el punto elegido; barras: `renderTooltip`). El
+  recuadro usa `bucketTitle` («mié 4 nov 2026»). Bajo la gráfica, «Toca la gráfica para
   ampliarla». El dibujo está en `ChartPlot`.
+- Tarjeta de racha en Estadísticas (`StreakCard showWeek`): número, fuego, mejor racha y la
+  semana actual (lunes → domingo, `weekProgress`) con una barra por día: color de la llama si
+  se mantuvo, gris si no, más clara si no ha llegado y borde en hoy.
 - Gráfica (`StatsChart`): líneas por defecto, una por contador con color de `chartColors.ts`
   (por posición en la barra); botón cuadrado abajo a la derecha para cambiar a barras
   agrupadas. Eje X por periodo (`chartBuckets`): semana = días lunes→hoy, mes = días 1→hoy,

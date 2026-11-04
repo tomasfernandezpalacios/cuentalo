@@ -20,6 +20,8 @@ import { ChartPlot, type ChartSeries, type ChartType, Y_AXIS_WIDTH } from './Cha
 type Props = {
   title: string;
   labels: string[];
+  /** Nombre completo de cada punto del eje X, para el recuadro al tocarlo. */
+  titles: string[];
   series: ChartSeries[];
   type: ChartType;
   onChangeType: (type: ChartType) => void;
@@ -114,10 +116,10 @@ function RoundButton({
 }
 
 /**
- * Gráfica a pantalla completa: más alta, con zoom (pellizcando o con + y −), deslizando para
- * moverse por el eje X y manteniendo pulsado para ver los valores de cada punto.
+ * Gráfica a pantalla completa: más alta, con zoom pellizcando con dos dedos, deslizando para
+ * moverse por el eje X y tocando un punto (o barra) para ver su dato en un recuadro.
  */
-export function ChartViewer({ title, labels, series, type, onChangeType, onClose }: Props) {
+export function ChartViewer({ title, labels, titles, series, type, onChangeType, onClose }: Props) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -130,8 +132,6 @@ export function ChartViewer({ title, labels, series, type, onChangeType, onClose
   const plotWidth = width - 32 - 24 - Y_AXIS_WIDTH;
   const chartHeight = Math.max(220, Math.min(height * 0.5, 420));
   const nextType: ChartType = type === 'line' ? 'bar' : 'line';
-  const changeZoom = (factor: number) =>
-    setZoom((z) => clampZoom(Math.round(z * factor * 10) / 10));
 
   return (
     <Modal visible animationType="slide" onRequestClose={onClose} statusBarTranslucent>
@@ -158,6 +158,11 @@ export function ChartViewer({ title, labels, series, type, onChangeType, onClose
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             {title}
           </Text>
+          <RoundButton
+            icon={nextType === 'bar' ? 'bar-chart' : 'trending-up'}
+            label={nextType === 'bar' ? 'Ver como barras' : 'Ver como líneas'}
+            onPress={() => onChangeType(nextType)}
+          />
         </View>
 
         <View
@@ -170,42 +175,13 @@ export function ChartViewer({ title, labels, series, type, onChangeType, onClose
             type={type}
             plotWidth={plotWidth}
             height={chartHeight}
-            interactive={{ zoom }}
-          />
-        </View>
-
-        <View style={styles.controls}>
-          <RoundButton
-            icon="remove"
-            label="Alejar"
-            onPress={() => changeZoom(1 / 1.5)}
-            disabled={zoom <= MIN_ZOOM}
-          />
-          <Text style={[styles.zoom, { color: colors.textMuted }]}>
-            {zoom === 1 ? 'Sin zoom' : `×${formatAmount(zoom)}`}
-          </Text>
-          <RoundButton
-            icon="add"
-            label="Acercar"
-            onPress={() => changeZoom(1.5)}
-            disabled={zoom >= MAX_ZOOM}
-          />
-          <RoundButton
-            icon="scan-outline"
-            label="Ver entera"
-            onPress={() => setZoom(1)}
-            disabled={zoom === 1}
-          />
-          <RoundButton
-            icon={nextType === 'bar' ? 'bar-chart' : 'trending-up'}
-            label={nextType === 'bar' ? 'Ver como barras' : 'Ver como líneas'}
-            onPress={() => onChangeType(nextType)}
+            interactive={{ zoom, titles }}
           />
         </View>
 
         <Text style={[styles.hint, { color: colors.textMuted }]}>
-          Pellizca o usa + y − para ampliar, desliza para moverte y mantén pulsado para ver los
-          valores de cada punto.
+          Pellizca con dos dedos para ampliar o reducir, desliza para moverte y toca un punto para
+          ver su dato.
         </Text>
 
         <View style={styles.legend}>
@@ -232,7 +208,6 @@ const styles = StyleSheet.create({
   back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
   title: { flex: 1, fontSize: 20, fontFamily: fonts.title },
   card: { borderRadius: 16, borderWidth: 1, padding: 12, overflow: 'hidden' },
-  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   roundButton: {
     width: 44,
     height: 44,
@@ -240,7 +215,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  zoom: { minWidth: 64, textAlign: 'center', fontSize: 14, fontFamily: fonts.detail },
   hint: { fontSize: 13, fontFamily: fonts.detail, textAlign: 'center' },
   legend: { gap: 6 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

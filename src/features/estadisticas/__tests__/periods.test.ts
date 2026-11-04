@@ -1,5 +1,6 @@
 import {
   bucketKey,
+  bucketTitle,
   chartBuckets,
   chartValues,
   isInPeriod,
@@ -117,5 +118,13 @@ describe('chartValues', () => {
     ]);
     const years = chartBuckets('all', '2026-11-04', '2019-01-01');
     expect(chartValues(rowsA, years.buckets, years.granularity).slice(-2)).toEqual([10, 8.5]);
+  });
+});
+
+describe('bucketTitle', () => {
+  it('nombra días, meses y años', () => {
+    expect(bucketTitle('2026-11-04')).toBe('mié 4 nov 2026');
+    expect(bucketTitle('2026-11')).toBe('noviembre 2026');
+    expect(bucketTitle('2026')).toBe('2026');
   });
 });

@@ -6,6 +6,7 @@ import { useUserId } from '@/features/auth/AuthProvider';
 import { CounterChipsBar } from '@/features/estadisticas/components/CounterChipsBar';
 import { StatsChart, type ChartType } from '@/features/estadisticas/components/StatsChart';
 import {
+  bucketTitle,
   chartBuckets,
   chartValues,
   localToday,
@@ -114,6 +115,7 @@ export function GroupMembersChart({ groupId, counterId, unit, period }: Props) {
       />
       <StatsChart
         labels={buckets.map((b) => b.label)}
+        titles={buckets.map((b) => bucketTitle(b.key))}
         series={series}
         type={type}
         onChangeType={setType}

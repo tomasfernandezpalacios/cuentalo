@@ -70,3 +70,27 @@ export function withPositions<T>(
     return { ...row, position: first + 1 };
   });
 }
+
+export type WeekDay = {
+  day: string;
+  /** Inicial del día (L, M, X, J, V, S, D). */
+  letter: string;
+  /** Ese día hubo actividad: la racha se mantuvo. */
+  done: boolean;
+  isToday: boolean;
+  /** Aún no ha llegado. */
+  future: boolean;
+};
+
+const WEEK_LETTERS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
+/** La semana actual (lunes → domingo) con los días en que se mantuvo la racha. */
+export function weekProgress(activeDays: Iterable<string>, today: string): WeekDay[] {
+  const active = new Set(activeDays);
+  const weekday = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7; // lunes = 0
+  const monday = shift(today, -weekday);
+  return WEEK_LETTERS.map((letter, i) => {
+    const day = shift(monday, i);
+    return { day, letter, done: active.has(day), isToday: day === today, future: day > today };
+  });
+}

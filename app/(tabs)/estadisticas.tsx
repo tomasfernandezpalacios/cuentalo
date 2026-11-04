@@ -13,6 +13,7 @@ import { ChartTotals } from '@/features/estadisticas/components/ChartTotals';
 import { StreakCard } from '@/features/estadisticas/components/StreakCard';
 import { StatsChart, type ChartType } from '@/features/estadisticas/components/StatsChart';
 import {
+  bucketTitle,
   chartBuckets,
   chartValues,
   localToday,
@@ -157,6 +158,7 @@ export default function StatsScreen() {
 
       <StatsChart
         labels={buckets.map((b) => b.label)}
+        titles={buckets.map((b) => bucketTitle(b.key))}
         series={series}
         type={chartType}
         onChangeType={setChartType}
@@ -164,7 +166,7 @@ export default function StatsScreen() {
 
       <ChartTotals totals={totals} />
 
-      <StreakCard onPress={() => router.push('/racha')} />
+      <StreakCard showWeek onPress={() => router.push('/racha')} />
     </ScrollView>
   );
 }

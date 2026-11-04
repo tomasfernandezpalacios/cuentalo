@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { BarChart, LineChart } from 'react-native-gifted-charts';
 
@@ -34,39 +35,45 @@ type PlotProps = {
   plotWidth: number;
   height: number;
   /**
-   * Vista ampliada: zoom (1 = todo cabe en el ancho; más, se separan los puntos y se desliza),
-   * desplazamiento y valores al mantener pulsado.
+   * Vista ampliada: zoom (1 = todo cabe en el ancho; más, se separan los puntos y se desliza)
+   * y un recuadro con el dato al tocar un punto o una barra. `titles` nombra cada punto del eje
+   * X entero («mié 4 nov 2026»).
    */
-  interactive?: { zoom: number };
+  interactive?: { zoom: number; titles: string[] };
 };
 
-/** Bocadillo con los valores del punto que se mantiene pulsado (solo en la vista ampliada). */
-function PointerBubble({
-  label,
-  series,
-  index,
+const BUBBLE_WIDTH = 150;
+const BUBBLE_HEIGHT = 62;
+
+/** Recuadro con el dato concreto que se ha tocado (solo en la vista ampliada). */
+function PointBubble({
+  title,
+  serie,
+  value,
 }: {
-  label: string;
-  series: ChartSeries[];
-  index: number;
+  title: string;
+  serie: ChartSeries;
+  value: number;
 }) {
   const colors = useThemeColors();
   return (
-    <View style={[styles.bubble, { backgroundColor: colors.text }]}>
+    <View
+      style={[styles.bubble, { backgroundColor: colors.text }]}
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={`${serie.name}, ${title}: ${formatAmount(value)}`}
+    >
       <Text style={[styles.bubbleTitle, { color: colors.background }]} numberOfLines={1}>
-        {label}
+        {title}
       </Text>
-      {series.map((s) => (
-        <View key={s.id} style={styles.bubbleRow}>
-          <View style={[styles.dot, { backgroundColor: s.color }]} />
-          <Text style={[styles.bubbleName, { color: colors.background }]} numberOfLines={1}>
-            {s.name}
-          </Text>
-          <Text style={[styles.bubbleValue, { color: colors.background }]}>
-            {formatAmount(s.values[index] ?? 0)}
-          </Text>
-        </View>
-      ))}
+      <View style={styles.bubbleRow}>
+        <View style={[styles.dot, { backgroundColor: serie.color }]} />
+        <Text style={[styles.bubbleName, { color: colors.background }]} numberOfLines={1}>
+          {serie.name}
+        </Text>
+        <Text style={[styles.bubbleValue, { color: colors.background }]}>
+          {formatAmount(value)}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -81,29 +88,21 @@ export function ChartPlot({ labels, series, type, plotWidth, height, interactive
   const shownLabel = (i: number) => (i % step === 0 ? (labels[i] ?? '') : '');
   const maxValue = niceMax(Math.max(...series.flatMap((s) => s.values.map(clamp)), 0));
   const labelStyle = { color: colors.textMuted, fontSize: 10, fontFamily: fonts.detail };
-  const bubbleHeight = 34 + series.length * 20;
-
-  // Mantener pulsado (y arrastrar) enseña los valores; deslizar sin más mueve la gráfica.
-  const pointerConfig = (bucketOf: (index: number) => number) =>
-    interactive
-      ? {
-          activatePointersOnLongPress: true,
-          activatePointersDelay: 200,
-          pointerVanishDelay: 2500,
-          radius: 5,
-          pointerColorsForDataSet: series.map((s) => s.color),
-          pointerColor: colors.text,
-          pointerStripColor: colors.textMuted,
-          pointerStripWidth: 1,
-          pointerLabelWidth: 170,
-          pointerLabelHeight: bubbleHeight,
-          autoAdjustPointerLabelPosition: true,
-          pointerLabelComponent: (_items: unknown, _secondary: unknown, index: number) => {
-            const bucket = bucketOf(index);
-            return <PointerBubble label={labels[bucket] ?? ''} series={series} index={bucket} />;
-          },
-        }
-      : undefined;
+  // Punto tocado: qué serie y qué posición del eje X. Tocar el mismo otra vez lo cierra.
+  const [selected, setSelected] = useState<{ serie: number; index: number } | null>(null);
+  const toggle = (serie: number, index: number) =>
+    setSelected((cur) => (cur?.serie === serie && cur.index === index ? null : { serie, index }));
+  const bubbleFor = (serie: number, index: number) => {
+    const s = series[serie];
+    if (!s) return null;
+    return (
+      <PointBubble
+        title={interactive?.titles[index] ?? labels[index] ?? ''}
+        serie={s}
+        value={s.values[index] ?? 0}
+      />
+    );
+  };
 
   const common = {
     width: plotWidth,
@@ -125,20 +124,53 @@ export function ChartPlot({ labels, series, type, plotWidth, height, interactive
 
   if (type === 'line') {
     const spacing = (points > 1 ? plotWidth / (points - 1) - 1 : plotWidth) * zoom;
+    const initialSpacing = 6;
+    const endSpacing = interactive ? 24 : 6;
+    const totalWidth = initialSpacing + spacing * (points - 1) + endSpacing;
+    // El recuadro va centrado sobre el punto, sin salirse por los lados ni por arriba.
+    const shiftX = (index: number) => {
+      const x = initialSpacing + spacing * index;
+      const left = Math.min(Math.max(x - BUBBLE_WIDTH / 2, 0), totalWidth - BUBBLE_WIDTH);
+      return left - (x - BUBBLE_WIDTH / 2) || 0.01;
+    };
+    const shiftY = (value: number) =>
+      height * (1 - clamp(value) / maxValue) < BUBBLE_HEIGHT + 12 ? 14 : -(BUBBLE_HEIGHT + 12);
+    const dataSet = series.map((s, serie) => ({
+      data: s.values.map((value, i) => {
+        const isSelected = selected?.serie === serie && selected.index === i;
+        return {
+          value: clamp(value),
+          label: shownLabel(i),
+          ...(isSelected
+            ? {
+                dataPointRadius: 6,
+                dataPointLabelComponent: () => bubbleFor(serie, i),
+                dataPointLabelWidth: BUBBLE_WIDTH,
+                dataPointLabelShiftX: shiftX(i),
+                dataPointLabelShiftY: shiftY(value),
+              }
+            : {}),
+        };
+      }),
+      color: s.color,
+      dataPointsColor: s.color,
+      thickness: 2.5,
+      dataPointsRadius: points / zoom > 15 ? 2 : 3.5,
+    }));
     return (
       <LineChart
         {...common}
-        dataSet={series.map((s) => ({
-          data: s.values.map((value, i) => ({ value: clamp(value), label: shownLabel(i) })),
-          color: s.color,
-          dataPointsColor: s.color,
-          thickness: 2.5,
-          dataPointsRadius: points / zoom > 15 ? 2 : 3.5,
-        }))}
+        dataSet={dataSet}
         spacing={spacing}
-        initialSpacing={6}
-        endSpacing={interactive ? 24 : 6}
-        pointerConfig={pointerConfig((i) => i)}
+        initialSpacing={initialSpacing}
+        endSpacing={endSpacing}
+        // Cada punto del eje X es una franja que se puede tocar; la librería elige la línea
+        // más cercana al dedo y nos pasa su dato (lo buscamos en dataSet por identidad).
+        focusEnabled={!!interactive}
+        onFocus={(item: unknown, index: number) => {
+          const serie = dataSet.findIndex((set) => set.data[index] === item);
+          if (serie >= 0) toggle(serie, index);
+        }}
       />
     );
   }
@@ -164,14 +196,29 @@ export function ChartPlot({ labels, series, type, plotWidth, height, interactive
       endSpacing={interactive ? 24 : 4}
       barBorderTopLeftRadius={2}
       barBorderTopRightRadius={2}
-      // En los datos de barras, cada serie es una barra: el punto del eje X es índice / series.
-      pointerConfig={pointerConfig((i) => Math.floor(i / Math.max(series.length, 1)))}
+      // Al tocar una barra sale su recuadro encima. En los datos, cada serie es una barra: el
+      // punto del eje X es índice / nº de series y la serie, el resto.
+      {...(interactive
+        ? {
+            renderTooltip: (_item: unknown, index: number) =>
+              bubbleFor(index % series.length, Math.floor(index / series.length)),
+            autoCenterTooltip: true,
+          }
+        : {})}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  bubble: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, gap: 2 },
+  bubble: {
+    width: BUBBLE_WIDTH,
+    height: BUBBLE_HEIGHT,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 4,
+    justifyContent: 'center',
+  },
   bubbleTitle: { fontSize: 13, fontFamily: fonts.title, marginBottom: 2 },
   bubbleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 18 },
   dot: { width: 8, height: 8, borderRadius: 4 },

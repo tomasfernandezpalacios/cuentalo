@@ -19,6 +19,8 @@ type Props = {
   emptyText?: string;
   /** Título de la vista ampliada. */
   title?: string;
+  /** Nombre completo de cada punto del eje X («mié 4 nov 2026»); si no, la etiqueta corta. */
+  titles?: string[];
 };
 
 const CHART_HEIGHT = 200;
@@ -26,7 +28,7 @@ const CHART_HEIGHT = 200;
 /**
  * Gráfica de evolución: una línea (o grupo de barras) por serie, cada una de su color.
  * Eje X: tiempo; eje Y: cantidad. Un periodo que quede en negativo por un −1 se dibuja en 0.
- * Al tocarla se abre a pantalla completa (`ChartViewer`) para ampliar, deslizar y ver valores.
+ * Al tocarla se abre a pantalla completa (`ChartViewer`) para ampliar, deslizar y ver cada dato.
  */
 export function StatsChart({
   labels,
@@ -35,6 +37,7 @@ export function StatsChart({
   onChangeType,
   emptyText = 'Toca un contador para verlo en la gráfica',
   title = 'Evolución',
+  titles = labels,
 }: Props) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
@@ -114,6 +117,7 @@ export function StatsChart({
         <ChartViewer
           title={title}
           labels={labels}
+          titles={titles}
           series={series}
           type={type}
           onChangeType={onChangeType}

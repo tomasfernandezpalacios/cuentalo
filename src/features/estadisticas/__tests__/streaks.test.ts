@@ -1,4 +1,4 @@
-import { bestStreak, currentStreak, monthGrid, withPositions } from '../streaks';
+import { bestStreak, currentStreak, monthGrid, weekProgress, withPositions } from '../streaks';
 
 describe('currentStreak', () => {
   const days = ['2026-11-01', '2026-11-02', '2026-11-03', '2026-10-20'];
@@ -51,5 +51,30 @@ describe('withPositions', () => {
   it('los empates comparten puesto', () => {
     const rows = [{ v: 9 }, { v: 5 }, { v: 5 }, { v: 1 }];
     expect(withPositions(rows, (r) => r.v).map((r) => r.position)).toEqual([1, 2, 2, 4]);
+  });
+});
+
+describe('weekProgress', () => {
+  it('devuelve la semana de lunes a domingo con los días mantenidos', () => {
+    // 2026-11-04 es miércoles.
+    const week = weekProgress(['2026-11-02', '2026-11-04', '2026-10-31'], '2026-11-04');
+    expect(week.map((d) => d.day)).toEqual([
+      '2026-11-02',
+      '2026-11-03',
+      '2026-11-04',
+      '2026-11-05',
+      '2026-11-06',
+      '2026-11-07',
+      '2026-11-08',
+    ]);
+    expect(week.map((d) => d.done)).toEqual([true, false, true, false, false, false, false]);
+    expect(week.map((d) => d.future)).toEqual([false, false, false, true, true, true, true]);
+    expect(week.find((d) => d.isToday)?.letter).toBe('X');
+  });
+
+  it('el domingo es el último día de la semana', () => {
+    const week = weekProgress([], '2026-11-08');
+    expect(week[0]?.day).toBe('2026-11-02');
+    expect(week[6]?.isToday).toBe(true);
   });
 });
