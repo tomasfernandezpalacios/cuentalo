@@ -14,7 +14,7 @@ import { GroupAvatar } from './GroupAvatar';
 
 type Props = { groupId: string; groupName: string };
 
-/** Botón cuadrado con icono (columna de la derecha de la tarjeta). */
+/** Botón rectangular con icono (fila bajo el código). */
 function IconButton({
   icon,
   label,
@@ -50,7 +50,8 @@ function IconButton({
 
 /**
  * Tarjeta de arriba del grupo: imagen y nombre del grupo y, para el administrador, el código
- * para unirse con tres botones de icono apilados (copiar, compartir enlace y código nuevo).
+ * para unirse en una línea con tres botones de icono debajo (copiar, compartir enlace y código
+ * nuevo).
  */
 export function GroupHeaderCard({
   groupId,
@@ -63,7 +64,7 @@ export function GroupHeaderCard({
   return (
     <View style={[styles.card, { backgroundColor: colors.primarySoft }]}>
       <View style={styles.group}>
-        <GroupAvatar emoji={emoji} photoPath={photoPath} size={isOwner ? 64 : 88} />
+        <GroupAvatar emoji={emoji} photoPath={photoPath} size={isOwner ? 96 : 120} />
         <Text
           style={[styles.groupName, { color: colors.text }, !isOwner && styles.groupNameLarge]}
           numberOfLines={3}
@@ -138,22 +139,19 @@ function InviteCode({ groupId, groupName }: Props) {
   }
 
   const formatted = formatInviteCode(code.data);
-  // El código se parte en dos líneas (ABCD / EFGH) para poder ponerlo grande.
-  const [first, second] = formatted.split('-');
   return (
-    <>
-      <View style={styles.codeBox}>
-        <Text style={[styles.label, { color: colors.textMuted }]}>Código para unirse</Text>
-        <Text
-          style={[styles.code, { color: colors.primary }]}
-          selectable
-          adjustsFontSizeToFit
-          numberOfLines={2}
-          accessibilityLabel={`Código: ${code.data.split('').join(' ')}`}
-        >
-          {second ? `${first}\n${second}` : formatted}
-        </Text>
-      </View>
+    <View style={styles.codeBox}>
+      <Text style={[styles.label, { color: colors.textMuted }]}>Código para unirse</Text>
+      {/* En una línea: si no cabe a este tamaño, la letra se reduce sola. */}
+      <Text
+        style={[styles.code, { color: colors.primary }]}
+        selectable
+        adjustsFontSizeToFit
+        numberOfLines={1}
+        accessibilityLabel={`Código: ${code.data.split('').join(' ')}`}
+      >
+        {formatted}
+      </Text>
       <View style={styles.buttons}>
         <IconButton
           icon={copied ? 'checkmark' : 'copy-outline'}
@@ -172,28 +170,29 @@ function InviteCode({ groupId, groupName }: Props) {
           loading={regenerate.isPending}
         />
       </View>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, padding: 14 },
-  group: { alignItems: 'center', gap: 6, width: 88 },
-  groupName: { fontSize: 15, fontFamily: fonts.title, textAlign: 'center' },
-  groupNameLarge: { fontSize: 20 },
-  codeBox: { flex: 1, alignItems: 'center', gap: 2 },
+  group: { alignItems: 'center', gap: 8, width: 112 },
+  groupName: { fontSize: 20, fontFamily: fonts.title, textAlign: 'center' },
+  groupNameLarge: { fontSize: 24 },
+  codeBox: { flex: 1, alignItems: 'stretch', gap: 6 },
   label: { fontSize: 13, fontFamily: fonts.detail, textAlign: 'center' },
   code: {
-    fontSize: 32,
-    lineHeight: 38,
+    alignSelf: 'stretch',
+    fontSize: 26,
+    lineHeight: 32,
     fontFamily: fonts.title,
-    letterSpacing: 3,
+    letterSpacing: 1.5,
     textAlign: 'center',
   },
-  buttons: { gap: 8 },
+  buttons: { flexDirection: 'row', gap: 6, marginTop: 4 },
   iconButton: {
-    width: 40,
-    height: 40,
+    flex: 1,
+    height: 38,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
