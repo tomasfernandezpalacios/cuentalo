@@ -270,8 +270,9 @@ export function CounterForm({
         <View style={styles.flexText}>
           <Text style={[styles.optionTitle, { color: colors.text }]}>🔥 Formato racha</Text>
           <Text style={[styles.hint, { color: colors.textMuted }]}>
-            Para cosas como «días sin fumar»: si pasa un día entero sin sumar nada, vuelve a 0. Tu
-            historial y tus estadísticas lo conservan todo y se guarda tu récord.
+            Para cosas como «días sin fumar»: el contador suma como siempre y, además, lleva una
+            racha de días seguidos en los que sumes +1 o más. Si un día no llegas, la racha vuelve a
+            0, pero el contador no. Se guarda tu récord.
             {(creating ? groupId !== null : Boolean(sharedGroupName))
               ? ' En un grupo, cada uno tiene su propia racha.'
               : ''}
