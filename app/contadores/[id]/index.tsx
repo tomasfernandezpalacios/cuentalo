@@ -141,7 +141,7 @@ export default function CounterDetailScreen() {
         ))}
         {isCommon ? (
           <Text style={[styles.count, { color: colors.textMuted }]}>
-            Común: cada +1 se suma a {pluralize(participantIds.length, 'persona', 'personas')}
+            Común: cada suma se apunta a {pluralize(participantIds.length, 'persona', 'personas')}
           </Text>
         ) : null}
       </View>
@@ -276,7 +276,7 @@ export default function CounterDetailScreen() {
               ? 'Cargando…'
               : entries.error
                 ? getErrorMessage(entries.error)
-                : 'Todavía no hay registros. ¡Pulsa +1 para empezar!'}
+                : 'Todavía no hay registros. ¡Pulsa un botón para empezar!'}
           </Text>
         }
         contentContainerStyle={styles.list}

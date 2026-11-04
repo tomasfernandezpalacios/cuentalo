@@ -106,7 +106,7 @@ export default function SettingsScreen() {
     appAlert(
       'Eliminar cuenta',
       'Se borrarán para siempre tu perfil, tus contadores privados, todos tus registros y tus ' +
-        'amistades. Los grupos que administras pasarán a otro miembro (o se borrarán si estás ' +
+        'amistades. Los grupos de los que eres líder pasarán a otro miembro (o se borrarán si estás ' +
         'solo). Esta acción no se puede deshacer.',
       [
         { text: 'Cancelar', style: 'cancel' },

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { useStreak } from '@/features/estadisticas/api';
-import { todayInMadrid } from '@/features/estadisticas/periods';
+import { localToday } from '@/features/estadisticas/periods';
 
 import { reminderDates } from './reminderDates';
 import { getSettings, useSettings } from './settings';
@@ -51,7 +51,7 @@ let activeDay = '';
 
 async function schedule(activeToday: boolean) {
   const { reminder } = getSettings();
-  const today = todayInMadrid();
+  const today = localToday();
   const key = reminder.enabled
     ? `${today}|${reminder.hour}:${reminder.minute}|${activeToday}`
     : 'off';
@@ -78,7 +78,7 @@ async function schedule(activeToday: boolean) {
 }
 
 /** Reprograma los avisos (p. ej. al cambiar la hora en Configuración). */
-export function syncReminder(activeToday = activeDay === todayInMadrid()) {
+export function syncReminder(activeToday = activeDay === localToday()) {
   schedule(activeToday).catch(() => {
     // Sin permiso o sin notificaciones en este dispositivo: no hay recordatorio.
     lastKey = '';
@@ -87,7 +87,7 @@ export function syncReminder(activeToday = activeDay === todayInMadrid()) {
 
 /** Al registrar algo: hoy ya no hace falta recordatorio. */
 export function markActiveToday() {
-  activeDay = todayInMadrid();
+  activeDay = localToday();
   syncReminder(true);
 }
 
@@ -104,7 +104,7 @@ export function clearReminders() {
 export function useReminderSync(isSignedIn: boolean) {
   const { reminder } = useSettings();
   const streak = useStreak();
-  const activeToday = streak.data?.days.has(todayInMadrid()) ?? false;
+  const activeToday = streak.data?.days.has(localToday()) ?? false;
   const ready = streak.data !== undefined;
 
   useEffect(() => {
@@ -113,7 +113,7 @@ export function useReminderSync(isSignedIn: boolean) {
       return;
     }
     if (!ready) return;
-    if (activeToday) activeDay = todayInMadrid();
+    if (activeToday) activeDay = localToday();
     syncReminder(activeToday);
   }, [isSignedIn, ready, activeToday, reminder.enabled, reminder.hour, reminder.minute]);
 }

@@ -8,7 +8,7 @@ import { StatsChart, type ChartType } from '@/features/estadisticas/components/S
 import {
   chartBuckets,
   chartValues,
-  todayInMadrid,
+  localToday,
   type DailyTotal,
 } from '@/features/estadisticas/periods';
 import { useGroup } from '@/features/social/hooks';
@@ -78,7 +78,7 @@ export function GroupMembersChart({ groupId, counterId, unit, period }: Props) {
     (min, d) => (min === null || d.day < min ? d.day : min),
     null,
   );
-  const { buckets, granularity } = chartBuckets(period, todayInMadrid(), firstDay);
+  const { buckets, granularity } = chartBuckets(period, localToday(), firstDay);
   const series = shown.map((chip) => ({
     id: chip.id,
     name: chip.name,

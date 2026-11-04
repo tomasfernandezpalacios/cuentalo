@@ -27,7 +27,7 @@ type Props = {
   tutorialTarget?: boolean;
 };
 
-/** Tarjeta de la lista: emoticono · nombre · +1 +5 −1 · total. */
+/** Tarjeta de la lista: emoticono · nombre · botones rápidos y −1 · total. */
 export function CounterCard({
   counter,
   onPress,
@@ -57,7 +57,7 @@ export function CounterCard({
             backgroundColor: selected ? colors.primarySoft : colors.surface,
             borderColor: selected ? colors.primary : colors.border,
             borderWidth: selected ? 2 : 1,
-            opacity: counter.archived || counter.hidden ? 0.6 : pressed ? 0.85 : 1,
+            opacity: counter.hidden ? 0.6 : pressed ? 0.85 : 1,
           },
         ]}
       >
@@ -66,14 +66,13 @@ export function CounterCard({
           <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
             {counter.name}
           </Text>
-          {counter.group || counter.archived || counter.hidden ? (
+          {counter.group || counter.hidden ? (
             <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
               {[
                 counter.linkedGroups.length > 0
                   ? `👥 ${counter.linkedGroups.map((g) => g.group.name).join(' · ')}`
                   : null,
                 counter.is_common ? 'Común' : null,
-                counter.archived ? 'Archivado' : null,
                 counter.hidden ? 'Oculto' : null,
               ]
                 .filter(Boolean)
@@ -88,7 +87,7 @@ export function CounterCard({
             size={28}
             color={selected ? colors.primary : colors.textMuted}
           />
-        ) : counter.archived ? null : (
+        ) : (
           <QuickAddBar
             compact
             unit={counter.unit}

@@ -10,7 +10,7 @@ const SECTIONS: { title: string; body: string }[] = [
     title: 'Qué guardamos',
     body:
       'Tu email (para iniciar sesión), tu nombre y tu @usuario, tus contadores, carpetas y ' +
-      'registros, tus amistades y grupos, y las imágenes de los grupos que administras.',
+      'registros, tus amistades y grupos, y las imágenes de los grupos de los que eres líder.',
   },
   {
     title: 'Quién lo ve',

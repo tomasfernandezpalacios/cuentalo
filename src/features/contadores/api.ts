@@ -43,7 +43,10 @@ export type CounterWithTotal = Counter & {
    * común, además, es el único que suma o resta (los demás le envían solicitudes).
    */
   canManage: boolean;
-  /** Lo he ocultado de mi lista (sale al final, en «Ocultos»). */
+  /**
+   * Oculto: sale al final de la lista, en el desplegable «Ocultos». Es personal. También lo
+   * están los que se archivaron antes de juntar «Archivar» con «Ocultar».
+   */
   hidden: boolean;
   /**
    * Lo he quitado de mi pantalla principal (contador de grupo del que no soy administrador):
@@ -84,7 +87,7 @@ export type CounterInput = {
 };
 
 /**
- * Mi racha en un contador en formato racha: días seguidos (Madrid) en los que lo sumado en el
+ * Mi racha en un contador en formato racha: días seguidos (hora del móvil) en los que lo sumado en el
  * día es +1 o más. El contador no vuelve a 0; la racha sí, si un día no se llega.
  */
 export type CounterStreak = {
@@ -173,7 +176,7 @@ export function enrich(
     canManage,
     participantIds,
     lastLoggedAt: t?.last_logged_at ?? null,
-    hidden: hidden.has(counter.id),
+    hidden: hidden.has(counter.id) || counter.archived,
     removedFromHome: removedFromHome.has(counter.id),
     streak,
     linkedCounterIds: [counter.id],
@@ -365,7 +368,10 @@ export async function deleteCounter(counter: Pick<Counter, 'id' | 'group_id'>): 
   if (error) throw error;
 }
 
-/** Oculta o vuelve a mostrar contadores en mi lista. */
+/**
+ * Oculta o vuelve a mostrar contadores en mi lista. Al mostrar, también se desarchivan los que
+ * se archivaron antes (la RLS solo deja tocar los que administro; los demás no cambian).
+ */
 export async function setHidden(counterIds: string[], hidden: boolean): Promise<void> {
   const { error } = hidden
     ? await supabase.from('hidden_counters').upsert(
@@ -374,6 +380,14 @@ export async function setHidden(counterIds: string[], hidden: boolean): Promise<
       )
     : await supabase.from('hidden_counters').delete().in('counter_id', counterIds);
   if (error) throw error;
+  if (!hidden) {
+    const { error: archiveError } = await supabase
+      .from('counters')
+      .update({ archived: false })
+      .in('id', counterIds)
+      .eq('archived', true);
+    if (archiveError) throw archiveError;
+  }
 }
 
 /** Quita contadores de mi pantalla principal o los vuelve a poner. */
@@ -477,7 +491,7 @@ export async function deleteEntry(entry: Entry): Promise<void> {
 
 // --- Clasificación ----------------------------------------------------------
 
-/** Lo que sumó cada miembro activo cada día (Madrid) en un contador de grupo. */
+/** Lo que sumó cada miembro activo cada día (hora del móvil) en un contador de grupo. */
 export async function fetchGroupCounterDaily(
   counterId: string,
 ): Promise<{ userId: string; day: string; total: number }[]> {

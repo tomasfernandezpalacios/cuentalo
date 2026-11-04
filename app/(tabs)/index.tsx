@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
-import { AppButton } from '@/components/AppButton';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import type { CounterWithTotal } from '@/features/contadores/api';
 import { CounterCard } from '@/features/contadores/components/CounterCard';
@@ -64,7 +63,6 @@ export default function CountersScreen() {
   const setHidden = useSetHidden();
   const removeFromHome = useSetRemovedFromHome();
   const actions = useCounterActions();
-  const [showArchived, setShowArchived] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   // Al abrir la app siempre se empieza en «Todos» y sin filtros.
   const [filters, setFilters] = useState<CounterFilters>(DEFAULT_FILTERS);
@@ -106,8 +104,10 @@ export default function CountersScreen() {
       active.flatMap((c) => c.linkedGroups.map((g) => [g.group.id, g.group] as const)),
     ).values(),
   ].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-  const archivedCount = filtered.filter((c) => c.archived && !c.hidden).length;
-  const shown = filtered.filter((c) => !c.hidden && (showArchived || !c.archived));
+  const shown = filtered.filter((c) => !c.hidden);
+  // Tarjeta que ilumina el tutorial: la primera en la que se puede sumar directamente (en un
+  // común de otro, el +1 abre una solicitud y el paso «Suma con un toque» no avanzaría).
+  const tutorialCardId = shown.find((c) => !(c.is_common && !c.canManage))?.id;
   // Los ocultos salen al final de la lista.
   const hidden = filtered.filter((c) => c.hidden);
   const selected = active.filter((c) => selectedIds.includes(c.id));
@@ -393,7 +393,7 @@ export default function CountersScreen() {
       <FlatList
         data={shown}
         keyExtractor={(counter) => counter.id}
-        renderItem={({ item, index }) => renderCard(item, index === 0)}
+        renderItem={({ item }) => renderCard(item, item.id === tutorialCardId)}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl
@@ -409,13 +409,6 @@ export default function CountersScreen() {
         ListEmptyComponent={emptyView}
         ListFooterComponent={
           <View style={styles.footer}>
-            {archivedCount > 0 ? (
-              <AppButton
-                variant="ghost"
-                title={showArchived ? 'Ocultar archivados' : `Ver archivados (${archivedCount})`}
-                onPress={() => setShowArchived((value) => !value)}
-              />
-            ) : null}
             {hidden.length > 0 ? (
               <View style={styles.hidden}>
                 {/* Desplegable cerrado por defecto: los ocultos no estorban en la lista. */}

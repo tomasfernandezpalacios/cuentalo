@@ -15,7 +15,7 @@ import { StatsChart, type ChartType } from '@/features/estadisticas/components/S
 import {
   chartBuckets,
   chartValues,
-  todayInMadrid,
+  localToday,
   type Period,
 } from '@/features/estadisticas/periods';
 import { sortByRecentUse } from '@/features/estadisticas/recentUse';
@@ -39,7 +39,7 @@ export default function StatsScreen() {
   const [period, setPeriod] = useState<Period>('week');
   const [chartType, setChartType] = useState<ChartType>('line');
 
-  const today = todayInMadrid();
+  const today = localToday();
   // Lo de los contadores enlazados (fusión de varios grupos) cuenta en el que se ve.
   const days = useMemo(() => {
     const resolve = visibleCounterId(counters.data ?? []);

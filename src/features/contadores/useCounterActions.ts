@@ -45,6 +45,8 @@ export function useCounterActions() {
               { counterId: counter.id, amount },
               {
                 onSuccess: () => {
+                  // Si el tutorial está en «Suma con un toque», enviar la solicitud también vale.
+                  tutorialEvent('entry-added');
                   appAlert('Solicitud enviada', 'Te avisaremos cuando la responda.');
                   onSent?.();
                 },

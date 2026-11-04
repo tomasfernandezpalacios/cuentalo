@@ -16,9 +16,7 @@ import { Leaderboard } from './Leaderboard';
 export function GroupLeaderboard({ groupId }: { groupId: string }) {
   const colors = useThemeColors();
   const counters = useCounterList();
-  const groupCounters = (counters.data ?? []).filter(
-    (c) => c.group_id === groupId && c.isActive && !c.archived,
-  );
+  const groupCounters = (counters.data ?? []).filter((c) => c.group_id === groupId && c.isActive);
   const lastUsed = useMyLastCounterId(groupCounters.map((c) => c.id));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Mismo periodo para la clasificación y la gráfica de debajo.

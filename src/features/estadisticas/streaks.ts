@@ -1,4 +1,4 @@
-// Rachas: días seguidos con actividad. Funciones puras con días 'AAAA-MM-DD' (hora de Madrid).
+// Rachas: días seguidos con actividad. Funciones puras con días 'AAAA-MM-DD' (hora del móvil).
 
 const DAY_MS = 86_400_000;
 

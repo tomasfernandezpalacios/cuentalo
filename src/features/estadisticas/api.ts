@@ -4,7 +4,7 @@ import { useUserId } from '@/features/auth/AuthProvider';
 import { counterKeys } from '@/features/contadores/hooks';
 import { supabase } from '@/lib/supabase';
 
-import { todayInMadrid, type DailyTotal } from './periods';
+import { localToday, type DailyTotal } from './periods';
 import { bestStreak, currentStreak } from './streaks';
 
 // Supabase devuelve como máximo 1000 filas por consulta, así que pedimos por páginas.
@@ -45,7 +45,7 @@ export function useMyDailyTotals(userId: string) {
 
 // --- Rachas -----------------------------------------------------------------------------------
 
-/** Días ('AAAA-MM-DD', Madrid) en los que he registrado algo. */
+/** Días ('AAAA-MM-DD', hora del móvil) en los que he registrado algo. */
 export async function fetchMyActivityDays(userId: string): Promise<string[]> {
   const days: string[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
@@ -70,7 +70,7 @@ export function useStreak() {
     queryFn: () => fetchMyActivityDays(userId),
     enabled: userId !== '',
     select: (days) => {
-      const today = todayInMadrid();
+      const today = localToday();
       return {
         days: new Set(days),
         current: currentStreak(days, today),

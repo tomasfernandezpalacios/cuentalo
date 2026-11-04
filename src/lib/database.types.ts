@@ -17,6 +17,7 @@ export type Database = {
           emoji: string | null;
           photo_path: string | null;
           tutorial_done: boolean;
+          time_zone: string;
         };
         Insert: never;
         Update: {
@@ -387,6 +388,10 @@ export type Database = {
       };
       delete_my_account: {
         Args: Record<string, never>;
+        Returns: undefined;
+      };
+      set_my_time_zone: {
+        Args: { p_time_zone: string };
         Returns: undefined;
       };
       get_group_counter_daily: {

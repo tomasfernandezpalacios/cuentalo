@@ -36,7 +36,7 @@ export default function MergeCountersScreen() {
 
   // Se pueden fusionar los míos y los de mis grupos, salvo los comunes.
   const candidates = (counters.data ?? [])
-    .filter((c) => c.isActive && !c.archived && !c.is_common && !c.linkedInto)
+    .filter((c) => c.isActive && !c.is_common && !c.linkedInto)
     .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
   const visible = query.trim()
     ? candidates.filter((c) => normalize(c.name).includes(normalize(query.trim())))

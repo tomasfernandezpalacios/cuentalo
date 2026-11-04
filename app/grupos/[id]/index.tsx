@@ -79,14 +79,14 @@ export default function GroupScreen() {
     if (isOwner && othersActive === 0) {
       appAlert(
         'Eres el único miembro',
-        'No hay nadie a quien pasarle la administración. Si quieres irte, elimina el grupo.',
+        'No hay nadie a quien pasarle el liderazgo. Si quieres irte, elimina el grupo.',
       );
       return;
     }
     appAlert(
       'Abandonar el grupo',
       isOwner
-        ? `Eres el administrador de «${name}». Si sales ahora, la administración pasará a un ` +
+        ? `Eres el líder de «${name}». Si sales ahora, el liderazgo pasará a un ` +
             'miembro elegido al azar. Si prefieres elegir tú, designa antes a alguien con el ' +
             'escudo junto a su nombre.\n\nConservarás tus estadísticas personales.'
         : `¿Seguro que quieres salir de «${name}»? Conservarás tus estadísticas personales.`,
@@ -99,16 +99,13 @@ export default function GroupScreen() {
 
   function confirmResign() {
     if (othersActive === 0) {
-      appAlert(
-        'Eres el único miembro',
-        'No hay nadie a quien pasarle la administración del grupo.',
-      );
+      appAlert('Eres el único miembro', 'No hay nadie a quien pasarle el liderazgo del grupo.');
       return;
     }
     appAlert(
-      'Dejar de ser administrador',
+      'Dejar de ser líder',
       'Te recomendamos designar tú a alguien antes: toca el escudo junto al nombre de otro ' +
-        'miembro. Si te retiras sin hacerlo, la administración pasará a un miembro elegido al ' +
+        'miembro. Si te retiras sin hacerlo, el liderazgo pasará a un miembro elegido al ' +
         'azar.\n\nSeguirás en el grupo como un miembro más.',
       [
         { text: 'Designar a alguien', style: 'cancel' },
@@ -118,7 +115,7 @@ export default function GroupScreen() {
           onPress: () =>
             resign.mutate(id, {
               onSuccess: () =>
-                appAlert('Ya no eres administrador', 'La administración ha pasado a otro miembro.'),
+                appAlert('Ya no eres líder', 'El liderazgo ha pasado a otro miembro.'),
               onError: showError,
             }),
         },
@@ -217,13 +214,13 @@ export default function GroupScreen() {
 
   function adminActions(member: MemberWithProfile) {
     if (!isOwner) return null;
-    // Mi propia fila: retirarme como administrador.
+    // Mi propia fila: dejar de ser líder.
     if (member.user_id === userId) {
       return (
         <Pressable
           onPress={confirmResign}
           accessibilityRole="button"
-          accessibilityLabel="Dejar de ser administrador"
+          accessibilityLabel="Dejar de ser líder"
           hitSlop={10}
         >
           <Ionicons name="shield-half-outline" size={24} color={colors.textMuted} />
@@ -241,7 +238,7 @@ export default function GroupScreen() {
               })
             }
             accessibilityRole="button"
-            accessibilityLabel={`Hacer administrador a ${member.profile.display_name}`}
+            accessibilityLabel={`Hacer líder a ${member.profile.display_name}`}
             hitSlop={10}
           >
             <Ionicons name="shield-checkmark-outline" size={24} color={colors.textMuted} />
@@ -309,7 +306,7 @@ export default function GroupScreen() {
         }}
       />
 
-      {/* Imagen y nombre del grupo y, para el administrador, el código para unirse. */}
+      {/* Imagen y nombre del grupo y, para el líder, el código para unirse. */}
       <GroupHeaderCard
         groupId={id}
         groupName={name}
@@ -335,8 +332,8 @@ export default function GroupScreen() {
               note={
                 m.role === 'owner'
                   ? m.user_id === userId
-                    ? 'Tú · Administrador'
-                    : 'Administrador'
+                    ? 'Tú · Líder'
+                    : 'Líder'
                   : m.user_id === userId
                     ? 'Tú'
                     : undefined

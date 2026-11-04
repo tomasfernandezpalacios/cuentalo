@@ -55,7 +55,7 @@ convenciones y decisiones; anota aquí cualquier decisión menor nueva.
 `entries` (cada miembro inserta sus propias filas). Las estadísticas personales suman mis
 `entries` de todos los contadores, privados y compartidos: no hay datos duplicados.
 Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y mes/año naturales en
-`Europe/Madrid`.
+la zona horaria del móvil (ver «Hora del móvil» abajo).
 
 ## Decisiones tomadas
 
@@ -349,6 +349,24 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   `PlatformPressable` (de `expo-router/react-navigation`).
 - Valores de `Animated` en componentes: `useState(() => new Animated.Value(0))[0]`, no
   `useRef(...).current` (la regla react-hooks/refs lo marca como error).
+
+- **Hora del móvil** (decisión del usuario; antes todo iba en Europe/Madrid): `profiles.time_zone`
+  la guarda la app al abrirse (`useTimeZoneSync` → RPC `set_my_time_zone`, que solo acepta
+  zonas de `pg_timezone_names`). `public.my_time_zone()` (Madrid si no hay) sustituye a
+  'Europe/Madrid' en totales diarios, clasificaciones, rachas, gráfica del grupo y día de
+  actividad (migración `20261126`). En la app, `localToday()` en vez de `todayInMadrid()`.
+  Las menciones a Madrid en notas anteriores de este archivo se refieren a esto.
+- **Líder y administrador** (decisión del usuario): el **líder** es quien crea y dirige el grupo
+  (`groups.owner_id`, «Designar líder», «Dejar de ser líder»); el **administrador** es el
+  responsable de cada contador (`counters.owner_id`). En código siguen llamándose owner/admin.
+- **«Archivar» se juntó con «Ocultar»** (decisión del usuario): ya no se archiva; un contador
+  archivado de antes cuenta como oculto (`hidden = hidden_counters || archived`) y al
+  mostrarlo se desarchiva. En los grupos ya no se esconden los archivados.
+- Textos: no dar por hecho que el primer botón rápido es +1 (se configura).
+- El tutorial ilumina la primera tarjeta donde se puede sumar directamente (no un común de
+  otro) y también avanza si se envía una solicitud al administrador.
+- La racha de uso de la app se mantiene con cualquier registro, también un −1 (decisión del
+  usuario: basta con interactuar).
 
 ## Cambios estéticos pendientes
 

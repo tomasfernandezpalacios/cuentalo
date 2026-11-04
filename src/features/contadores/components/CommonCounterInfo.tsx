@@ -27,12 +27,12 @@ export function CommonCounterInfo() {
               👥 Contador común
             </Text>
             <Text style={[styles.text, { color: colors.text }]}>
-              Sirve para cosas que hacéis juntos. Cuando cualquiera del grupo pulsa +1, se suma 1 a
-              todas las personas que elijas, y el −1 les resta 1 a todas.
+              Sirve para cosas que hacéis juntos. Su administrador (quien lo crea) suma o resta a la
+              vez a todas las personas que elija; los demás le piden los cambios con una solicitud.
             </Text>
             <Text style={[styles.text, { color: colors.textMuted }]}>
               Ejemplo: «✈️ Viajes». Marcas a quienes vais juntos y, al volver de cada viaje, con un
-              solo +1 se apunta a todos. A cada uno le cuenta en sus estadísticas.
+              solo toque se apunta a todos. A cada uno le cuenta en sus estadísticas.
             </Text>
             <Text style={[styles.text, { color: colors.textMuted }]}>
               Si no lo marcas, cada miembro suma solo lo suyo (por ejemplo, «🍺 Cervezas»).

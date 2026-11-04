@@ -49,7 +49,7 @@ function IconButton({
 }
 
 /**
- * Tarjeta de arriba del grupo: imagen con el código a su derecha (solo el administrador) y el
+ * Tarjeta de arriba del grupo: imagen con el código a su derecha (solo el líder) y el
  * nombre debajo, a la izquierda. El código va en una línea (con copiar a su derecha) y dos
  * botones de icono debajo (compartir enlace y código nuevo).
  */

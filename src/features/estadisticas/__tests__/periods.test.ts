@@ -4,17 +4,14 @@ import {
   chartValues,
   isInPeriod,
   startOfIsoWeek,
-  todayInMadrid,
+  localToday,
   type DailyTotal,
 } from '../periods';
 
-describe('todayInMadrid', () => {
-  it('usa la fecha de Madrid aunque en UTC sea otro día', () => {
-    // 23:30 UTC del 31 de diciembre = 00:30 del 1 de enero en Madrid (invierno, UTC+1).
-    expect(todayInMadrid(new Date('2026-12-31T23:30:00Z'))).toBe('2027-01-01');
-    // 22:30 UTC del 30 de junio = 00:30 del 1 de julio en Madrid (verano, UTC+2).
-    expect(todayInMadrid(new Date('2026-06-30T22:30:00Z'))).toBe('2026-07-01');
-    expect(todayInMadrid(new Date('2026-11-04T10:00:00Z'))).toBe('2026-11-04');
+describe('localToday', () => {
+  it('usa la fecha del móvil', () => {
+    expect(localToday(new Date(2027, 0, 1, 0, 30))).toBe('2027-01-01');
+    expect(localToday(new Date(2026, 10, 4, 23, 59))).toBe('2026-11-04');
   });
 });
 

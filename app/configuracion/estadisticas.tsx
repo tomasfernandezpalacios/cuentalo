@@ -22,7 +22,7 @@ export default function StatsDefaultScreen() {
   const options = [
     { id: LAST_USED, name: 'El último que usé', emoji: null as string | null },
     ...counters.data
-      .filter((c) => !c.linkedInto && !c.archived && (c.isActive || c.myEntryCount > 0))
+      .filter((c) => !c.linkedInto && (c.isActive || c.myEntryCount > 0))
       .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
       .map((c) => ({ id: c.id, name: c.name, emoji: c.emoji })),
   ];

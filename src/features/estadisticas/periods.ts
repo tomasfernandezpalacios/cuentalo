@@ -1,7 +1,8 @@
 // Agregación de estadísticas por periodo. Funciones puras (sin red ni React) para poder testearlas.
 //
-// Trabajan con días en formato 'AAAA-MM-DD' que ya vienen en hora de Europe/Madrid desde la vista
-// entry_daily_totals. Los periodos son naturales: semana ISO (lunes a domingo), mes y año.
+// Trabajan con días en formato 'AAAA-MM-DD' que ya vienen en la hora del móvil desde la vista
+// entry_daily_totals (cada usuario guarda su zona horaria, ver set_my_time_zone). Los periodos
+// son naturales: semana ISO (lunes a domingo), mes y año.
 // La aritmética de fechas se hace en UTC para que el huso horario del móvil no influya.
 
 export type Period = 'week' | 'month' | 'year' | 'all';
@@ -29,15 +30,19 @@ function addDays(day: string, days: number): string {
   return formatDay(new Date(parseDay(day).getTime() + days * DAY_MS));
 }
 
-/** Fecha de hoy en Madrid, en formato 'AAAA-MM-DD'. */
-export function todayInMadrid(now: Date = new Date()): string {
-  // 'en-CA' formatea como AAAA-MM-DD.
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Madrid',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now);
+/** Fecha de hoy en la hora del móvil, en formato 'AAAA-MM-DD'. */
+export function localToday(now: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/** Zona horaria del móvil (p. ej. 'Europe/Madrid'); Madrid si no se puede saber. */
+export function deviceTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Madrid';
+  } catch {
+    return 'Europe/Madrid';
+  }
 }
 
 /** Lunes de la semana ISO que contiene el día. */

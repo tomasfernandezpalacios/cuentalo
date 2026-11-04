@@ -144,7 +144,7 @@ export function GroupRow({ group }: { group: MyGroup }) {
           {group.name}
         </Text>
         {group.role === 'owner' ? (
-          <Text style={[styles.detail, { color: colors.textMuted }]}>Eres el administrador</Text>
+          <Text style={[styles.detail, { color: colors.textMuted }]}>Eres el líder</Text>
         ) : null}
       </View>
       <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />

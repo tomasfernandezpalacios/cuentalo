@@ -9,6 +9,7 @@ import { DialogHost } from '@/components/AppDialog';
 import { BackButton } from '@/components/BackButton';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { useReminderSync } from '@/features/configuracion/reminder';
+import { useTimeZoneSync } from '@/features/perfil/useTimeZoneSync';
 import { usePendingInvite } from '@/features/social/pendingInvite';
 import { TutorialHost } from '@/features/tutorial/TutorialHost';
 import { useTutorialAutoStart } from '@/features/tutorial/useTutorialAutoStart';
@@ -27,6 +28,7 @@ function RootNavigator() {
   usePendingInvite(isSignedIn);
   useReminderSync(isSignedIn);
   useTutorialAutoStart(isSignedIn);
+  useTimeZoneSync(isSignedIn);
 
   useEffect(() => {
     if (!isLoading) SplashScreen.hideAsync();
@@ -71,10 +73,7 @@ function RootNavigator() {
           name="grupos/[id]/invitar"
           options={{ title: 'Invitar amigos', presentation: 'modal' }}
         />
-        <Stack.Screen
-          name="grupos/[id]/administrador"
-          options={{ title: 'Designar administrador' }}
-        />
+        <Stack.Screen name="grupos/[id]/administrador" options={{ title: 'Designar líder' }} />
         <Stack.Screen name="usuario/[id]" options={{ title: '' }} />
         <Stack.Screen name="avisos" options={{ title: 'Buzón' }} />
         <Stack.Screen name="racha" options={{ title: 'Tu racha' }} />

@@ -11,7 +11,7 @@ import { useGroup, useTransferGroupAdmin } from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 
-/** Confirmación para pasar la administración del grupo a otro miembro (?usuario=id). */
+/** Confirmación para hacer líder del grupo a otro miembro (?usuario=id). */
 export default function TransferAdminScreen() {
   const { id, usuario } = useLocalSearchParams<{ id: string; usuario: string }>();
   const colors = useThemeColors();
@@ -27,7 +27,7 @@ export default function TransferAdminScreen() {
   if (!me || !target || group.data.owner_id !== myId) {
     return (
       <ErrorView
-        error={new Error('Solo el administrador puede designar a un miembro activo del grupo.')}
+        error={new Error('Solo el líder puede designar a otro miembro activo del grupo.')}
         onRetry={() => router.back()}
       />
     );
@@ -41,7 +41,7 @@ export default function TransferAdminScreen() {
       {
         onSuccess: () => {
           router.back();
-          appAlert('Administrador cambiado', `${name} es ahora el administrador del grupo.`);
+          appAlert('Líder cambiado', `${name} es ahora el líder del grupo.`);
         },
         onError: (error) => appAlert('No se ha podido cambiar', getErrorMessage(error)),
       },
@@ -51,8 +51,8 @@ export default function TransferAdminScreen() {
   const points = [
     `${name} podrá invitar y expulsar, ver y cambiar el código, editar el grupo y eliminarlo.`,
     'Tú pasarás a ser un miembro más: seguirás en el grupo con tus contadores y registros.',
-    'Los contadores que creaste los sigues administrando tú.',
-    `Solo ${name} podrá devolverte la administración.`,
+    'Sigues siendo el administrador de los contadores que creaste.',
+    `Solo ${name} podrá volver a hacerte líder.`,
   ];
 
   return (
@@ -77,7 +77,7 @@ export default function TransferAdminScreen() {
       </View>
 
       <Text style={[styles.title, { color: colors.text }]}>
-        ¿Hacer a {name} administrador de «{group.data.name}»?
+        ¿Hacer a {name} líder de «{group.data.name}»?
       </Text>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -89,11 +89,7 @@ export default function TransferAdminScreen() {
         ))}
       </View>
 
-      <AppButton
-        title={`Hacer administrador a ${name}`}
-        onPress={confirm}
-        loading={transfer.isPending}
-      />
+      <AppButton title={`Hacer líder a ${name}`} onPress={confirm} loading={transfer.isPending} />
     </ScrollView>
   );
 }

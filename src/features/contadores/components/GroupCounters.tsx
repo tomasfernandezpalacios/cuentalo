@@ -15,9 +15,7 @@ export function GroupCounters({ groupId }: { groupId: string }) {
   const counters = useCounterList();
   const actions = useCounterActions();
 
-  const groupCounters = (counters.data ?? []).filter(
-    (c) => c.group_id === groupId && c.isActive && !c.archived,
-  );
+  const groupCounters = (counters.data ?? []).filter((c) => c.group_id === groupId && c.isActive);
 
   function openCounter(id: string) {
     router.push({ pathname: '/contadores/[id]', params: { id } });

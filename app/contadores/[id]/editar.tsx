@@ -8,6 +8,7 @@ import { CounterForm } from '@/features/contadores/components/CounterForm';
 import {
   useCounter,
   useDeleteCounters,
+  useSetHidden,
   useSetParticipants,
   useUpdateCounter,
 } from '@/features/contadores/hooks';
@@ -20,6 +21,7 @@ export default function EditCounterScreen() {
   const update = useUpdateCounter(id);
   const remove = useDeleteCounters();
   const setParticipants = useSetParticipants(id);
+  const setHiddenMutation = useSetHidden();
 
   if (counter.isPending) return <LoadingView />;
   if (counter.error) return <ErrorView error={counter.error} onRetry={counter.refetch} />;
@@ -28,15 +30,16 @@ export default function EditCounterScreen() {
     sharedName: name,
     sharedEmoji: emoji,
     unit,
-    archived,
+    hidden,
     group,
     is_common,
     participantIds,
   } = counter.data;
 
-  function toggleArchived() {
-    update.mutate(
-      { archived: !archived },
+  // Ocultar es personal: lo manda al desplegable «Ocultos» del final de mi lista.
+  function toggleHidden() {
+    setHiddenMutation.mutate(
+      { ids: [id], hidden: !hidden },
       {
         onSuccess: () => router.back(),
         onError: (error) => appAlert('Error', getErrorMessage(error)),
@@ -82,9 +85,9 @@ export default function EditCounterScreen() {
       footer={
         <View style={styles.footer}>
           <AppButton
-            title={archived ? 'Desarchivar' : 'Archivar'}
+            title={hidden ? 'Mostrar en mi lista' : 'Ocultar'}
             variant="secondary"
-            onPress={toggleArchived}
+            onPress={toggleHidden}
           />
           {/* Solo el administrador llega aquí; en uno de grupo, borrar solo lo saca del grupo. */}
           <AppButton

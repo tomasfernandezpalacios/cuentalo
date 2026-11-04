@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { fonts, useThemeColors } from '@/lib/theme';
 
-import { todayInMadrid } from '../periods';
+import { localToday } from '../periods';
 import { monthGrid } from '../streaks';
 
 const MONTHS = [
@@ -26,7 +26,7 @@ const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 /** Calendario mensual con los días de actividad rellenos; se puede ir a meses anteriores. */
 export function StreakCalendar({ activeDays }: { activeDays: Set<string> }) {
   const colors = useThemeColors();
-  const today = todayInMadrid();
+  const today = localToday();
   const [month, setMonth] = useState({
     year: Number(today.slice(0, 4)),
     month: Number(today.slice(5, 7)),

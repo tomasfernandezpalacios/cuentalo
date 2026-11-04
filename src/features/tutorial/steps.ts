@@ -42,7 +42,7 @@ const ALL_STEPS: Step[] = [
   {
     id: 'tips',
     title: 'Trucos de la tarjeta',
-    text: 'Mantén pulsado +1 para otra cantidad, toca la tarjeta para ver el historial y mantenla pulsada para seleccionar.',
+    text: 'Mantén pulsado el primer botón para escribir otra cantidad, toca la tarjeta para ver el historial y mantenla pulsada para seleccionar.',
     target: 'tarjeta',
   },
   {
