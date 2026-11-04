@@ -1,7 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
@@ -21,7 +22,7 @@ export default function ProfileScreen() {
   const groups = useMyGroups();
   const logout = useMutation({
     mutationFn: signOut,
-    onError: (error) => Alert.alert('Error', getErrorMessage(error)),
+    onError: (error) => appAlert('Error', getErrorMessage(error)),
   });
   const deleteAccount = useDeleteAccount();
 
@@ -32,7 +33,7 @@ export default function ProfileScreen() {
   const ownedGroups = myGroups.filter((g) => g.role === 'owner').length;
 
   function confirmDelete() {
-    Alert.alert(
+    appAlert(
       'Eliminar cuenta',
       'Se borrarán para siempre tu perfil, tus contadores privados, todos tus registros y tus ' +
         'amistades. ' +
@@ -47,14 +48,14 @@ export default function ProfileScreen() {
           style: 'destructive',
           // Segunda confirmación: es irreversible.
           onPress: () =>
-            Alert.alert('¿Seguro?', 'Tu cuenta se eliminará ahora mismo.', [
+            appAlert('¿Seguro?', 'Tu cuenta se eliminará ahora mismo.', [
               { text: 'No, mantenerla', style: 'cancel' },
               {
                 text: 'Eliminar mi cuenta',
                 style: 'destructive',
                 onPress: () =>
                   deleteAccount.mutate(undefined, {
-                    onError: (error) => Alert.alert('Error', getErrorMessage(error)),
+                    onError: (error) => appAlert('Error', getErrorMessage(error)),
                   }),
               },
             ]),

@@ -33,6 +33,10 @@ convenciones y decisiones; anota aquí cualquier decisión menor nueva.
   secundarios (fechas, notas, unidades, etiquetas, descripciones, errores). Los campos de texto
   usan la fuente del sistema. No usar `fontWeight` con estas fuentes. Archivos en
   `assets/fonts/`, cargados con `useFonts` en `app/_layout.tsx`.
+- Avisos: nunca `Alert.alert`; usar `appAlert(título, mensaje, botones, { warning })` de
+  `src/components/AppDialog.tsx` (estilo de la app; `DialogHost` montado en `app/_layout.tsx`).
+  Si hay un botón `destructive` o `{ warning: true }`, sale el icono de advertencia en un círculo
+  rojo (acciones irreversibles).
 - Formato con Prettier (comillas simples, comas finales, 100 columnas). ESLint con
   `eslint-config-expo` + `eslint-config-prettier`.
 

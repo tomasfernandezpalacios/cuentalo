@@ -1,5 +1,4 @@
-import { Alert } from 'react-native';
-
+import { appAlert } from '@/components/AppDialog';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount } from '@/lib/format';
 
@@ -7,7 +6,7 @@ import type { CounterWithTotal, EntryInput } from './api';
 import { useAddEntry, useRemoveOne, useRequestCommonChange } from './hooks';
 
 function showError(error: unknown) {
-  Alert.alert('No se ha podido guardar', getErrorMessage(error));
+  appAlert('No se ha podido guardar', getErrorMessage(error));
 }
 
 /**
@@ -21,7 +20,7 @@ export function useCounterActions() {
 
   function askAdmin(counter: CounterWithTotal, amount: number, onSent?: () => void) {
     const change = amount > 0 ? `sumar ${formatAmount(amount)}` : `restar ${formatAmount(-amount)}`;
-    Alert.alert(
+    appAlert(
       'Solicitar al administrador',
       `«${counter.name}» es un contador común y solo su administrador puede cambiarlo. ` +
         `¿Quieres pedirle que lo haga (${change} a todos)?`,
@@ -34,7 +33,7 @@ export function useCounterActions() {
               { counterId: counter.id, amount },
               {
                 onSuccess: () => {
-                  Alert.alert('Solicitud enviada', 'Te avisaremos cuando la responda.');
+                  appAlert('Solicitud enviada', 'Te avisaremos cuando la responda.');
                   onSent?.();
                 },
                 onError: showError,

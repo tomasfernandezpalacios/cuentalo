@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import type { Entry, EntryInput } from '@/features/contadores/api';
 import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
@@ -59,7 +60,7 @@ export default function CounterDetailScreen() {
   const editing = dialog !== null && dialog !== 'new' ? dialog : null;
 
   function showError(error: unknown) {
-    Alert.alert('No se ha podido guardar', getErrorMessage(error));
+    appAlert('No se ha podido guardar', getErrorMessage(error));
   }
 
   function quickAdd(amount: number) {
@@ -77,7 +78,7 @@ export default function CounterDetailScreen() {
 
   function handleDelete() {
     if (!editing) return;
-    Alert.alert('Borrar registro', '¿Seguro que quieres borrar este registro?', [
+    appAlert('Borrar registro', '¿Seguro que quieres borrar este registro?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Borrar',

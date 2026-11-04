@@ -1,6 +1,6 @@
-import { Alert } from 'react-native';
-
 import type { CounterWithTotal } from './api';
+
+import { appAlert } from '@/components/AppDialog';
 
 /** Texto del aviso antes de borrar: depende de si son privados o de grupo. */
 export function deleteMessage(counters: Pick<CounterWithTotal, 'name' | 'group'>[]): string {
@@ -23,7 +23,7 @@ export function confirmDeleteCounters(
   counters: Pick<CounterWithTotal, 'name' | 'group'>[],
   onConfirm: () => void,
 ) {
-  Alert.alert(
+  appAlert(
     counters.length === 1 ? 'Borrar contador' : `Borrar ${counters.length} contadores`,
     deleteMessage(counters),
     [

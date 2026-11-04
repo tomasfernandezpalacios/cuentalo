@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import { CounterForm } from '@/features/contadores/components/CounterForm';
@@ -38,7 +39,7 @@ export default function EditCounterScreen() {
       { archived: !archived },
       {
         onSuccess: () => router.back(),
-        onError: (error) => Alert.alert('Error', getErrorMessage(error)),
+        onError: (error) => appAlert('Error', getErrorMessage(error)),
       },
     );
   }
@@ -49,7 +50,7 @@ export default function EditCounterScreen() {
     confirmDeleteCounters([data], () =>
       remove.mutate([data], {
         onSuccess: () => router.dismissTo('/'),
-        onError: (error) => Alert.alert('Error', getErrorMessage(error)),
+        onError: (error) => appAlert('Error', getErrorMessage(error)),
       }),
     );
   }

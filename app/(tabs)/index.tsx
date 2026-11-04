@@ -2,7 +2,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState, type ComponentProps } from 'react';
 import {
-  Alert,
   BackHandler,
   FlatList,
   Pressable,
@@ -12,6 +11,7 @@ import {
   View,
 } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import type { CounterWithTotal } from '@/features/contadores/api';
@@ -44,7 +44,7 @@ function openNewCounter() {
 }
 
 function showError(error: unknown) {
-  Alert.alert('Error', getErrorMessage(error));
+  appAlert('Error', getErrorMessage(error));
 }
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -111,7 +111,7 @@ export default function CountersScreen() {
     // Los individuales los borra su dueño; los de grupo, solo su administrador.
     const notAllowed = selected.filter((c) => !c.canManage);
     if (notAllowed.length > 0) {
-      Alert.alert(
+      appAlert(
         'No puedes borrar algunos',
         `Solo el administrador puede borrar ${notAllowed.map((c) => `«${c.name}»`).join(', ')}. ` +
           'Quítalos de la selección para borrar el resto.',
@@ -134,11 +134,11 @@ export default function CountersScreen() {
   function editSelected() {
     const [counter] = selected;
     if (selected.length !== 1 || !counter) {
-      Alert.alert('Editar', 'Solo se puede editar un contador cada vez.');
+      appAlert('Editar', 'Solo se puede editar un contador cada vez.');
       return;
     }
     if (!counter.canManage) {
-      Alert.alert('Editar', `Solo el administrador puede editar «${counter.name}».`);
+      appAlert('Editar', `Solo el administrador puede editar «${counter.name}».`);
       return;
     }
     clearSelection();
@@ -169,7 +169,7 @@ export default function CountersScreen() {
   // --- Carpetas ---------------------------------------------------------------------------
 
   function folderOptions(folder: Folder) {
-    Alert.alert(folder.name, undefined, [
+    appAlert(folder.name, undefined, [
       {
         text: 'Editar carpeta',
         onPress: () => router.push({ pathname: '/carpetas/[id]', params: { id: folder.id } }),
@@ -178,7 +178,7 @@ export default function CountersScreen() {
         text: 'Eliminar carpeta',
         style: 'destructive',
         onPress: () =>
-          Alert.alert(
+          appAlert(
             'Eliminar carpeta',
             `Se borrará la carpeta «${folder.name}». Los contadores no se borran.`,
             [

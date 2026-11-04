@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { DialogHost } from '@/components/AppDialog';
 import { BackButton } from '@/components/BackButton';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { usePendingInvite } from '@/features/social/pendingInvite';
@@ -101,6 +102,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <RootNavigator />
+        <DialogHost />
         <StatusBar style="auto" />
       </AuthProvider>
     </QueryClientProvider>

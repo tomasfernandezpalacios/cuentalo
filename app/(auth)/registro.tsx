@@ -1,8 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Text } from 'react-native';
+import { Text } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
@@ -33,7 +34,7 @@ export default function RegisterScreen() {
     onSuccess: ({ needsConfirmation }) => {
       // Sin confirmación por email, onAuthStateChange cambia de pantalla automáticamente.
       if (needsConfirmation) {
-        Alert.alert('Revisa tu email', 'Te hemos enviado un enlace para confirmar tu cuenta.');
+        appAlert('Revisa tu email', 'Te hemos enviado un enlace para confirmar tu cuenta.');
         router.back();
       }
     },

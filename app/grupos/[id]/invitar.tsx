@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Alert, FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import { PersonRow } from '@/features/social/components/PersonRow';
@@ -60,7 +61,7 @@ export default function InviteScreen() {
                     title="Invitar"
                     onPress={() =>
                       invite.mutate(item.id, {
-                        onError: (error) => Alert.alert('Error', getErrorMessage(error)),
+                        onError: (error) => appAlert('Error', getErrorMessage(error)),
                       })
                     }
                   />

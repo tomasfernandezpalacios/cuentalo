@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { TextField } from '@/components/TextField';
@@ -16,7 +17,7 @@ import { GroupAvatar } from './GroupAvatar';
 import { useAcceptInvitation, useMyGroups, useRemoveMember } from '../hooks';
 
 function showError(error: unknown) {
-  Alert.alert('Error', getErrorMessage(error));
+  appAlert('Error', getErrorMessage(error));
 }
 
 export function GroupsPanel() {

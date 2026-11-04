@@ -1,9 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { TextField } from '@/components/TextField';
 import type { CounterWithTotal } from '@/features/contadores/api';
@@ -72,20 +73,25 @@ export default function MergeCountersScreen() {
           `El contador pasará a ser visible para todos los miembros de ${chosenGroupNames.join(' y ')}, ` +
           'sean o no tus amigos.'
         : `Quedará un solo contador, «${finalName}», con todos los registros juntos.`;
-    Alert.alert('Fusionar contadores', `${message}\n\nNo se puede deshacer.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Fusionar',
-        onPress: () =>
-          merge.mutate(
-            { ids: [target.id, ...selected.filter((id) => id !== target.id)], name, emoji },
-            {
-              onSuccess: (id) => router.replace({ pathname: '/contadores/[id]', params: { id } }),
-              onError: (error) => Alert.alert('No se ha podido fusionar', getErrorMessage(error)),
-            },
-          ),
-      },
-    ]);
+    appAlert(
+      'Fusionar contadores',
+      `${message}\n\nNo se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Fusionar',
+          onPress: () =>
+            merge.mutate(
+              { ids: [target.id, ...selected.filter((id) => id !== target.id)], name, emoji },
+              {
+                onSuccess: (id) => router.replace({ pathname: '/contadores/[id]', params: { id } }),
+                onError: (error) => appAlert('No se ha podido fusionar', getErrorMessage(error)),
+              },
+            ),
+        },
+      ],
+      { warning: true },
+    );
   }
 
   return (

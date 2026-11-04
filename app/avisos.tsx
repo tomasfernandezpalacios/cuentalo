@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { LoadingView } from '@/components/StateViews';
 import { useUserId } from '@/features/auth/AuthProvider';
@@ -22,7 +23,7 @@ import { formatAmount, formatDateTime } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 function showError(error: unknown) {
-  Alert.alert('Error', getErrorMessage(error));
+  appAlert('Error', getErrorMessage(error));
 }
 
 function change(amount: number | null): string {

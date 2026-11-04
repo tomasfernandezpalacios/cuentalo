@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
@@ -17,7 +18,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 function showError(error: unknown) {
-  Alert.alert('Error', getErrorMessage(error));
+  appAlert('Error', getErrorMessage(error));
 }
 
 export default function GroupScreen() {
@@ -38,7 +39,7 @@ export default function GroupScreen() {
 
   function confirmRemove(member: MemberWithProfile) {
     const pending = member.status === 'invited';
-    Alert.alert(
+    appAlert(
       pending ? 'Retirar invitación' : 'Expulsar del grupo',
       pending
         ? `¿Retirar la invitación a ${member.profile.display_name}?`
@@ -56,7 +57,7 @@ export default function GroupScreen() {
   }
 
   function confirmLeave() {
-    Alert.alert('Salir del grupo', `¿Seguro que quieres salir de «${name}»?`, [
+    appAlert('Salir del grupo', `¿Seguro que quieres salir de «${name}»?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Salir',
@@ -71,7 +72,7 @@ export default function GroupScreen() {
   }
 
   function confirmDelete() {
-    Alert.alert(
+    appAlert(
       'Eliminar grupo',
       `Se eliminará «${name}» para todos sus miembros. Esta acción no se puede deshacer.`,
       [

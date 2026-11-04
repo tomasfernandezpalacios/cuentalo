@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router';
-import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
@@ -22,7 +23,7 @@ import { formatWithUnit } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 function showError(error: unknown) {
-  Alert.alert('Error', getErrorMessage(error));
+  appAlert('Error', getErrorMessage(error));
 }
 
 /**
@@ -54,7 +55,7 @@ export default function UserProfileScreen() {
 
   function confirmRemove() {
     if (!friendship) return;
-    Alert.alert('Eliminar amigo', `¿Quieres dejar de ser amigo de ${person.display_name}?`, [
+    appAlert('Eliminar amigo', `¿Quieres dejar de ser amigo de ${person.display_name}?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Eliminar',

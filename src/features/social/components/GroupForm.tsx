@@ -1,7 +1,8 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { FormScreen } from '@/components/FormScreen';
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -48,7 +49,7 @@ export function GroupForm({ group, submitTitle, saving, error, onSubmit }: Props
     if (result.canceled) return;
     const asset = result.assets[0];
     if (!asset?.base64) {
-      Alert.alert('No se ha podido usar la foto', 'Prueba con otra imagen.');
+      appAlert('No se ha podido usar la foto', 'Prueba con otra imagen.');
       return;
     }
     setNewPhoto({ uri: asset.uri, base64: asset.base64, mimeType: asset.mimeType ?? 'image/jpeg' });

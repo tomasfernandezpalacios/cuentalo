@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { ErrorView } from '@/components/StateViews';
@@ -21,7 +22,7 @@ import {
 import { PersonRow } from './PersonRow';
 
 function showError(error: unknown) {
-  Alert.alert('Error', getErrorMessage(error));
+  appAlert('Error', getErrorMessage(error));
 }
 
 export function FriendsPanel() {
@@ -44,18 +45,14 @@ export function FriendsPanel() {
   const byOtherId = new Map(all.map((f) => [f.other.id, f]));
 
   function confirmRemove(friendship: Friendship) {
-    Alert.alert(
-      'Eliminar amigo',
-      `¿Quieres dejar de ser amigo de ${friendship.other.display_name}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => remove.mutate(friendship.id, { onError: showError }),
-        },
-      ],
-    );
+    appAlert('Eliminar amigo', `¿Quieres dejar de ser amigo de ${friendship.other.display_name}?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: () => remove.mutate(friendship.id, { onError: showError }),
+      },
+    ]);
   }
 
   // Botón de cada resultado de búsqueda según la relación que ya tengamos.

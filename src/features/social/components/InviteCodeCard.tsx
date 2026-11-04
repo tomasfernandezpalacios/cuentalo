@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
@@ -41,7 +42,7 @@ export function InviteCodeCard({ groupId, groupName }: Props) {
   }
 
   function confirmRegenerate() {
-    Alert.alert(
+    appAlert(
       'Nuevo código',
       'El código y el enlace actuales dejarán de funcionar. Quien ya esté en el grupo sigue dentro.',
       [
@@ -50,10 +51,11 @@ export function InviteCodeCard({ groupId, groupName }: Props) {
           text: 'Cambiar código',
           onPress: () =>
             regenerate.mutate(undefined, {
-              onError: (error) => Alert.alert('Error', getErrorMessage(error)),
+              onError: (error) => appAlert('Error', getErrorMessage(error)),
             }),
         },
       ],
+      { warning: true },
     );
   }
 
