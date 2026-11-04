@@ -14,6 +14,8 @@ export type Database = {
           hide_streak: boolean;
           hide_counters_from_friends: boolean;
           group_invites: 'friends' | 'nobody';
+          emoji: string | null;
+          photo_path: string | null;
         };
         Insert: never;
         Update: {
@@ -23,6 +25,8 @@ export type Database = {
           hide_streak?: boolean;
           hide_counters_from_friends?: boolean;
           group_invites?: 'friends' | 'nobody';
+          emoji?: string | null;
+          photo_path?: string | null;
         };
         Relationships: [];
       };

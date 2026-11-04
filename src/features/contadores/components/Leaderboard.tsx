@@ -5,12 +5,11 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { getErrorMessage } from '@/lib/errors';
 import { formatWithUnit } from '@/lib/format';
+import { UserAvatar } from '@/features/perfil/PersonAvatar';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import type { LeaderboardPeriod } from '../api';
 import { useLeaderboard } from '../hooks';
-
-import { CounterAvatar } from './CounterAvatar';
 
 const PERIODS: { value: LeaderboardPeriod; label: string }[] = [
   { value: 'week', label: 'Semana' },
@@ -58,7 +57,7 @@ export function Leaderboard({ counterId, unit }: Props) {
                 <Text style={[styles.position, { color: colors.textMuted }]}>
                   {medal ?? row.position}
                 </Text>
-                <CounterAvatar emoji={null} name={row.displayName} size={34} />
+                <UserAvatar userId={row.userId} name={row.displayName} size={34} />
                 <View style={styles.info}>
                   <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
                     {isMe ? `${row.displayName} (tú)` : row.displayName}

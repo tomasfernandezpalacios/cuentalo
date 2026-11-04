@@ -5,10 +5,10 @@ import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import { useAuth, useUserId } from '@/features/auth/AuthProvider';
-import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { useProfile } from '@/features/perfil/api';
 import { GroupRow } from '@/features/social/components/GroupsPanel';
 import { useMyGroups } from '@/features/social/hooks';
+import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 export default function ProfileScreen() {
@@ -39,7 +39,12 @@ export default function ProfileScreen() {
       }
     >
       <View style={styles.header} accessible>
-        <CounterAvatar emoji={null} name={profile.data.display_name} size={88} />
+        <PersonAvatar
+          name={profile.data.display_name}
+          emoji={profile.data.emoji}
+          photoPath={profile.data.photo_path}
+          size={96}
+        />
         <Text style={[styles.name, { color: colors.text }]}>{profile.data.display_name}</Text>
         <Text style={[styles.detail, { color: colors.textMuted }]}>@{profile.data.username}</Text>
         {session?.user.email ? (

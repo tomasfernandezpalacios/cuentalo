@@ -42,8 +42,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Cuéntalo usa tus fotos para poner una imagen a tus grupos.",
-          "cameraPermission": false,
+          "photosPermission": "Cuéntalo usa tus fotos para poner una imagen a tu perfil y a tus grupos.",
+          "cameraPermission": "Cuéntalo usa la cámara para hacerte una foto de perfil.",
           "microphonePermission": false
         }
       ]

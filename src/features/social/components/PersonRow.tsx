@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
+import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import type { PublicProfile } from '../api';
@@ -27,7 +27,12 @@ export function PersonRow({ profile, note, actions }: Props) {
         accessibilityHint="Abre su perfil"
         style={({ pressed }) => [styles.person, { opacity: pressed ? 0.6 : 1 }]}
       >
-        <CounterAvatar emoji={null} name={profile.display_name} size={40} />
+        <PersonAvatar
+          name={profile.display_name}
+          emoji={profile.emoji}
+          photoPath={profile.photo_path}
+          size={40}
+        />
         <View style={styles.info}>
           <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
             {profile.display_name}

@@ -14,6 +14,8 @@ export type PublicProfile = Pick<
   | 'hide_streak'
   | 'hide_counters_from_friends'
   | 'group_invites'
+  | 'emoji'
+  | 'photo_path'
 >;
 export type Group = Tables<'groups'>;
 export type GroupMember = Tables<'group_members'>;
@@ -31,10 +33,11 @@ export type MyGroup = Group & { role: GroupMember['role']; status: GroupMember['
 export type MemberWithProfile = GroupMember & { profile: PublicProfile };
 export type GroupDetail = Group & { members: MemberWithProfile[] };
 
-// Las tres últimas son opciones de privacidad (Configuración) que la app necesita para explicar
-// por qué no se ve algo.
+// Columnas públicas del perfil, en un solo literal para que supabase-js deduzca el tipo.
+// hide_*/group_invites son opciones de privacidad (Configuración) que la app necesita para
+// explicar por qué no se ve algo; emoji/photo_path, la imagen de perfil.
 const PROFILE_COLUMNS =
-  'id, username, display_name, avatar_url, hide_streak, hide_counters_from_friends, group_invites';
+  'id, username, display_name, avatar_url, hide_streak, hide_counters_from_friends, group_invites, emoji, photo_path';
 // Columnas legibles de groups (invite_code solo se obtiene con get_group_invite_code).
 const GROUP_COLUMNS = 'id, name, owner_id, created_at, emoji, photo_path';
 const PHOTO_BUCKET = 'group-photos';

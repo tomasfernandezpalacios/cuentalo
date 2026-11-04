@@ -2,8 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useUserId } from '@/features/auth/AuthProvider';
-import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { getErrorMessage } from '@/lib/errors';
+import { UserAvatar } from '@/features/perfil/PersonAvatar';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import { useFriendsStreaks } from '../api';
@@ -58,7 +58,7 @@ export function FriendsStreaks() {
             ]}
           >
             <Text style={[styles.position, { color: colors.textMuted }]}>{medal ?? position}</Text>
-            <CounterAvatar emoji={null} name={row.displayName} size={34} />
+            <UserAvatar userId={row.userId} name={row.displayName} size={34} />
             <View style={styles.info}>
               <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
                 {isMe ? `${row.displayName} (tú)` : row.displayName}

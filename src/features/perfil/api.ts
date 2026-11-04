@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { UsernameTakenError } from '@/features/auth/api';
 import type { Tables } from '@/lib/database.types';
+import { base64ToBytes } from '@/lib/base64';
 import { toCsv } from '@/lib/csv';
 import { supabase } from '@/lib/supabase';
 import { normalizeUsername } from '@/lib/validation';
@@ -19,12 +20,51 @@ export async function fetchProfile(userId: string): Promise<Profile> {
   return data;
 }
 
-export type ProfileInput = { displayName: string; username: string };
+/** Foto elegida en el selector, lista para subir. */
+export type PickedPhoto = { uri: string; base64: string; mimeType: string };
+
+/**
+ * Datos del formulario de perfil. `photo`: una foto nueva, 'keep' para dejar la que hay o
+ * 'remove' para quitarla (y usar el emoticono o la inicial).
+ */
+export type ProfileInput = {
+  displayName: string;
+  username: string;
+  emoji: string;
+  photo: PickedPhoto | 'keep' | 'remove';
+};
+
+const PHOTO_BUCKET = 'profile-photos';
+
+async function uploadProfilePhoto(userId: string, photo: PickedPhoto): Promise<string> {
+  const extension = photo.mimeType.split('/')[1] ?? 'jpg';
+  // Nombre nuevo cada vez: así los enlaces firmados antiguos no muestran la foto vieja en caché.
+  const path = `${userId}/${Date.now()}.${extension}`;
+  const { error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, base64ToBytes(photo.base64), { contentType: photo.mimeType });
+  if (error) throw error;
+  return path;
+}
+
+/** Borra todas mis fotos de perfil menos `keep` (si falla, no pasa nada grave). */
+async function removeMyPhotos(userId: string, keep: string | null = null): Promise<void> {
+  const { data } = await supabase.storage.from(PHOTO_BUCKET).list(userId);
+  const paths = (data ?? []).map((f) => `${userId}/${f.name}`).filter((p) => p !== keep);
+  if (paths.length > 0) await supabase.storage.from(PHOTO_BUCKET).remove(paths);
+}
+
+/** Enlace temporal (1 h) para ver una foto de perfil. */
+export async function fetchProfilePhotoUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(path, 3600);
+  if (error) throw error;
+  return data.signedUrl;
+}
 
 export async function updateProfile(
   userId: string,
   current: Profile,
-  { displayName, username }: ProfileInput,
+  { displayName, username, emoji, photo }: ProfileInput,
 ): Promise<void> {
   const normalized = normalizeUsername(username);
   if (normalized !== current.username) {
@@ -34,18 +74,30 @@ export async function updateProfile(
     if (error) throw error;
     if (!available) throw new UsernameTakenError('Ese nombre de usuario ya está cogido.');
   }
+  let photoPath = current.photo_path;
+  if (typeof photo === 'object') photoPath = await uploadProfilePhoto(userId, photo);
+  else if (photo === 'remove') photoPath = null;
+
   const { error } = await supabase
     .from('profiles')
-    .update({ display_name: displayName.trim(), username: normalized })
+    .update({
+      display_name: displayName.trim(),
+      username: normalized,
+      emoji: emoji.trim() || null,
+      photo_path: photoPath,
+    })
     .eq('id', userId);
   if (error) throw error;
+  if (photoPath !== current.photo_path) await removeMyPhotos(userId, photoPath);
 }
 
 /**
  * Borra la cuenta y todos sus datos (ver la migración delete_my_account) y cierra la sesión en
  * este móvil. El cierre es local porque el usuario ya no existe en el servidor.
  */
-export async function deleteMyAccount(): Promise<void> {
+export async function deleteMyAccount(userId: string): Promise<void> {
+  // Las fotos de Storage no se borran desde SQL: se quitan antes de borrar la cuenta.
+  await removeMyPhotos(userId).catch(() => {});
   const { error } = await supabase.rpc('delete_my_account');
   if (error) throw error;
   await supabase.auth.signOut({ scope: 'local' });
@@ -73,7 +125,35 @@ export function useUpdateProfile(current: Profile | undefined) {
 }
 
 export function useDeleteAccount() {
-  return useMutation({ mutationFn: deleteMyAccount });
+  const userId = useUserId();
+  return useMutation({ mutationFn: () => deleteMyAccount(userId) });
+}
+
+/** Enlace temporal de una foto de perfil; se renueva antes de que caduque (dura 1 h). */
+export function useProfilePhotoUrl(path: string | null) {
+  return useQuery({
+    queryKey: ['profile-photo', path],
+    queryFn: () => fetchProfilePhotoUrl(path ?? ''),
+    enabled: path !== null,
+    staleTime: 50 * 60_000,
+  });
+}
+
+/** Emoticono y foto de alguien por su id (para las filas de clasificaciones). */
+export function useAvatarOf(userId: string) {
+  return useQuery({
+    queryKey: ['avatar', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('emoji, photo_path')
+        .eq('id', userId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 5 * 60_000,
+  });
 }
 
 export type PrivacySettings = Pick<

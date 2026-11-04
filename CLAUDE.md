@@ -269,6 +269,15 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   Configuración → Cuenta; el perfil se queda con «Editar perfil» y los grupos. «Privacidad y
   datos» es un resumen; la política completa va en la Fase 6.
 
+- **Imagen de perfil** (petición del usuario): `profiles.emoji` o `profiles.photo_path`
+  (migración `20261119`). Fotos en el bucket **privado** `profile-photos`
+  (`<user_id>/<timestamp>.<ext>`, máx. 2 MB): las ve cualquier usuario con sesión (como el
+  nombre) con enlaces firmados de 1 h y cada uno solo toca su carpeta. Galería o cámara
+  (`expo-image-picker`). `PersonAvatar` (círculo: foto, emoticono o inicial) en perfil,
+  `PersonRow`, perfiles de otros y Configuración; `UserAvatar` busca la imagen por id en las
+  clasificaciones. Al eliminar la cuenta se borran antes sus fotos desde la app (Storage no se
+  borra desde SQL). Configuración empieza con un bloque «Perfil» que abre «Editar perfil».
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

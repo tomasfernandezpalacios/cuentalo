@@ -20,6 +20,7 @@ import {
 } from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
 import { formatWithUnit } from '@/lib/format';
+import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 function showError(error: unknown) {
@@ -141,7 +142,12 @@ export default function UserProfileScreen() {
       <Stack.Screen options={{ title: person.display_name }} />
 
       <View style={styles.header}>
-        <CounterAvatar emoji={null} name={person.display_name} size={88} />
+        <PersonAvatar
+          name={person.display_name}
+          emoji={person.emoji}
+          photoPath={person.photo_path}
+          size={96}
+        />
         <Text style={[styles.name, { color: colors.text }]}>{person.display_name}</Text>
         <Text style={[styles.detail, { color: colors.textMuted }]}>@{person.username}</Text>
       </View>

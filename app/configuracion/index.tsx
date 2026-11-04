@@ -1,8 +1,10 @@
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { useMutation } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { Platform, ScrollView, Share, StyleSheet, Text } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
 import { signOut } from '@/features/auth/api';
@@ -132,6 +134,32 @@ export default function SettingsScreen() {
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
     >
+      <SettingsGroup title="Perfil">
+        <Pressable
+          onPress={() => router.push('/perfil/editar')}
+          accessibilityRole="button"
+          accessibilityLabel="Editar perfil"
+          accessibilityHint="Cambia tu nombre, tu usuario y tu imagen de perfil"
+          style={({ pressed }) => [styles.profile, { opacity: pressed ? 0.6 : 1 }]}
+        >
+          <PersonAvatar
+            name={profile.data?.display_name ?? ''}
+            emoji={profile.data?.emoji ?? null}
+            photoPath={profile.data?.photo_path ?? null}
+            size={56}
+          />
+          <View style={styles.flex}>
+            <Text style={[styles.value, { color: colors.text }]} numberOfLines={1}>
+              {profile.data?.display_name ?? ''}
+            </Text>
+            <Text style={[styles.muted, { color: colors.textMuted }]} numberOfLines={1}>
+              {profile.data ? `@${profile.data.username} · ` : ''}Editar perfil y foto
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </Pressable>
+      </SettingsGroup>
+
       <SettingsGroup title="Apariencia">
         <SettingsRow
           first
@@ -265,8 +293,8 @@ export default function SettingsScreen() {
       </SettingsGroup>
 
       <SettingsGroup title="Cuenta">
-        <SettingsRow first label="Editar perfil" onPress={() => router.push('/perfil/editar')} />
         <SettingsRow
+          first
           label={exportData.isPending ? 'Exportando…' : 'Exportar mis datos'}
           detail="Todos tus registros en formato CSV (se abre en una hoja de cálculo)."
           onPress={exportData.isPending ? undefined : () => exportData.mutate()}
@@ -306,4 +334,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 24, paddingBottom: 40 },
   value: { fontSize: 16, fontFamily: fonts.title },
+  muted: { fontSize: 13, fontFamily: fonts.detail, marginTop: 2 },
+  flex: { flex: 1 },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14 },
 });
