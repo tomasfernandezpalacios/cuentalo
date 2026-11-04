@@ -164,16 +164,18 @@ const styles = StyleSheet.create({
   side: { flex: 1, alignSelf: 'stretch', justifyContent: 'flex-end' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   groupName: { flex: 1, fontSize: 22, fontFamily: fonts.title },
-  codeBox: { alignItems: 'stretch', gap: 2 },
-  label: { fontSize: 13, fontFamily: fonts.detail },
-  // Misma altura de línea que el código para que el icono quede centrado con él.
-  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
+  codeBox: { alignItems: 'stretch', gap: 0 },
+  label: { fontSize: 13, fontFamily: fonts.detail, includeFontPadding: false },
+  // El icono, centrado con el código: sin el relleno extra que Android pone a las fuentes, el
+  // centro de la línea coincide con el de las letras (son todo mayúsculas y números).
+  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   code: {
     flexShrink: 1,
     fontSize: 26,
-    lineHeight: 32,
     fontFamily: fonts.title,
     letterSpacing: 1.5,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   // Alineado a la izquierda, con el código.
   shareButton: {
@@ -184,7 +186,8 @@ const styles = StyleSheet.create({
     height: 38,
     paddingHorizontal: 14,
     borderRadius: 12,
-    marginTop: 4,
+    // Pegado al código.
+    marginTop: 2,
   },
   shareText: { fontSize: 15, fontFamily: fonts.title },
 });
