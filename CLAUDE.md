@@ -301,6 +301,10 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - Cabecera nativa (Stack) en Android: con varios botones en `headerRight`, el contenedor lleva
   `collapsable={false}` y con uno solo va suelto; si no, los toques pueden no llegar.
 
+- En «Miembros» del grupo, junto a cada miembro que no es mi amigo (lo ve todo el mundo):
+  persona con + para enviarle solicitud; si me la envió él (o la rechacé), la acepta; si se la
+  envié yo, un reloj.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

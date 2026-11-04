@@ -142,7 +142,7 @@ function InviteCode({ groupId, groupName }: Props) {
   return (
     <View style={styles.codeBox}>
       <Text style={[styles.label, { color: colors.textMuted }]}>Código para unirse</Text>
-      {/* En una línea (si no cabe, la letra se reduce sola) y el copiar a su derecha, sin fondo. */}
+      {/* En una línea (si no cabe, la letra se reduce sola) y el copiar a su derecha, sin fondo y del color del código. */}
       <View style={styles.codeRow}>
         <Text
           style={[styles.code, { color: colors.primary }]}
@@ -160,11 +160,7 @@ function InviteCode({ groupId, groupName }: Props) {
           hitSlop={10}
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
         >
-          <Ionicons
-            name={copied ? 'checkmark' : 'copy-outline'}
-            size={20}
-            color={colors.textMuted}
-          />
+          <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={24} color={colors.primary} />
         </Pressable>
       </View>
       <View style={styles.buttons}>
@@ -191,7 +187,8 @@ const styles = StyleSheet.create({
   groupNameLarge: { fontSize: 24 },
   codeBox: { flex: 1, alignItems: 'stretch', gap: 6 },
   label: { fontSize: 13, fontFamily: fonts.detail },
-  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // Misma altura de línea que el código para que el icono quede centrado con él.
+  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
   code: {
     flexShrink: 1,
     fontSize: 26,

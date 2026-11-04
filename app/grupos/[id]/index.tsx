@@ -14,10 +14,13 @@ import { GroupHeaderCard } from '@/features/social/components/GroupHeaderCard';
 import { PersonRow } from '@/features/social/components/PersonRow';
 import {
   useDeleteGroup,
+  useFriendships,
   useGroup,
   useLeaveGroup,
   useRemoveMember,
   useResignGroupAdmin,
+  useRespondFriendRequest,
+  useSendFriendRequest,
 } from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
 import { useThemeColors } from '@/lib/theme';
@@ -34,6 +37,9 @@ export default function GroupScreen() {
   const removeMember = useRemoveMember();
   const deleteGroup = useDeleteGroup();
   const leaveGroup = useLeaveGroup();
+  const friendships = useFriendships();
+  const sendRequest = useSendFriendRequest();
+  const respondRequest = useRespondFriendRequest();
   const resign = useResignGroupAdmin();
 
   if (group.isPending) return <LoadingView />;
@@ -136,8 +142,81 @@ export default function GroupScreen() {
     );
   }
 
+  /**
+   * Icono de amistad junto a cada miembro que no es mi amigo: persona con + para enviarle una
+   * solicitud (o aceptar la suya), o un reloj si ya se la he enviado. Lo ve todo el mundo.
+   */
+  function friendAction(member: MemberWithProfile) {
+    if (member.user_id === userId || !friendships.data) return null;
+    const friendship = friendships.data.find((f) => f.other.id === member.user_id);
+    const personName = member.profile.display_name;
+    if (friendship?.status === 'accepted') return null;
+    // Me la envió (pendiente, o rechazada por mí antes): tocar la acepta.
+    if (friendship && friendship.direction === 'incoming') {
+      return (
+        <Pressable
+          key="friend"
+          onPress={() =>
+            respondRequest.mutate(
+              { id: friendship.id, status: 'accepted' },
+              {
+                onSuccess: () => appAlert('Ahora sois amigos', `${personName} ya es tu amigo.`),
+                onError: showError,
+              },
+            )
+          }
+          accessibilityRole="button"
+          accessibilityLabel={`Aceptar la solicitud de amistad de ${personName}`}
+          hitSlop={10}
+        >
+          <Ionicons name="person-add" size={22} color={colors.primary} />
+        </Pressable>
+      );
+    }
+    if (friendship) {
+      // Solicitud mía pendiente (o rechazada, que no se comunica): solo se indica.
+      return (
+        <View
+          key="friend"
+          accessible
+          accessibilityLabel={`Solicitud de amistad enviada a ${personName}`}
+        >
+          <Ionicons name="time-outline" size={22} color={colors.textMuted} />
+        </View>
+      );
+    }
+    return (
+      <Pressable
+        key="friend"
+        onPress={() =>
+          sendRequest.mutate(member.user_id, {
+            onSuccess: () => appAlert('Solicitud enviada', `${personName} la verá en su buzón.`),
+            onError: showError,
+          })
+        }
+        accessibilityRole="button"
+        accessibilityLabel={`Enviar solicitud de amistad a ${personName}`}
+        hitSlop={10}
+      >
+        <Ionicons name="person-add-outline" size={22} color={colors.textMuted} />
+      </Pressable>
+    );
+  }
+
   function memberActions(member: MemberWithProfile) {
-    if (!isOwner) return undefined;
+    const friend = friendAction(member);
+    const admin = adminActions(member);
+    if (!friend && !admin) return undefined;
+    return (
+      <View style={styles.actions}>
+        {friend}
+        {admin}
+      </View>
+    );
+  }
+
+  function adminActions(member: MemberWithProfile) {
+    if (!isOwner) return null;
     // Mi propia fila: retirarme como administrador.
     if (member.user_id === userId) {
       return (
@@ -152,7 +231,7 @@ export default function GroupScreen() {
       );
     }
     return (
-      <View style={styles.actions}>
+      <>
         {member.status === 'active' ? (
           <Pressable
             onPress={() =>
@@ -176,7 +255,7 @@ export default function GroupScreen() {
         >
           <Ionicons name="close-circle-outline" size={24} color={colors.textMuted} />
         </Pressable>
-      </View>
+      </>
     );
   }
 
