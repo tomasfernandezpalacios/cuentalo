@@ -75,7 +75,6 @@ export function TutorialHost() {
     <Layer>
       {(origin, size) => (
         <Spotlight
-          key={step.id}
           step={step}
           index={index}
           total={steps.length}
@@ -266,7 +265,7 @@ function Welcome({
         <Text style={[styles.welcomeText, { color: colors.textMuted }]}>{step.text}</Text>
       </View>
       <View style={styles.welcomeButtons}>
-        <Progress index={index + (completing ? 1 : 0)} total={total} />
+        <Progress index={index} total={total} />
         <AppButton
           title={step.button ?? 'Seguir'}
           onPress={continueTutorial}
@@ -299,6 +298,7 @@ function Finish({ step, index, total }: { step: Step; index: number; total: numb
   const breathe = useLoop(1100);
   const [grow] = useState(() => new Animated.Value(0));
   const [promise] = useState(() => new Animated.Value(0));
+  const [brand] = useState(() => new Animated.Value(0));
   const [fadeOut] = useState(() => new Animated.Value(1));
   const [done, setDone] = useState(false);
   useAnnounce(step);
@@ -317,6 +317,19 @@ function Finish({ step, index, total }: { step: Step; index: number; total: numb
         useNativeDriver: true,
       }),
       Animated.delay(1500),
+      Animated.timing(promise, {
+        toValue: 0,
+        duration: 400,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(brand, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.delay(1300),
       Animated.timing(fadeOut, {
         toValue: 0,
         duration: 450,
@@ -437,6 +450,23 @@ function Finish({ step, index, total }: { step: Step; index: number; total: numb
           </Text>
         </Animated.View>
       ) : null}
+      {done ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            styles.promise,
+            {
+              opacity: brand,
+              transform: [
+                { scale: brand.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) },
+              ],
+            },
+          ]}
+        >
+          <Text style={[styles.brandText, { color: colors.onPrimary }]}>Cuéntalo</Text>
+        </Animated.View>
+      ) : null}
     </Animated.View>
   );
 }
@@ -491,6 +521,18 @@ function Spotlight({ step, index, total, completing, celebrate, origin, size }: 
   // Con el paso ya hecho no se deja tocar nada (tampoco el hueco) hasta el siguiente.
   const isAction = Boolean(step.action) && hole !== null && !completing;
   const place = hole ? placeBubble(hole, bubbleHeight, screen) : null;
+
+  // El bocadillo es el mismo de paso a paso: cambia su texto y se desliza a su nuevo sitio.
+  const bubbleTop = place ? place.top : Math.max(insets.top + 16, (height - bubbleHeight) / 2);
+  const [topAnim] = useState(() => new Animated.Value(bubbleTop));
+  useEffect(() => {
+    Animated.spring(topAnim, {
+      toValue: bubbleTop,
+      friction: 10,
+      tension: 70,
+      useNativeDriver: false,
+    }).start();
+  }, [topAnim, bubbleTop]);
 
   if (!hole && !missing) {
     // Aún midiendo: solo el oscurecido, sin dejar tocar nada.
@@ -571,13 +613,13 @@ function Spotlight({ step, index, total, completing, celebrate, origin, size }: 
         </Animated.View>
       ) : null}
 
-      <View
+      <Animated.View
         onLayout={(event) => setBubbleHeight(event.nativeEvent.layout.height)}
         accessibilityLiveRegion="polite"
         style={[
           styles.bubble,
           {
-            top: place ? place.top : Math.max(insets.top + 16, (height - bubbleHeight) / 2),
+            top: topAnim,
             backgroundColor: colors.surface,
             borderColor: colors.border,
           },
@@ -588,11 +630,7 @@ function Spotlight({ step, index, total, completing, celebrate, origin, size }: 
         </Text>
         <Text style={[styles.text, { color: colors.textMuted }]}>{step.text}</Text>
         <View style={styles.footer}>
-          <Progress
-            index={index + (completing ? 1 : 0)}
-            total={total}
-            style={styles.progressInBubble}
-          />
+          <Progress index={index} total={total} style={styles.progressInBubble} />
           <View style={styles.buttons}>
             <Pressable
               onPress={skipTutorial}
@@ -608,7 +646,7 @@ function Spotlight({ step, index, total, completing, celebrate, origin, size }: 
             )}
           </View>
         </View>
-      </View>
+      </Animated.View>
 
       {celebrate && hole ? (
         <Confetti x={hole.x + hole.width / 2} y={hole.y + hole.height / 2} />
@@ -855,6 +893,7 @@ const styles = StyleSheet.create({
   },
   holdHint: { fontSize: 14, fontFamily: fonts.detail },
   promise: { alignItems: 'center', justifyContent: 'center', padding: 32 },
+  brandText: { fontSize: 44, fontFamily: fonts.title, textAlign: 'center' },
   promiseText: { fontSize: 26, fontFamily: fonts.title, textAlign: 'center', lineHeight: 34 },
   confetti: { position: 'absolute', fontSize: 24 },
 });

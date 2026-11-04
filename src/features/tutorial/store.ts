@@ -18,8 +18,8 @@ type State = {
   /** null = no hay tutorial en marcha. */
   index: number | null;
   /**
-   * El paso actual está hecho y se espera un momento antes del siguiente: la barra de progreso
-   * avanza con su animación (y hay confeti tras el primer registro).
+   * Se acaba de hacer la acción del paso (sumar, restar, elegir idea): se espera un momento para
+   * ver el resultado (y el confeti tras el primer registro) antes del siguiente.
    */
   completing: boolean;
   /** Qué completó el paso (para el confeti del primer +1). */
@@ -27,7 +27,7 @@ type State = {
 };
 
 /** Lo que se espera con el paso hecho antes de enseñar el siguiente. */
-export const COMPLETE_PAUSE_MS = 1100;
+export const COMPLETE_PAUSE_MS = 800;
 
 let state: State = { steps: [], index: null, completing: false, completedBy: null };
 let pauseTimer: ReturnType<typeof setTimeout> | null = null;
@@ -82,9 +82,12 @@ function completeStep(by: TutorialEvent | 'next') {
   pauseTimer = setTimeout(nextStep, COMPLETE_PAUSE_MS);
 }
 
-/** «Siguiente» en el bocadillo o en la bienvenida. */
+/**
+ * «Siguiente» en el bocadillo o en la bienvenida: se pasa ya; la barra avanza en el bocadillo
+ * del paso nuevo.
+ */
 export function continueTutorial() {
-  completeStep('next');
+  nextStep();
 }
 
 /** «Saltar»: se termina y no vuelve a salir (se puede repetir desde Configuración). */
