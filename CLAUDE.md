@@ -227,7 +227,8 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   saca del grupo** (`dissolve_group_counter`): cada miembro conserva sus registros, en el
   contador con el que lo tuviera fusionado (como `personal_only`) o en uno privado nuevo con el
   mismo nombre. Todos reciben un aviso.
-- **Buzón** (`app/avisos.tsx`, icono de sobre en «Amigos y grupos»): pendientes (solicitudes de
+- **Buzón** (`app/avisos.tsx`, icono de sobre en «Amigos y grupos»), en tres pestañas con una
+  barra fina arriba: pendientes (solicitudes de
   contador, de amistad e invitaciones), avisos (`notifications`: amistad aceptada, solicitud
   aceptada/rechazada, contador o grupo borrado) e historial de solicitudes de amistad. Punto
   rojo en el icono y en la pestaña mientras haya algo pendiente o sin leer (`useInboxCount`);
