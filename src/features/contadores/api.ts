@@ -50,7 +50,7 @@ export type CounterWithTotal = Counter & {
    * no sale en la lista, pero sigo perteneciendo a él y lo veo dentro del grupo.
    */
   removedFromHome: boolean;
-  /** Formato racha: mi racha actual y mi récord. null si el contador no es de racha. */
+  /** Formato racha: mi racha de días y mi récord. null si el contador no es de racha. */
   streak: CounterStreak | null;
   /** Contador común: cada +1/−1 se aplica a todos estos participantes. Vacío si no es común. */
   participantIds: string[];
@@ -79,18 +79,21 @@ export type CounterInput = {
   emoji: string;
   /** Solo en individuales: si es true, mis amigos no lo ven en mi perfil. */
   hiddenFromFriends: boolean;
-  /** Formato racha: muestra la suma de los días seguidos; un día sin registrar vuelve a 0. */
+  /** Formato racha: además del total, una racha de días seguidos con +1 o más. */
   streakEnabled: boolean;
 };
 
-/** Mi racha en un contador en formato racha. */
+/**
+ * Mi racha en un contador en formato racha: días seguidos (Madrid) en los que lo sumado en el
+ * día es +1 o más. El contador no vuelve a 0; la racha sí, si un día no se llega.
+ */
 export type CounterStreak = {
-  /** Suma de los días seguidos que terminan hoy o ayer (0 si se rompió). */
+  /** Días de la racha actual (sigue viva si el último día bueno fue hoy o ayer). */
   current: number;
-  currentDays: number;
-  /** Récord: la mejor racha. */
+  /** Récord: la racha más larga, en días. */
   best: number;
-  bestDays: number;
+  /** Hoy ya se ha mantenido (la llama sale en color; si no, en gris). */
+  todayDone: boolean;
 };
 export type EntryInput = { amount: number; loggedAt: Date; note: string | null };
 
@@ -151,9 +154,8 @@ export function enrich(
   const participantIds = counter.is_common ? (participants.get(counter.id) ?? []) : [];
   const canManage = counter.owner_id === myId && (counter.group_id === null || group !== null);
   const alias = aliases.get(counter.id);
-  // Formato racha: lo que se ve es mi racha actual, no la suma de todo.
   const streak = counter.streak_enabled
-    ? (streaks.get(counter.id) ?? { current: 0, currentDays: 0, best: 0, bestDays: 0 })
+    ? (streaks.get(counter.id) ?? { current: 0, best: 0, todayDone: false })
     : null;
   return {
     ...counter,
@@ -177,9 +179,8 @@ export function enrich(
     linkedCounterIds: [counter.id],
     linkedGroups: group && isActive ? [{ counterId: counter.id, group, total: t?.total ?? 0 }] : [],
     linkedInto: null,
-    displayTotal: streak
-      ? streak.current
-      : counter.is_common && !participantIds.includes(myId) && participantIds.length > 0
+    displayTotal:
+      counter.is_common && !participantIds.includes(myId) && participantIds.length > 0
         ? (t?.total ?? 0) / participantIds.length
         : (t?.my_total ?? 0),
   };
@@ -197,12 +198,7 @@ async function fetchStreaks(): Promise<Map<string, CounterStreak>> {
   return new Map(
     data.map((s) => [
       s.counter_id,
-      {
-        current: Number(s.current_total),
-        currentDays: s.current_days,
-        best: Number(s.best_total),
-        bestDays: s.best_days,
-      },
+      { current: s.current_days, best: s.best_days, todayDone: s.today_done === true },
     ]),
   );
 }

@@ -42,7 +42,8 @@ export function FriendsStreaks() {
         const { position } = row;
         const isMe = row.userId === userId;
         const medal = row.current > 0 ? MEDALS[position - 1] : undefined;
-        const flameColor = row.current > 0 ? colors.flame : colors.textMuted;
+        // En color solo si hoy ya ha mantenido la racha.
+        const flameColor = row.activeToday ? colors.flame : colors.textMuted;
         return (
           <View
             key={row.userId}

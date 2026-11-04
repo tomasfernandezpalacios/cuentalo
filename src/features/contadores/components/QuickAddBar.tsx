@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useSettings } from '@/features/configuracion/settings';
@@ -20,6 +21,11 @@ type Props = {
   compact?: boolean;
   /** El primer botón es el que ilumina el tutorial («Suma con un toque»). */
   tutorialTarget?: boolean;
+  /**
+   * Contador en formato racha (versión compacta): solo el primer botón, el −1 y, en el sitio
+   * del −1, los días de racha con la llama (en color si hoy ya se ha mantenido).
+   */
+  streak?: { days: number; todayDone: boolean } | null;
 };
 
 /** Botones rápidos (+1 +5 por defecto), −1 y, opcionalmente, "Otra". */
@@ -32,15 +38,19 @@ export function QuickAddBar({
   onLongPressAdd,
   compact = false,
   tutorialTarget = false,
+  streak = null,
 }: Props) {
   const colors = useThemeColors();
   const { quickAmounts } = useSettings();
   const size = compact ? styles.compact : styles.large;
   const label = compact ? styles.compactLabel : styles.largeLabel;
+  const showStreak = compact && streak !== null;
+  const amounts = showStreak ? quickAmounts.slice(0, 1) : quickAmounts;
+  const flameColor = streak?.todayDone ? colors.flame : colors.textMuted;
 
   return (
     <View style={[styles.row, compact && styles.compactRow]}>
-      {quickAmounts.map((amount, index) => (
+      {amounts.map((amount, index) => (
         <TutorialTarget
           key={amount}
           id="sumar"
@@ -115,6 +125,18 @@ export function QuickAddBar({
           </Text>
         </Pressable>
       ) : null}
+      {showStreak && streak ? (
+        <View
+          style={[styles.button, styles.streak]}
+          accessible
+          accessibilityLabel={`Racha de ${streak.days} ${streak.days === 1 ? 'día' : 'días'}${streak.todayDone ? '' : ', hoy aún sin mantener'}`}
+        >
+          <Ionicons name="flame" size={16} color={flameColor} />
+          <Text maxFontSizeMultiplier={1.2} style={[styles.compactLabel, { color: flameColor }]}>
+            {streak.days}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -128,6 +150,7 @@ const styles = StyleSheet.create({
   // Los botones de cantidad van dentro de un envoltorio (TutorialTarget) que es quien estira.
   largeInTarget: { height: 60, borderRadius: 16 },
   compact: { width: 36, height: 36, borderRadius: 10 },
+  streak: { flexDirection: 'row', height: 36, minWidth: 36, gap: 1, paddingHorizontal: 2 },
   largeLabel: { fontSize: 19, fontFamily: fonts.title },
   compactLabel: { fontSize: 14, fontFamily: fonts.title },
 });

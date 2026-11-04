@@ -16,7 +16,8 @@ export function StreakCard({ onPress }: Props) {
   const streak = useStreak();
   const current = streak.data?.current ?? 0;
   const best = streak.data?.best ?? 0;
-  const active = current > 0;
+  // En color solo si hoy ya se ha mantenido la racha; si no, en gris.
+  const active = streak.data?.todayDone ?? false;
 
   return (
     <Pressable
@@ -41,7 +42,11 @@ export function StreakCard({ onPress }: Props) {
           {current === 1 ? 'día de racha' : 'días de racha'}
         </Text>
         <Text style={[styles.detail, { color: colors.textMuted }]}>
-          {active ? `Mejor racha: ${best}` : 'Registra algo hoy para empezar una racha'}
+          {active
+            ? `Mejor racha: ${best}`
+            : current > 0
+              ? 'Registra algo hoy para mantenerla'
+              : 'Registra algo hoy para empezar una racha'}
         </Text>
       </View>
       {onPress ? <Ionicons name="chevron-forward" size={22} color={colors.textMuted} /> : null}

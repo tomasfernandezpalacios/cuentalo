@@ -106,20 +106,35 @@ export default function CounterDetailScreen() {
         <CounterAvatar emoji={emoji} name={name} size={72} />
         <Text style={[styles.total, { color: colors.text }]}>{formatAmount(displayTotal)}</Text>
         {unit ? <Text style={[styles.unit, { color: colors.textMuted }]}>{unit}</Text> : null}
+        <Text style={[styles.count, { color: colors.textMuted }]}>
+          {group ? 'Tú · ' : ''}
+          {pluralize(myEntryCount, 'registro', 'registros')}
+        </Text>
         {streak ? (
-          // Formato racha: el número grande es la racha actual; debajo, días y récord.
-          <Text style={[styles.count, { color: colors.flame }]}>
-            🔥 {group ? 'Tu racha · ' : 'Racha · '}
-            {pluralize(streak.currentDays, 'día seguido', 'días seguidos')} · récord{' '}
-            {formatWithUnit(streak.best, unit)}
-          </Text>
-        ) : (
-          <Text style={[styles.count, { color: colors.textMuted }]}>
-            {group ? 'Tú · ' : ''}
-            {pluralize(myEntryCount, 'registro', 'registros')}
-          </Text>
-        )}
-        {(streak ? [] : linkedGroups).map((g) => (
+          // Formato racha: racha de días con +1 o más, aparte del total. En color solo si hoy
+          // ya se ha mantenido.
+          <View
+            style={styles.streakRow}
+            accessible
+            accessibilityLabel={`Racha de ${pluralize(streak.current, 'día', 'días')}${streak.todayDone ? '' : ', hoy aún sin mantener'}. Récord: ${pluralize(streak.best, 'día', 'días')}`}
+          >
+            <Ionicons
+              name="flame"
+              size={18}
+              color={streak.todayDone ? colors.flame : colors.textMuted}
+            />
+            <Text
+              style={[
+                styles.streakText,
+                { color: streak.todayDone ? colors.flame : colors.textMuted },
+              ]}
+            >
+              {pluralize(streak.current, 'día', 'días')} de racha · récord{' '}
+              {pluralize(streak.best, 'día', 'días')}
+            </Text>
+          </View>
+        ) : null}
+        {linkedGroups.map((g) => (
           <Text key={g.counterId} style={[styles.groupTotal, { color: colors.primary }]}>
             👥 {g.group.name}: {formatWithUnit(g.total, unit)} entre todos
           </Text>
@@ -134,7 +149,7 @@ export default function CounterDetailScreen() {
         unit={unit}
         onAdd={quickAdd}
         onRemoveOne={() => actions.subtractOne(counter.data)}
-        canRemove={streak ? displayTotal >= 1 : isCommon ? total >= 1 : myGroupTotal >= 1}
+        canRemove={isCommon ? total >= 1 : myGroupTotal >= 1}
         onCustom={() => setDialog('new')}
       />
       {board ? (
@@ -280,6 +295,8 @@ export default function CounterDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  streakRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  streakText: { fontSize: 15, fontFamily: fonts.title },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   flex: { flex: 1 },
   list: { padding: 16 },

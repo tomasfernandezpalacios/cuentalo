@@ -251,6 +251,7 @@ export type Database = {
           current_days: number;
           best_total: number;
           best_days: number;
+          today_done: boolean | null;
         };
         Relationships: [];
       };
@@ -348,6 +349,7 @@ export type Database = {
           display_name: string;
           current_streak: number;
           best_streak: number;
+          active_today: boolean;
         }[];
       };
       decide_counter_request: {

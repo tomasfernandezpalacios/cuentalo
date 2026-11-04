@@ -167,15 +167,15 @@ export default function UserProfileScreen() {
           style={[
             styles.streak,
             {
-              backgroundColor: (streak?.current ?? 0) > 0 ? `${colors.flame}1F` : colors.surface,
-              borderColor: (streak?.current ?? 0) > 0 ? colors.flame : colors.border,
+              backgroundColor: streak?.activeToday ? `${colors.flame}1F` : colors.surface,
+              borderColor: streak?.activeToday ? colors.flame : colors.border,
             },
           ]}
         >
           <Ionicons
             name="flame"
             size={40}
-            color={(streak?.current ?? 0) > 0 ? colors.flame : colors.textMuted}
+            color={streak?.activeToday ? colors.flame : colors.textMuted}
           />
           <View style={styles.flex}>
             <Text style={[styles.streakNumber, { color: colors.text }]}>

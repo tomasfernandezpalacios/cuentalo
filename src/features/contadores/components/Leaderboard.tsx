@@ -4,7 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { getErrorMessage } from '@/lib/errors';
-import { formatWithUnit } from '@/lib/format';
+import { formatWithUnit, pluralize } from '@/lib/format';
 import { UserAvatar } from '@/features/perfil/PersonAvatar';
 import { fonts, useThemeColors } from '@/lib/theme';
 
@@ -23,7 +23,7 @@ const MEDALS = ['🥇', '🥈', '🥉'];
 type Props = {
   counterId: string;
   unit: string | null;
-  /** Formato racha: se compara la racha actual de cada uno (sin periodos) y se ve su récord. */
+  /** Formato racha: además del total, se ve la racha de días de cada uno. */
   streak?: boolean;
   /** Periodo controlado desde fuera (la gráfica del grupo usa el mismo). */
   period?: LeaderboardPeriod;
@@ -43,19 +43,13 @@ export function Leaderboard({
   const [ownPeriod, setOwnPeriod] = useState<LeaderboardPeriod>('week');
   const period = controlledPeriod ?? ownPeriod;
   const setPeriod = onChangePeriod ?? setOwnPeriod;
-  const byPeriod = useLeaderboard(counterId, period, !streak);
-  const byStreak = useStreakLeaderboard(counterId, streak);
-  const leaderboard = streak ? byStreak : byPeriod;
+  const leaderboard = useLeaderboard(counterId, period, true);
+  const streaks = useStreakLeaderboard(counterId, streak);
+  const streakDays = new Map((streaks.data ?? []).map((row) => [row.userId, row.total]));
 
   return (
     <View style={styles.container}>
-      {streak ? (
-        <Text style={[styles.muted, { color: colors.textMuted }]}>
-          🔥 Racha actual de cada uno: si alguien pasa un día sin sumar, vuelve a 0.
-        </Text>
-      ) : (
-        <SegmentedControl options={PERIODS} value={period} onChange={setPeriod} />
-      )}
+      <SegmentedControl options={PERIODS} value={period} onChange={setPeriod} />
       {leaderboard.isPending ? (
         <ActivityIndicator color={colors.primary} />
       ) : leaderboard.isError ? (
@@ -88,7 +82,9 @@ export function Leaderboard({
                   </Text>
                   <Text style={[styles.muted, { color: colors.textMuted }]} numberOfLines={1}>
                     @{row.username}
-                    {row.best !== undefined ? ` · récord ${formatWithUnit(row.best, unit)}` : ''}
+                    {streak && streakDays.has(row.userId)
+                      ? ` · 🔥 ${pluralize(streakDays.get(row.userId) ?? 0, 'día', 'días')}`
+                      : ''}
                   </Text>
                 </View>
                 <Text style={[styles.total, { color: colors.text }]} numberOfLines={1}>

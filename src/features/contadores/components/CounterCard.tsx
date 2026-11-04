@@ -47,7 +47,7 @@ export function CounterCard({
         onLongPress={onLongPress}
         accessibilityRole={selectionMode ? 'checkbox' : 'button'}
         accessibilityState={selectionMode ? { checked: selected } : undefined}
-        accessibilityLabel={`${counter.name}${counter.group ? `, del grupo ${counter.group.name}` : ''}: ${counter.streak ? 'racha de ' : ''}${formatWithUnit(counter.displayTotal, counter.unit)}`}
+        accessibilityLabel={`${counter.name}${counter.group ? `, del grupo ${counter.group.name}` : ''}: ${formatWithUnit(counter.displayTotal, counter.unit)}`}
         accessibilityHint={
           selectionMode ? undefined : 'Abre el contador. Mantén pulsado para seleccionar'
         }
@@ -94,39 +94,27 @@ export function CounterCard({
             unit={counter.unit}
             onAdd={onAdd}
             onRemoveOne={onRemoveOne}
-            canRemove={
+            canRemove={counter.is_common ? counter.total >= 1 : counter.myGroupTotal >= 1}
+            streak={
               counter.streak
-                ? counter.displayTotal >= 1
-                : counter.is_common
-                  ? counter.total >= 1
-                  : counter.myGroupTotal >= 1
+                ? { days: counter.streak.current, todayDone: counter.streak.todayDone }
+                : null
             }
             onLongPressAdd={onCustomAdd}
             tutorialTarget={tutorialTarget}
           />
         )}
 
-        <View style={[styles.totalBox, counter.streak && styles.streakTotalBox]}>
-          <View style={styles.totalRow}>
-            {counter.streak ? (
-              // Formato racha: una llamita a la izquierda indica que el número es la racha actual.
-              <Ionicons
-                name="flame"
-                size={16}
-                color={counter.displayTotal > 0 ? colors.flame : colors.textMuted}
-                accessibilityLabel="Formato racha"
-              />
-            ) : null}
-            <Text
-              style={[styles.total, { color: colors.primary }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              maxFontSizeMultiplier={1.3}
-            >
-              {/* En un compartido la tarjeta muestra lo mío; el total del grupo está en el detalle. */}
-              {formatAmount(counter.displayTotal)}
-            </Text>
-          </View>
+        <View style={styles.totalBox}>
+          <Text
+            style={[styles.total, { color: colors.primary }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.3}
+          >
+            {/* En un compartido la tarjeta muestra lo mío; el total del grupo está en el detalle. */}
+            {formatAmount(counter.displayTotal)}
+          </Text>
           {counter.unit ? (
             <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
               {counter.unit}
@@ -151,8 +139,6 @@ const styles = StyleSheet.create({
   name: { flex: 1, gap: 2 },
   nameText: { fontSize: 17, fontFamily: fonts.title },
   totalBox: { alignItems: 'flex-end', minWidth: 36, maxWidth: 64 },
-  streakTotalBox: { maxWidth: 82 },
-  totalRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  total: { fontSize: 21, fontFamily: fonts.title, flexShrink: 1 },
+  total: { fontSize: 21, fontFamily: fonts.title },
   unit: { fontSize: 12, fontFamily: fonts.detail },
 });

@@ -75,6 +75,8 @@ export function useStreak() {
         days: new Set(days),
         current: currentStreak(days, today),
         best: bestStreak(days),
+        /** Hoy ya he registrado algo: la racha de hoy está mantenida. */
+        todayDone: days.includes(today),
       };
     },
   });
@@ -86,6 +88,8 @@ export type FriendStreak = {
   displayName: string;
   current: number;
   best: number;
+  /** Hoy ya ha registrado algo (la llama sale en color; si no, en gris). */
+  activeToday: boolean;
 };
 
 /**
@@ -102,6 +106,7 @@ export async function fetchFriendsStreaks(): Promise<FriendStreak[]> {
       displayName: row.display_name,
       current: row.current_streak,
       best: row.best_streak,
+      activeToday: row.active_today === true,
     }))
     .sort(
       (a, b) =>

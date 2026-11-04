@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { SegmentedControl } from '@/components/SegmentedControl';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import type { LeaderboardPeriod } from '../api';
 import { useCounterList, useMyLastCounterId } from '../hooks';
 
 import { GroupMembersChart } from './GroupMembersChart';
-import { Leaderboard, PERIODS } from './Leaderboard';
+import { Leaderboard } from './Leaderboard';
 
 /**
  * Clasificación del grupo con un selector de contador. Por defecto muestra el último contador
@@ -88,10 +87,6 @@ export function GroupLeaderboard({ groupId }: { groupId: string }) {
       <Text style={[styles.chartTitle, { color: colors.text }]} accessibilityRole="header">
         Evolución
       </Text>
-      {/* En formato racha la clasificación no tiene periodos: se eligen aquí para la gráfica. */}
-      {selected.streak_enabled ? (
-        <SegmentedControl options={PERIODS} value={period} onChange={setPeriod} />
-      ) : null}
       <GroupMembersChart
         groupId={groupId}
         counterId={selected.id}

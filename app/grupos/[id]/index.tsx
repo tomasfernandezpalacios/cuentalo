@@ -302,7 +302,7 @@ export default function GroupScreen() {
                   { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
                 ]}
               >
-                <Ionicons name="add" size={26} color="#000000" />
+                <Ionicons name="add" size={26} color={colors.background} />
               </Pressable>
             </View>
           ),

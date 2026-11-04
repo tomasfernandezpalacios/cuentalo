@@ -179,8 +179,8 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - Todas las pantallas que se abren encima (crear, editar, filtros…) tienen la misma flecha de
   volver (`BackButton`, puesta en `headerLeft` de los Stack); nada de «Cancelar» (petición del
   usuario).
-- Cabecera de «Mis contadores»: el + es un círculo morado (`colors.primary`) con el + en negro
-  (decisión del usuario).
+- Cabecera de «Mis contadores» y del grupo: el + es un círculo del color principal con el +
+  del color del fondo (`colors.background`) (decisión del usuario).
 - **Estadísticas** (rediseño pedido por el usuario): periodo arriba; debajo, barra con icono de
   filtros (pantalla completa `app/estadisticas/filtros.tsx`: buscador, carpetas enteras,
   casillas, Todos/Ninguno) y un botón por contador (de uso más reciente a menos,
@@ -306,14 +306,18 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   envié yo, un reloj.
 
 - **Formato racha** en contadores (petición del usuario, p. ej. «días sin fumar»; individuales
-  y de grupo): casilla «🔥 Formato racha» en el formulario (`counters.streak_enabled`). Se
-  muestra la racha actual = suma de los días seguidos (Madrid) que terminan hoy o ayer; un día
-  entero sin registrar la deja en 0. No se borra nada (historial y estadísticas intactos) y se
-  guarda el récord. Vista `my_counter_streaks` (mía, sin `group_only`) y RPC
-  `get_streak_leaderboard` (sin `personal_only`, sin periodos) en la migración `20261122`.
-  En la app: `streak` en `CounterWithTotal` (`displayTotal` = racha actual), llamita en la
-  tarjeta, «días seguidos · récord» en el detalle y clasificación por racha actual.
-
+  y de grupo): casilla «🔥 Formato racha» (`counters.streak_enabled`). El contador **no** vuelve
+  a 0: cuenta como uno normal y además lleva una racha de **días** seguidos (Madrid) en los que
+  lo sumado en el día es +1 o más; un día que no llega rompe la racha (no el contador). La de
+  ayer sigue viva hasta que acabe hoy. Vista `my_counter_streaks` (current_days, best_days,
+  today_done) y RPC `get_streak_leaderboard` en días (migraciones `20261122` y `20261125`). En
+  la tarjeta: solo el primer botón rápido, el −1 y, donde estaba el −1, «🔥 días». En el
+  detalle, «N días de racha · récord M». La clasificación es la normal (por periodo) con
+  «🔥 N días» de cada uno.
+- **Color de las rachas** (todas: uso de la app, contadores, amigos): la llama y el número van
+  en color solo si **hoy** ya se ha mantenido; si no, en gris (`todayDone`, `activeToday` de
+  `get_friends_streaks`). La racha de uso junto a «Mis contadores» va en un rectángulo, más
+  grande.
 - **Gráfica del grupo** (petición del usuario): bajo la clasificación, «Evolución» del mismo
   contador y periodo (el periodo vive en `GroupLeaderboard`; en formato racha se elige encima
   de la gráfica). Una serie por miembro activo (`GroupMembersChart`, reutiliza
