@@ -44,11 +44,14 @@ export function GroupCounters({ groupId }: { groupId: string }) {
           />
         ))
       )}
-      <AppButton
-        title="Nuevo contador compartido"
-        variant="secondary"
-        onPress={() => router.push({ pathname: '/contadores/nuevo', params: { grupo: groupId } })}
-      />
+      {/* Con contadores, el + de la cabecera del grupo basta; sin ninguno, se ofrece aquí. */}
+      {!counters.isPending && groupCounters.length === 0 ? (
+        <AppButton
+          title="Nuevo contador compartido"
+          variant="secondary"
+          onPress={() => router.push({ pathname: '/contadores/nuevo', params: { grupo: groupId } })}
+        />
+      ) : null}
     </View>
   );
 }

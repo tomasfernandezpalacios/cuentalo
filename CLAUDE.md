@@ -121,7 +121,10 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   ve el código (`get_group_invite_code`; la columna no es legible directamente) y puede
   cambiarlo. Con el código se entra aunque no seas amigo del owner (él decide a quién lo da).
   Si se abre el enlace sin sesión, tras iniciar sesión hay que volver a abrirlo (V1).
-- «Amigos y grupos» se abre en la pestaña Grupos (petición del usuario).
+- «Amigos y grupos» se abre en la pestaña Grupos (petición del usuario). Orden: invitaciones
+  (si hay), «Tus grupos», y debajo «Crear grupo» y el código.
+- En la pantalla del grupo, el + morado de la cabecera (como en inicio) crea un contador
+  compartido; el botón «Nuevo contador compartido» de la lista solo sale si no hay ninguno.
 - Fase 3: los datos se refrescan al volver a la app (`focusManager` + `AppState`) y con
   "tirar para refrescar".
 - Fase 4: contador compartido = `counters.group_id`. Lo ven los miembros activos; cualquiera

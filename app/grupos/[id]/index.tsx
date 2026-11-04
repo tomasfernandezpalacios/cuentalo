@@ -197,17 +197,37 @@ export default function GroupScreen() {
       <Stack.Screen
         options={{
           title: name,
-          headerRight: () =>
-            isOwner ? (
+          headerRight: () => (
+            // collapsable={false}: en Android, sin él los botones de la cabecera nativa pueden
+            // no recibir toques.
+            <View collapsable={false} style={styles.headerActions}>
+              {isOwner ? (
+                <Pressable
+                  onPress={() => router.push({ pathname: '/grupos/[id]/editar', params: { id } })}
+                  accessibilityRole="button"
+                  accessibilityLabel="Editar grupo"
+                  hitSlop={12}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+                >
+                  <Ionicons name="create-outline" size={24} color={colors.primary} />
+                </Pressable>
+              ) : null}
               <Pressable
-                onPress={() => router.push({ pathname: '/grupos/[id]/editar', params: { id } })}
+                onPress={() =>
+                  router.push({ pathname: '/contadores/nuevo', params: { grupo: id } })
+                }
                 accessibilityRole="button"
-                accessibilityLabel="Editar grupo"
-                hitSlop={12}
+                accessibilityLabel="Nuevo contador compartido"
+                hitSlop={6}
+                style={({ pressed }) => [
+                  styles.addButton,
+                  { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+                ]}
               >
-                <Ionicons name="create-outline" size={24} color={colors.primary} />
+                <Ionicons name="add" size={26} color="#000000" />
               </Pressable>
-            ) : null,
+            </View>
+          ),
         }}
       />
 
@@ -296,5 +316,13 @@ const styles = StyleSheet.create({
   heroName: { fontSize: 22, fontFamily: fonts.title, textAlign: 'center' },
   content: { padding: 16, gap: 24 },
   danger: { marginTop: 8, gap: 10 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  addButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
 });

@@ -35,9 +35,6 @@ export function GroupsPanel() {
 
   return (
     <View style={styles.container}>
-      <AppButton title="Crear grupo" onPress={() => router.push('/grupos/nuevo')} />
-      <JoinByCode />
-
       {invitations.length > 0 ? (
         <Section title="Invitaciones">
           {invitations.map((group) => (
@@ -82,6 +79,9 @@ export function GroupsPanel() {
           mine.map((group) => <GroupRow key={group.id} group={group} />)
         )}
       </Section>
+
+      <AppButton title="Crear grupo" onPress={() => router.push('/grupos/nuevo')} />
+      <JoinByCode />
     </View>
   );
 }
