@@ -7,10 +7,14 @@ import { useSyncExternalStore } from 'react';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type AccentName = 'morado' | 'azul' | 'verde' | 'naranja' | 'rosa';
+/** Un color de serie o el personalizado (`customAccent`). */
+export type AccentChoice = AccentName | 'custom';
 
 export type Settings = {
   theme: ThemeMode;
-  accent: AccentName;
+  accent: AccentChoice;
+  /** Color elegido a mano ('#RRGGBB'), para accent = 'custom'. */
+  customAccent: string;
   /** Cantidades de los botones rápidos (de 1 a 3, ordenadas). */
   quickAmounts: number[];
   /** Pedir confirmación antes de restar 1. */
@@ -29,6 +33,7 @@ export type Settings = {
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   accent: 'morado',
+  customAccent: '#5B4BDB',
   quickAmounts: [1, 5],
   confirmRemove: false,
   haptics: true,

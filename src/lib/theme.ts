@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { type AccentName, useSettings } from '@/features/configuracion/settings';
+import { customAccent, normalizeHex } from '@/lib/color';
 
 const palette = {
   light: {
@@ -87,8 +89,20 @@ export function useColorMode(): 'light' | 'dark' {
   return system === 'dark' ? 'dark' : 'light';
 }
 
+/** Colores de los dos modos para un color elegido a mano (con contraste AA en los botones). */
+export function customAccentColors(hex: string) {
+  return customAccent(normalizeHex(hex) ?? accents.morado.light.primary, {
+    lightBackground: palette.light.background,
+    darkBackground: palette.dark.background,
+    lightOnPrimary: palette.light.onPrimary,
+    darkOnPrimary: palette.dark.onPrimary,
+  });
+}
+
 export function useThemeColors(): ThemeColors {
   const mode = useColorMode();
-  const { accent } = useSettings();
-  return { ...palette[mode], ...(accents[accent] ?? accents.morado)[mode] };
+  const { accent, customAccent: custom } = useSettings();
+  const customColors = useMemo(() => customAccentColors(custom), [custom]);
+  const chosen = accent === 'custom' ? customColors : (accents[accent] ?? accents.morado);
+  return { ...palette[mode], ...chosen[mode] };
 }

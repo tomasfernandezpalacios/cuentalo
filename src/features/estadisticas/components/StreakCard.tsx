@@ -41,7 +41,7 @@ export function StreakCard({ onPress }: Props) {
       ]}
     >
       <View style={styles.top}>
-        <Ionicons name="flame" size={40} color={active ? colors.flame : colors.textMuted} />
+        <Ionicons name="flame" size={56} color={active ? colors.flame : colors.textMuted} />
         <View style={styles.texts}>
           <View style={styles.headline}>
             <Text style={[styles.number, { color: colors.text }]}>{current}</Text>

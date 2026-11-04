@@ -276,7 +276,9 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   `app/configuracion/`). Ajustes **del móvil** en `src/features/configuracion/settings.ts`
   (SecureStore, leídos de forma síncrona al arrancar, `useSettings`/`updateSettings`): tema
   automático/claro/oscuro, color de acento (`accents` en `theme.ts`: morado de serie, azul,
-  verde, naranja, rosa; AA con el texto de los botones), botones rápidos (1–3 cantidades; las
+  verde, naranja, rosa; AA con el texto de los botones; y «Personalizado»: `ColorPickerDialog`
+  con cuadro saturación/brillo, barra de tonos y #RRGGBB; `customAccent` en `src/lib/color.ts`
+  lo oscurece o aclara en cada modo hasta tener contraste AA), botones rápidos (1–3 cantidades; las
   mismas en la tarjeta y el detalle, el primero se mantiene pulsado para «otra»), confirmar
   −1, vibración (`expo-haptics`), contador inicial de Estadísticas y recordatorio de la racha.
   Ajustes **de privacidad** en `profiles` (migración `20261118`): `hide_streak` (fuera de
