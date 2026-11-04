@@ -9,8 +9,10 @@ export const HOLE_PADDING = 8;
 export const ARROW_SPACE = 34;
 const SIDE_MARGIN = 16;
 
+export type Hole = Rect & { radius: number };
+
 /** Hueco iluminado: el elemento con un poco de margen y esquinas redondeadas. */
-export function holeFor(target: Rect): Rect & { radius: number } {
+export function holeFor(target: Rect): Hole {
   const hole = {
     x: target.x - HOLE_PADDING,
     y: target.y - HOLE_PADDING,
@@ -62,4 +64,16 @@ export function dimPath(width: number, height: number, hole: Rect & { radius: nu
     `H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}` +
     `V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
   return `${outer}${inner}`;
+}
+
+/** Punto intermedio entre dos huecos (t de 0 a 1), para deslizar el foco de uno a otro. */
+export function lerpHole(from: Hole, to: Hole, t: number): Hole {
+  const mix = (a: number, b: number) => a + (b - a) * t;
+  return {
+    x: mix(from.x, to.x),
+    y: mix(from.y, to.y),
+    width: mix(from.width, to.width),
+    height: mix(from.height, to.height),
+    radius: mix(from.radius, to.radius),
+  };
 }

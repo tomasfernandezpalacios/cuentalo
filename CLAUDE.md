@@ -370,10 +370,13 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   cubrir la pantalla (soltar antes lo devuelve con un rebote) y sale «"Me comprometo a
   registrar mi vida"» antes de terminar. La bienvenida no tiene «Saltar» (barra y «Seguir»
   abajo). Barra de progreso (`Progress`): lo hecho es barra, el paso actual una bolita llena y
-  los pendientes bolitas huecas. La barra avanza cuando aparece el paso nuevo. El
-  bocadillo (`Spotlight`) es el mismo de paso a paso en una pantalla: cambia el texto y se
-  desliza a su sitio. Tras una acción (sumar, restar, elegir idea) se espera
-  `COMPLETE_PAUSE_MS` sin poder tocar nada. Al final, tras la promesa sale «Cuéntalo». Los de acción avanzan con `tutorialEvent` desde el código que ya existe
+  los pendientes bolitas huecas. Los pasos intermedios no tienen «Siguiente»
+  (solo «Saltar», a la derecha de la barra): se superan haciendo la tarea, sin pausa; las
+  pestañas y la racha se «tocan» y lo recoge el tutorial (`target-tapped`, no se abre la
+  pestaña). El bocadillo es el mismo de paso a paso: el foco se desliza al elemento nuevo
+  (`useGlidingHole`, `lerpHole`), todo lo sigue, el texto entra con un fundido y la barra
+  avanza. Si el elemento no aparece, sale «Siguiente». Al final, tras la promesa sale
+  «Cuéntalo». Los de acción avanzan con `tutorialEvent` desde el código que ya existe
   (`useCounterActions.add`, `contadores/nuevo`; durante el tutorial crear vuelve a la lista y
   ofrece ideas de un toque) y solo dejan tocar el hueco. `TutorialHost` (montado en
   `app/_layout.tsx`, solo se ve en «Mis contadores»): oscurecido con hueco (SVG evenodd),

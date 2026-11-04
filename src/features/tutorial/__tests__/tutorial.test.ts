@@ -1,4 +1,4 @@
-import { dimPath, holeFor, placeBubble, ARROW_SPACE, HOLE_PADDING } from '../layout';
+import { dimPath, holeFor, lerpHole, placeBubble, ARROW_SPACE, HOLE_PADDING } from '../layout';
 import { advancesOn, buildSteps, nextIndex, stepKind } from '../steps';
 
 describe('pasos', () => {
@@ -36,11 +36,19 @@ describe('pasos', () => {
     expect(advancesOn(undefined, 'entry-added')).toBe(false);
   });
 
-  it('los pasos de acción no tienen «Siguiente» y todos los demás sí', () => {
-    const withAction = buildSteps()
-      .filter((s) => s.action)
+  it('todos los pasos intermedios se superan haciendo su tarea (sin «Siguiente»)', () => {
+    const withoutAction = buildSteps()
+      .filter((s) => !s.action)
       .map((s) => s.id);
-    expect(withAction).toEqual(['create', 'pick-idea', 'submit', 'add', 'remove']);
+    // Solo la bienvenida (botón), «Esto es Cuéntalo» (se pasa solo) y el final.
+    expect(withoutAction).toEqual(['welcome', 'intro', 'done']);
+  });
+
+  it('las pestañas y la racha se superan tocándolas', () => {
+    const byId = Object.fromEntries(buildSteps().map((s) => [s.id, s]));
+    for (const id of ['stats', 'social', 'streak']) {
+      expect(advancesOn(byId[id], 'target-tapped')).toBe(true);
+    }
   });
 });
 
@@ -115,5 +123,15 @@ describe('recorrido', () => {
       ['tab-estadisticas', '/', 'spotlight'],
       ['tab-social', '/', 'spotlight'],
     ]);
+  });
+});
+
+describe('foco que se desliza', () => {
+  it('a mitad de camino está entre los dos huecos', () => {
+    const a = { x: 0, y: 0, width: 10, height: 10, radius: 4 };
+    const b = { x: 100, y: 200, width: 30, height: 50, radius: 12 };
+    expect(lerpHole(a, b, 0)).toEqual(a);
+    expect(lerpHole(a, b, 1)).toEqual(b);
+    expect(lerpHole(a, b, 0.5)).toEqual({ x: 50, y: 100, width: 20, height: 30, radius: 8 });
   });
 });

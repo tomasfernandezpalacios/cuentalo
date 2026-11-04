@@ -17,20 +17,11 @@ type State = {
   steps: Step[];
   /** null = no hay tutorial en marcha. */
   index: number | null;
-  /**
-   * Se acaba de hacer la acción del paso (sumar, restar, elegir idea): se espera un momento para
-   * ver el resultado (y el confeti tras el primer registro) antes del siguiente.
-   */
-  completing: boolean;
-  /** Qué completó el paso (para el confeti del primer +1). */
-  completedBy: TutorialEvent | 'next' | null;
+  /** El paso actual llega tras el primer registro: se celebra con confeti. */
+  celebrate: boolean;
 };
 
-/** Lo que se espera con el paso hecho antes de enseñar el siguiente. */
-export const COMPLETE_PAUSE_MS = 800;
-
-let state: State = { steps: [], index: null, completing: false, completedBy: null };
-let pauseTimer: ReturnType<typeof setTimeout> | null = null;
+let state: State = { steps: [], index: null, celebrate: false };
 const listeners = new Set<() => void>();
 /** Se llama al terminar o saltar (lo usa el arranque para marcarlo en el perfil). */
 let onFinish: (() => void) | null = null;
@@ -47,47 +38,30 @@ function subscribe(listener: () => void) {
 
 export function startTutorial(finish: () => void) {
   onFinish = finish;
-  clearPause();
-  set({ steps: buildSteps(), index: 0, completing: false, completedBy: null });
-}
-
-function clearPause() {
-  if (pauseTimer) clearTimeout(pauseTimer);
-  pauseTimer = null;
+  set({ steps: buildSteps(), index: 0, celebrate: false });
 }
 
 function finishTutorial() {
-  clearPause();
-  set({ index: null, completing: false, completedBy: null });
+  set({ index: null, celebrate: false });
   onFinish?.();
   onFinish = null;
 }
 
-/** Pasa al paso siguiente ya mismo (o termina si era el último). */
-export function nextStep() {
+function goNext(celebrate: boolean) {
   if (state.index === null) return;
-  clearPause();
   const next = nextIndex(state.steps, state.index);
   if (next === null) finishTutorial();
-  else set({ index: next, completing: false, completedBy: null });
+  else set({ index: next, celebrate });
 }
 
-/**
- * Da el paso por hecho: la barra avanza con su animación y, tras una pausa, sale el siguiente.
- * Mientras tanto no se puede tocar nada ni vuelve a contar otra acción.
- */
-function completeStep(by: TutorialEvent | 'next') {
-  if (state.index === null || state.completing) return;
-  set({ completing: true, completedBy: by });
-  pauseTimer = setTimeout(nextStep, COMPLETE_PAUSE_MS);
+/** Pasa al paso siguiente (o termina si era el último). La barra avanza en el paso nuevo. */
+export function nextStep() {
+  goNext(false);
 }
 
-/**
- * «Siguiente» en el bocadillo o en la bienvenida: se pasa ya; la barra avanza en el bocadillo
- * del paso nuevo.
- */
+/** El botón de las pantallas completas (bienvenida). */
 export function continueTutorial() {
-  nextStep();
+  goNext(false);
 }
 
 /** «Saltar»: se termina y no vuelve a salir (se puede repetir desde Configuración). */
@@ -95,13 +69,15 @@ export function skipTutorial() {
   finishTutorial();
 }
 
-/** Lo avisa el código que ya existe al crear un contador o registrar algo. */
+/**
+ * Lo avisa el código que ya existe (crear, sumar, restar…) o el propio tutorial al tocar el
+ * elemento iluminado. Si es la tarea del paso, se pasa al siguiente sin pausa: la barra avanza
+ * y el bocadillo se desliza a su nuevo sitio.
+ */
 export function tutorialEvent(event: TutorialEvent) {
-  if (state.index === null || state.completing) return;
+  if (state.index === null) return;
   if (!advancesOn(state.steps[state.index], event)) return;
-  // Al abrir el formulario o crear el contador se cambia de pantalla: sin pausa.
-  if (event === 'form-opened' || event === 'counter-created') nextStep();
-  else completeStep(event);
+  goNext(event === 'entry-added');
 }
 
 export function isTutorialActive(): boolean {

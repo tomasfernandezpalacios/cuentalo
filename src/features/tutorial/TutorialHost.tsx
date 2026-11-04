@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, usePathname } from 'expo-router';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Animated,
@@ -19,13 +19,14 @@ import { AppButton } from '@/components/AppButton';
 import { getSettings } from '@/features/configuracion/settings';
 import { fonts, useThemeColors } from '@/lib/theme';
 
-import { dimPath, holeFor, placeBubble, type Rect } from './layout';
+import { dimPath, type Hole, holeFor, lerpHole, placeBubble, type Rect } from './layout';
 import { stepKind, type Step } from './steps';
 import {
   continueTutorial,
   getTarget,
   nextStep,
   skipTutorial,
+  tutorialEvent,
   useTutorial,
   type ViewRef,
 } from './store';
@@ -44,7 +45,7 @@ const MEASURE_EVERY_MS = 250;
  * creando el contador), se aparta.
  */
 export function TutorialHost() {
-  const { step, index, steps, completing, completedBy } = useTutorial();
+  const { step, index, steps, celebrate } = useTutorial();
   const pathname = usePathname();
   const stepId = step?.id;
   // Pantalla del paso: a la que va el tutorial al llegar a él (una sola vez), salvo que llegue
@@ -66,7 +67,7 @@ export function TutorialHost() {
   if (!step || index === null) return null;
   const kind = stepKind(step);
   if (kind === 'welcome') {
-    return <Welcome step={step} index={index} total={steps.length} completing={completing} />;
+    return <Welcome step={step} index={index} total={steps.length} />;
   }
   if (kind === 'finish') return <Finish step={step} index={index} total={steps.length} />;
   if (pathname !== (step.screen ?? '/')) return null;
@@ -78,8 +79,7 @@ export function TutorialHost() {
           step={step}
           index={index}
           total={steps.length}
-          completing={completing}
-          celebrate={completing && completedBy === 'entry-added'}
+          celebrate={celebrate}
           origin={origin}
           size={size}
         />
@@ -210,17 +210,7 @@ function useAnnounce(step: Step) {
 }
 
 /** Primera pantalla: ocupa todo el dispositivo; abajo, la barra de progreso y «Seguir». */
-function Welcome({
-  step,
-  index,
-  total,
-  completing,
-}: {
-  step: Step;
-  index: number;
-  total: number;
-  completing: boolean;
-}) {
+function Welcome({ step, index, total }: { step: Step; index: number; total: number }) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const opacity = useFadeIn();
@@ -266,11 +256,7 @@ function Welcome({
       </View>
       <View style={styles.welcomeButtons}>
         <Progress index={index} total={total} />
-        <AppButton
-          title={step.button ?? 'Seguir'}
-          onPress={continueTutorial}
-          disabled={completing}
-        />
+        <AppButton title={step.button ?? 'Seguir'} onPress={continueTutorial} />
       </View>
     </Animated.View>
   );
@@ -493,15 +479,49 @@ type SpotlightProps = {
   step: Step;
   index: number;
   total: number;
-  /** El paso ya está hecho: la barra avanza y se espera un momento (sin poder tocar nada). */
-  completing: boolean;
-  /** Confeti (tras el primer registro). */
+  /** Confeti (el paso llega tras el primer registro). */
   celebrate: boolean;
   origin: ViewRef | null;
   size: Size | null;
 };
 
-function Spotlight({ step, index, total, completing, celebrate, origin, size }: SpotlightProps) {
+const MOVE_MS = 560;
+
+/**
+ * El foco que se enseña: cuando el paso cambia de elemento, se desliza del anterior al nuevo
+ * (posición y tamaño) en vez de saltar. Todo lo demás (oscurecido, anillo, flecha, bocadillo)
+ * sigue a este foco, así se mueve todo junto y con calma.
+ */
+function useGlidingHole(target: Hole | null): Hole | null {
+  const [shown, setShown] = useState<Hole | null>(null);
+  const [t] = useState(() => new Animated.Value(0));
+  const current = useRef<Hole | null>(null);
+
+  useEffect(() => {
+    if (!target) return;
+    const from = current.current;
+    const id = t.addListener(({ value }) => {
+      const hole = from ? lerpHole(from, target, value) : target;
+      current.current = hole;
+      setShown(hole);
+    });
+    t.setValue(0);
+    Animated.timing(t, {
+      toValue: 1,
+      duration: from ? MOVE_MS : 1,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+    return () => {
+      t.stopAnimation();
+      t.removeListener(id);
+    };
+  }, [t, target]);
+
+  return shown;
+}
+
+function Spotlight({ step, index, total, celebrate, origin, size }: SpotlightProps) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const windowSize = useWindowDimensions();
@@ -509,77 +529,107 @@ function Spotlight({ step, index, total, completing, celebrate, origin, size }: 
   const width = size?.width ?? windowSize.width;
   const height = size?.height ?? windowSize.height;
   const { rect, missing } = useTargetRect(step, origin);
-  const [bubbleHeight, setBubbleHeight] = useState(170);
+  const [bubbleHeight, setBubbleHeight] = useState(150);
   const opacity = useFadeIn();
-  const pulse = useLoop(800);
-  const nudge = useLoop(550);
+  const pulse = useLoop(900);
+  const nudge = useLoop(650);
   useAnnounce(step);
 
-  const screen = { width, height, top: insets.top, bottom: insets.bottom };
-  // Sin elemento que iluminar (no está en pantalla): bocadillo en el centro y «Siguiente».
-  const hole = rect && !missing ? holeFor(rect) : null;
-  // Con el paso ya hecho no se deja tocar nada (tampoco el hueco) hasta el siguiente.
-  const isAction = Boolean(step.action) && hole !== null && !completing;
-  const place = hole ? placeBubble(hole, bubbleHeight, screen) : null;
+  const target = useMemo(() => (rect && !missing ? holeFor(rect) : null), [rect, missing]);
+  const hole = useGlidingHole(target);
 
-  // El bocadillo es el mismo de paso a paso: cambia su texto y se desliza a su nuevo sitio.
-  const bubbleTop = place ? place.top : Math.max(insets.top + 16, (height - bubbleHeight) / 2);
-  const [topAnim] = useState(() => new Animated.Value(bubbleTop));
+  // El texto del bocadillo cambia con un fundido y un pequeño desplazamiento.
+  const [textIn] = useState(() => new Animated.Value(0));
   useEffect(() => {
-    Animated.spring(topAnim, {
-      toValue: bubbleTop,
-      friction: 10,
-      tension: 70,
-      useNativeDriver: false,
+    textIn.setValue(0);
+    Animated.timing(textIn, {
+      toValue: 1,
+      duration: 420,
+      delay: 120,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
     }).start();
-  }, [topAnim, bubbleTop]);
+  }, [textIn, step.id]);
 
-  if (!hole && !missing) {
+  const screen = { width, height, top: insets.top, bottom: insets.bottom };
+  const shownHole = missing ? null : hole;
+  const place = shownHole ? placeBubble(shownHole, bubbleHeight, screen) : null;
+  // Tocar el elemento iluminado: o se deja tocar la app (sumar, restar, el +…) o lo recoge el
+  // propio tutorial (pestañas y racha: se sigue sin cambiar de pantalla).
+  const passThrough = Boolean(step.action) && step.action !== 'target-tapped' && shownHole;
+  const tapToContinue = step.action === 'target-tapped' && shownHole;
+
+  if (!shownHole && !missing) {
     // Aún midiendo: solo el oscurecido, sin dejar tocar nada.
     return <View style={[StyleSheet.absoluteFill, { backgroundColor: DIM }]} />;
   }
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity }]} pointerEvents="box-none">
-      {hole ? (
+      {shownHole ? (
         <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Path d={dimPath(width, height, hole)} fill={DIM} fillRule="evenodd" />
+          <Path d={dimPath(width, height, shownHole)} fill={DIM} fillRule="evenodd" />
         </Svg>
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: DIM }]} pointerEvents="none" />
       )}
 
-      {/* Lo que no se puede tocar: todo menos el hueco en los pasos de acción; todo en el resto. */}
-      {isAction && hole ? (
+      {/* Lo que no se puede tocar: todo menos el hueco cuando la tarea es tocar la app. */}
+      {passThrough && shownHole ? (
         <>
-          <Blocker style={{ left: 0, right: 0, top: 0, height: Math.max(0, hole.y) }} />
-          <Blocker style={{ left: 0, right: 0, top: hole.y + hole.height, bottom: 0 }} />
+          <Blocker style={{ left: 0, right: 0, top: 0, height: Math.max(0, shownHole.y) }} />
+          <Blocker style={{ left: 0, right: 0, top: shownHole.y + shownHole.height, bottom: 0 }} />
           <Blocker
-            style={{ left: 0, width: Math.max(0, hole.x), top: hole.y, height: hole.height }}
+            style={{
+              left: 0,
+              width: Math.max(0, shownHole.x),
+              top: shownHole.y,
+              height: shownHole.height,
+            }}
           />
           <Blocker
-            style={{ left: hole.x + hole.width, right: 0, top: hole.y, height: hole.height }}
+            style={{
+              left: shownHole.x + shownHole.width,
+              right: 0,
+              top: shownHole.y,
+              height: shownHole.height,
+            }}
           />
         </>
       ) : (
         <Blocker style={StyleSheet.absoluteFill} />
       )}
+      {tapToContinue && shownHole ? (
+        <Pressable
+          onPress={() => tutorialEvent('target-tapped')}
+          accessibilityRole="button"
+          accessibilityLabel={`${step.title}. Toca para seguir`}
+          style={{
+            position: 'absolute',
+            left: shownHole.x,
+            top: shownHole.y,
+            width: shownHole.width,
+            height: shownHole.height,
+            borderRadius: shownHole.radius,
+          }}
+        />
+      ) : null}
 
-      {hole ? (
+      {shownHole ? (
         <Animated.View
           pointerEvents="none"
           style={[
             styles.ring,
             {
-              left: hole.x,
-              top: hole.y,
-              width: hole.width,
-              height: hole.height,
-              borderRadius: hole.radius,
+              left: shownHole.x,
+              top: shownHole.y,
+              width: shownHole.width,
+              height: shownHole.height,
+              borderRadius: shownHole.radius,
               borderColor: colors.primary,
-              opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] }),
+              opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] }),
               transform: [
-                { scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) },
+                { scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) },
               ],
             },
           ]}
@@ -613,43 +663,54 @@ function Spotlight({ step, index, total, completing, celebrate, origin, size }: 
         </Animated.View>
       ) : null}
 
-      <Animated.View
+      <View
         onLayout={(event) => setBubbleHeight(event.nativeEvent.layout.height)}
         accessibilityLiveRegion="polite"
         style={[
           styles.bubble,
           {
-            top: topAnim,
+            top: place ? place.top : Math.max(insets.top + 16, (height - bubbleHeight) / 2),
             backgroundColor: colors.surface,
             borderColor: colors.border,
           },
         ]}
       >
-        <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-          {step.title}
-        </Text>
-        <Text style={[styles.text, { color: colors.textMuted }]}>{step.text}</Text>
+        <Animated.View
+          style={{
+            gap: 8,
+            opacity: textIn,
+            transform: [
+              { translateX: textIn.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) },
+            ],
+          }}
+        >
+          <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
+            {step.title}
+          </Text>
+          <Text style={[styles.text, { color: colors.textMuted }]}>{step.text}</Text>
+        </Animated.View>
         <View style={styles.footer}>
           <Progress index={index} total={total} style={styles.progressInBubble} />
-          <View style={styles.buttons}>
-            <Pressable
-              onPress={skipTutorial}
-              accessibilityRole="button"
-              accessibilityLabel="Saltar el tutorial"
-              hitSlop={10}
-              style={styles.skip}
-            >
-              <Text style={[styles.skipText, { color: colors.textMuted }]}>Saltar</Text>
-            </Pressable>
-            {step.action || completing ? null : (
-              <AppButton small title="Siguiente" onPress={continueTutorial} />
-            )}
-          </View>
+          {/* Sin el elemento en pantalla no hay tarea que hacer: se puede seguir con el botón. */}
+          {missing ? <AppButton small title="Siguiente" onPress={continueTutorial} /> : null}
+          <Pressable
+            onPress={skipTutorial}
+            accessibilityRole="button"
+            accessibilityLabel="Saltar el tutorial"
+            hitSlop={10}
+            style={styles.skip}
+          >
+            <Text style={[styles.skipText, { color: colors.textMuted }]}>Saltar</Text>
+          </Pressable>
         </View>
-      </Animated.View>
+      </View>
 
-      {celebrate && hole ? (
-        <Confetti x={hole.x + hole.width / 2} y={hole.y + hole.height / 2} />
+      {celebrate && shownHole ? (
+        <Confetti
+          key={index}
+          x={shownHole.x + shownHole.width / 2}
+          y={shownHole.y + shownHole.height / 2}
+        />
       ) : null}
     </Animated.View>
   );

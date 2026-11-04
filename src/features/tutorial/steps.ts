@@ -14,7 +14,13 @@ export type TargetId =
 
 /** Acciones reales que hacen avanzar un paso (las avisa el código que ya existe). */
 export type TutorialEvent =
-  'form-opened' | 'idea-chosen' | 'counter-created' | 'entry-added' | 'entry-removed';
+  | 'form-opened'
+  | 'idea-chosen'
+  | 'counter-created'
+  | 'entry-added'
+  | 'entry-removed'
+  /** Tocar el elemento iluminado: lo recoge el propio tutorial (no se abre la pestaña). */
+  | 'target-tapped';
 
 export type StepId =
   | 'welcome'
@@ -118,20 +124,23 @@ const ALL_STEPS: Step[] = [
   {
     id: 'stats',
     title: 'Estadísticas',
-    text: 'En esta pestaña verás tu evolución por semana, mes o año, en líneas o barras.',
+    text: 'En esta pestaña verás tu evolución por semana, mes o año. Tócala para seguir.',
     target: 'tab-estadisticas',
+    action: 'target-tapped',
   },
   {
     id: 'social',
     title: 'Amigos y grupos',
-    text: 'Aquí añades amigos, creas grupos o te unes con un código y competís en la clasificación.',
+    text: 'Añade amigos, crea grupos o únete con un código y competid en la clasificación. Tócala para seguir.',
     target: 'tab-social',
+    action: 'target-tapped',
   },
   {
     id: 'streak',
     title: 'Tus estadísticas son más potentes si registras cada día 🔥',
-    text: 'Tu racha cuenta los días seguidos en los que apuntas algo. Si un día no registras nada, vuelve a 0.',
+    text: 'Tu racha cuenta los días seguidos en los que apuntas algo. Si un día no registras nada, vuelve a 0. Tócala para terminar.',
     target: 'racha',
+    action: 'target-tapped',
   },
   {
     id: 'done',
