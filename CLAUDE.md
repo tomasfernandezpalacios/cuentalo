@@ -28,8 +28,9 @@ convenciones y decisiones; anota aquí cualquier decisión menor nueva.
   `src/features` y rutas en español como pide la especificación.
 - Alias de importación `@/` → `src/`.
 - Colores siempre desde `useThemeColors()` (`src/lib/theme.ts`), con modo claro y oscuro.
-- Se probaron paletas cálidas (crema, marrón y verde; commits `71f637e`, `05ed122`, `5b3b42b`,
-  `4253ffc`) y el usuario decidió volver a la morada original (etiqueta `diseno-morado`).
+- Paleta actual (decisión del usuario): fondo marrón `#2E190B`, texto crema y botones verdes
+  (la del commit `05ed122`). El diseño morado original está en la etiqueta `diseno-morado`.
+  También se probaron fondo crema, pastel y una de Coolors, y se descartaron.
 - Tipografías (petición del usuario): **Ubuntu Bold** (`fonts.title`) para títulos, nombres,
   cifras, botones, cabeceras y pestañas; **Redaction** (`fonts.detail`) para detalles y textos
   secundarios (fechas, notas, unidades, etiquetas, descripciones, errores). Los campos de texto

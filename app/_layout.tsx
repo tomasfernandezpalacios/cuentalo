@@ -89,6 +89,11 @@ function RootNavigator() {
   );
 }
 
+/** Barra de estado del móvil con los iconos en el tono que se lee sobre el fondo de la app. */
+function ThemedStatusBar() {
+  return <StatusBar style={useThemeColors().statusBar} />;
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     [fonts.title]: require('../assets/fonts/Ubuntu-Bold.ttf'),
@@ -103,7 +108,7 @@ export default function RootLayout() {
       <AuthProvider>
         <RootNavigator />
         <DialogHost />
-        <StatusBar style="auto" />
+        <ThemedStatusBar />
       </AuthProvider>
     </QueryClientProvider>
   );
