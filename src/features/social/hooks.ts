@@ -23,6 +23,10 @@ import {
   respondFriendRequest,
   searchProfiles,
   sendFriendRequest,
+  decideCounterRequest,
+  fetchNotices,
+  fetchPendingCounterRequests,
+  markNoticesRead,
 } from './api';
 
 export const socialKeys = {
@@ -33,6 +37,8 @@ export const socialKeys = {
   search: (query: string) => [...socialKeys.all, 'search', query] as const,
   inviteCode: (groupId: string) => [...socialKeys.all, 'invite-code', groupId] as const,
   preview: (code: string) => [...socialKeys.all, 'preview', code] as const,
+  notices: (userId: string) => [...socialKeys.all, 'notices', userId] as const,
+  requests: (userId: string) => [...socialKeys.all, 'counter-requests', userId] as const,
 };
 
 // Cualquier cambio social refresca amistades y grupos: son consultas pequeñas y así todas las
@@ -164,4 +170,56 @@ export function useGroupPreview(code: string) {
 
 export function useJoinGroupByCode() {
   return useSocialMutation(joinGroupByCode);
+}
+
+// --- Buzón ------------------------------------------------------------------------------------
+
+export function useNotices() {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: socialKeys.notices(userId),
+    queryFn: fetchNotices,
+    enabled: userId !== '',
+  });
+}
+
+export function usePendingCounterRequests() {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: socialKeys.requests(userId),
+    queryFn: () => fetchPendingCounterRequests(userId),
+    enabled: userId !== '',
+  });
+}
+
+export function useDecideCounterRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, approve }: { id: string; approve: boolean }) =>
+      decideCounterRequest(id, approve),
+    // Si se acepta, cambian los totales: refrescamos todo.
+    onSuccess: () => queryClient.invalidateQueries(),
+  });
+}
+
+export function useMarkNoticesRead() {
+  return useSocialMutation(markNoticesRead);
+}
+
+/**
+ * Cosas que esperan algo de mí (para el punto rojo): solicitudes de amistad recibidas,
+ * invitaciones a grupos, solicitudes en mis contadores comunes y avisos sin leer.
+ */
+export function useInboxCount(): number {
+  const friendships = useFriendships();
+  const groups = useMyGroups();
+  const requests = usePendingCounterRequests();
+  const notices = useNotices();
+  return (
+    (friendships.data ?? []).filter((f) => f.status === 'pending' && f.direction === 'incoming')
+      .length +
+    (groups.data ?? []).filter((g) => g.status === 'invited').length +
+    (requests.data ?? []).length +
+    (notices.data ?? []).filter((n) => n.read_at === null).length
+  );
 }

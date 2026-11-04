@@ -38,8 +38,13 @@ export type CounterWithTotal = Counter & {
    * de grupos de los que salí solo se usan para mis estadísticas.
    */
   isActive: boolean;
-  /** Puedo editarlo y archivarlo (dueño, o owner del grupo en un compartido). */
+  /**
+   * Soy su administrador: lo creé (en un privado, es mío). Solo él lo edita y lo borra; en un
+   * común, además, es el único que suma o resta (los demás le envían solicitudes).
+   */
   canManage: boolean;
+  /** Lo he ocultado de mi lista (sale al final, en «Ocultos»). */
+  hidden: boolean;
   /** Contador común: cada +1/−1 se aplica a todos estos participantes. Vacío si no es común. */
   participantIds: string[];
   /**
@@ -109,14 +114,13 @@ export function enrich(
   myId: string,
   participants: Map<string, string[]> = new Map(),
   aliases: Map<string, { name: string | null; emoji: string | null }> = new Map(),
+  hidden: Set<string> = new Set(),
 ): CounterWithTotal {
   const t = totals.find((row) => row.counter_id === counter.id);
   const group = counter.group_id ? (groups.get(counter.group_id) ?? null) : null;
   const isActive = counter.group_id ? group !== null : counter.owner_id === myId;
   const participantIds = counter.is_common ? (participants.get(counter.id) ?? []) : [];
-  const canManage = counter.group_id
-    ? group !== null && (counter.owner_id === myId || group.ownerId === myId)
-    : counter.owner_id === myId;
+  const canManage = counter.owner_id === myId && (counter.group_id === null || group !== null);
   const alias = aliases.get(counter.id);
   return {
     ...counter,
@@ -134,6 +138,7 @@ export function enrich(
     canManage,
     participantIds,
     lastLoggedAt: t?.last_logged_at ?? null,
+    hidden: hidden.has(counter.id),
     linkedCounterIds: [counter.id],
     linkedGroups: group && isActive ? [{ counterId: counter.id, group, total: t?.total ?? 0 }] : [],
     linkedInto: null,
@@ -142,6 +147,12 @@ export function enrich(
         ? (t?.total ?? 0) / participantIds.length
         : (t?.my_total ?? 0),
   };
+}
+
+async function fetchHidden(): Promise<Set<string>> {
+  const { data, error } = await supabase.from('hidden_counters').select('counter_id');
+  if (error) throw error;
+  return new Set(data.map((h) => h.counter_id));
 }
 
 async function fetchLinks(): Promise<CounterLink[]> {
@@ -175,18 +186,19 @@ async function fetchParticipants(counterIds?: string[]): Promise<Map<string, str
 // --- Contadores -------------------------------------------------------------
 
 export async function fetchCounters(myId: string): Promise<CounterWithTotal[]> {
-  const [counters, totals, groups, participants, aliases, links] = await Promise.all([
+  const [counters, totals, groups, participants, aliases, links, hidden] = await Promise.all([
     supabase.from('counters').select('*').order('created_at', { ascending: true }),
     supabase.from('counter_totals').select('*'),
     fetchMyActiveGroups(myId),
     fetchParticipants(),
     fetchAliases(),
     fetchLinks(),
+    fetchHidden(),
   ]);
   if (counters.error) throw counters.error;
   if (totals.error) throw totals.error;
   const enriched = counters.data.map((counter) =>
-    enrich(counter, totals.data, groups, myId, participants, aliases),
+    enrich(counter, totals.data, groups, myId, participants, aliases, hidden),
   );
   return applyLinks(enriched, links);
 }
@@ -281,8 +293,33 @@ export async function mergeCounters(
   return data;
 }
 
-export async function deleteCounter(id: string): Promise<void> {
-  const { error } = await supabase.from('counters').delete().eq('id', id);
+/**
+ * Borra un contador. Si es privado, desaparece con sus registros. Si es de un grupo (solo su
+ * administrador puede), solo sale del grupo: cada miembro conserva sus registros.
+ */
+export async function deleteCounter(counter: Pick<Counter, 'id' | 'group_id'>): Promise<void> {
+  const { error } = counter.group_id
+    ? await supabase.rpc('delete_group_counter', { p_counter_id: counter.id })
+    : await supabase.from('counters').delete().eq('id', counter.id);
+  if (error) throw error;
+}
+
+/** Oculta o vuelve a mostrar contadores en mi lista. */
+export async function setHidden(counterIds: string[], hidden: boolean): Promise<void> {
+  const { error } = hidden
+    ? await supabase.from('hidden_counters').upsert(
+        counterIds.map((counter_id) => ({ counter_id })),
+        { ignoreDuplicates: true },
+      )
+    : await supabase.from('hidden_counters').delete().in('counter_id', counterIds);
+  if (error) throw error;
+}
+
+/** Contador común de otro: pide a su administrador que sume (o reste) a todos. */
+export async function requestCommonChange(counterId: string, amount: number): Promise<void> {
+  const { error } = await supabase
+    .from('counter_requests')
+    .insert({ counter_id: counterId, amount });
   if (error) throw error;
 }
 

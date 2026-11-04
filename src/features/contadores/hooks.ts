@@ -16,6 +16,8 @@ import {
   mergeCounters,
   removeOne,
   removeOneFromCommonCounter,
+  requestCommonChange,
+  setHidden,
   setParticipants,
   updateCounter,
   updateEntry,
@@ -134,14 +136,33 @@ export function useUpdateCounter(id: string) {
   });
 }
 
-export function useDeleteCounter(id: string) {
+/** Borra uno o varios contadores (los de grupo solo salen del grupo, ver deleteCounter). */
+export function useDeleteCounters() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => deleteCounter(id),
-    onSuccess: () => {
-      queryClient.removeQueries({ queryKey: counterKeys.detail(id) });
-      return invalidateCounters(queryClient);
+    mutationFn: async (counters: Pick<CounterWithTotal, 'id' | 'group_id'>[]) => {
+      for (const counter of counters) await deleteCounter(counter);
     },
+    onSuccess: (_result, counters) => {
+      for (const c of counters) queryClient.removeQueries({ queryKey: counterKeys.detail(c.id) });
+      // También cambian carpetas y estadísticas.
+      return queryClient.invalidateQueries();
+    },
+  });
+}
+
+export function useSetHidden() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, hidden }: { ids: string[]; hidden: boolean }) => setHidden(ids, hidden),
+    onSuccess: () => invalidateCounters(queryClient),
+  });
+}
+
+export function useRequestCommonChange() {
+  return useMutation({
+    mutationFn: ({ counterId, amount }: { counterId: string; amount: number }) =>
+      requestCommonChange(counterId, amount),
   });
 }
 

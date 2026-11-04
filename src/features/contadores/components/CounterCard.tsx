@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatAmount, formatWithUnit } from '@/lib/format';
@@ -15,23 +16,42 @@ type Props = {
   onRemoveOne: () => void;
   /** Mantener pulsado +1 abre la cantidad personalizada. */
   onCustomAdd: () => void;
+  /** Mantener pulsada la tarjeta (en la lista de inicio: entra en modo selección). */
+  onLongPress?: () => void;
+  /** Modo selección: en vez de los botones rápidos se ve si está elegida. */
+  selectionMode?: boolean;
+  selected?: boolean;
 };
 
 /** Tarjeta de la lista: emoticono · nombre · +1 +5 −1 · total. */
-export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd }: Props) {
+export function CounterCard({
+  counter,
+  onPress,
+  onAdd,
+  onRemoveOne,
+  onCustomAdd,
+  onLongPress,
+  selectionMode = false,
+  selected = false,
+}: Props) {
   const colors = useThemeColors();
   return (
     <Pressable
       onPress={onPress}
-      accessibilityRole="button"
+      onLongPress={onLongPress}
+      accessibilityRole={selectionMode ? 'checkbox' : 'button'}
+      accessibilityState={selectionMode ? { checked: selected } : undefined}
       accessibilityLabel={`${counter.name}${counter.group ? `, del grupo ${counter.group.name}` : ''}: ${formatWithUnit(counter.displayTotal, counter.unit)}`}
-      accessibilityHint="Abre el contador"
+      accessibilityHint={
+        selectionMode ? undefined : 'Abre el contador. Mantén pulsado para seleccionar'
+      }
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          opacity: counter.archived ? 0.6 : pressed ? 0.85 : 1,
+          backgroundColor: selected ? colors.primarySoft : colors.surface,
+          borderColor: selected ? colors.primary : colors.border,
+          borderWidth: selected ? 2 : 1,
+          opacity: counter.archived || counter.hidden ? 0.6 : pressed ? 0.85 : 1,
         },
       ]}
     >
@@ -40,7 +60,7 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
         <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
           {counter.name}
         </Text>
-        {counter.group || counter.archived ? (
+        {counter.group || counter.archived || counter.hidden ? (
           <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
             {[
               counter.linkedGroups.length > 0
@@ -48,6 +68,7 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
                 : null,
               counter.is_common ? 'Común' : null,
               counter.archived ? 'Archivado' : null,
+              counter.hidden ? 'Oculto' : null,
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -55,7 +76,13 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
         ) : null}
       </View>
 
-      {counter.archived ? null : (
+      {selectionMode ? (
+        <Ionicons
+          name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+          size={28}
+          color={selected ? colors.primary : colors.textMuted}
+        />
+      ) : counter.archived ? null : (
         <QuickAddBar
           compact
           unit={counter.unit}

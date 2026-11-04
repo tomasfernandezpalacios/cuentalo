@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import type { ColorValue } from 'react-native';
 
+import { useInboxCount } from '@/features/social/hooks';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -18,6 +19,8 @@ function tabIcon(name: IconName) {
 
 export default function TabsLayout() {
   const colors = useThemeColors();
+  // Punto rojo en «Amigos y grupos» mientras haya algo pendiente en el buzón.
+  const inbox = useInboxCount();
   return (
     <Tabs
       screenOptions={{
@@ -40,7 +43,18 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="social"
-        options={{ title: 'Amigos y grupos', tabBarIcon: tabIcon('people-outline') }}
+        options={{
+          title: 'Amigos y grupos',
+          tabBarIcon: tabIcon('people-outline'),
+          tabBarBadge: inbox > 0 ? '' : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.danger,
+            minWidth: 10,
+            maxHeight: 10,
+            borderRadius: 5,
+            marginTop: 2,
+          },
+        }}
       />
       <Tabs.Screen
         name="perfil"

@@ -150,6 +150,47 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          kind:
+            | 'friend_accepted'
+            | 'request_approved'
+            | 'request_rejected'
+            | 'counter_deleted'
+            | 'group_deleted';
+          actor_id: string | null;
+          counter_name: string | null;
+          group_name: string | null;
+          amount: number | null;
+          created_at: string;
+          read_at: string | null;
+        };
+        Insert: never;
+        Update: { read_at?: string | null };
+        Relationships: [];
+      };
+      counter_requests: {
+        Row: {
+          id: string;
+          counter_id: string;
+          requester_id: string;
+          amount: number;
+          status: 'pending' | 'approved' | 'rejected';
+          created_at: string;
+          decided_at: string | null;
+        };
+        Insert: { counter_id: string; amount: number };
+        Update: never;
+        Relationships: [];
+      };
+      hidden_counters: {
+        Row: { user_id: string; counter_id: string };
+        Insert: { counter_id: string; user_id?: string };
+        Update: never;
+        Relationships: [];
+      };
       user_activity_days: {
         Row: { user_id: string; day: string };
         Insert: never;
@@ -276,6 +317,14 @@ export type Database = {
           current_streak: number;
           best_streak: number;
         }[];
+      };
+      decide_counter_request: {
+        Args: { p_request_id: string; p_approve: boolean };
+        Returns: undefined;
+      };
+      delete_group_counter: {
+        Args: { p_counter_id: string };
+        Returns: undefined;
       };
       delete_my_account: {
         Args: Record<string, never>;

@@ -269,22 +269,45 @@ insert into public.counters (id, name, unit, group_id, is_common)
 select public.set_counter_participants('10000000-0000-0000-0000-000000000003',
   array['00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2']::uuid[]);
 
--- Beto (miembro, no creador) suma 1: se apunta a los dos.
+-- Beto (miembro, no administrador) no puede sumar directamente: envía una solicitud.
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}', true);
 do $$
-declare n int;
 begin
-  n := public.add_to_common_counter('10000000-0000-0000-0000-000000000003', 1);
-  if n <> 2 then raise exception 'FALLO: el contador común no suma a todos los participantes (%)', n; end if;
-
-  select count(*) into n from public.entries
-   where counter_id = '10000000-0000-0000-0000-000000000003' and amount = 1;
-  if n <> 2 then raise exception 'FALLO: no se ven los registros del contador común (%)', n; end if;
+  begin
+    perform public.add_to_common_counter('10000000-0000-0000-0000-000000000003', 1);
+    raise exception 'FALLO: en un común suma alguien que no es el administrador';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
 
   begin
     perform public.set_counter_participants('10000000-0000-0000-0000-000000000003',
       array['00000000-0000-0000-0000-0000000000b2']::uuid[]);
-    raise exception 'FALLO: un miembro que no es creador cambia los participantes';
+    raise exception 'FALLO: un miembro que no es administrador cambia los participantes';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+end $$;
+insert into public.counter_requests (id, counter_id, amount)
+  values ('50000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 1);
+
+-- Ana (administradora) acepta: se apunta a los dos y a Beto le llega el aviso.
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.counter_requests where status = 'pending';
+  if n <> 1 then raise exception 'FALLO: el administrador no ve la solicitud pendiente (%)', n; end if;
+
+  perform public.decide_counter_request('50000000-0000-0000-0000-000000000001', true);
+
+  select count(*) into n from public.entries
+   where counter_id = '10000000-0000-0000-0000-000000000003' and amount = 1;
+  if n <> 2 then raise exception 'FALLO: aceptar la solicitud no suma a todos (%)', n; end if;
+
+  begin
+    perform public.decide_counter_request('50000000-0000-0000-0000-000000000001', true);
+    raise exception 'FALLO: una solicitud se puede aceptar dos veces';
   exception when raise_exception then
     if sqlerrm like 'FALLO%' then raise; end if;
   end;
@@ -294,6 +317,14 @@ begin
 
   n := public.remove_one_from_common_counter('10000000-0000-0000-0000-000000000003');
   if n <> 0 then raise exception 'FALLO: el −1 común baja de 0'; end if;
+end $$;
+
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}', true);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.notifications where kind = 'request_approved';
+  if n <> 1 then raise exception 'FALLO: a quien pidió no le llega el aviso de aceptada (%)', n; end if;
 end $$;
 
 -- Carla (ajena) no puede sumar ni cambiar participantes.
@@ -525,6 +556,69 @@ declare n int;
 begin
   select count(*) into n from public.entries where counter_id = '10000000-0000-0000-0000-000000000002';
   if n <> 1 then raise exception 'FALLO: el grupo sigue viendo registros de quien salió'; end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- 4b. Borrar un contador de grupo: nadie pierde sus registros
+-- ---------------------------------------------------------------------------
+
+-- Ana (administradora del contador compartido) lo borra del grupo.
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+do $$
+declare n int; v_total numeric;
+begin
+  -- Ana no administra el contador del grupo 2 de Beto: no puede borrarlo.
+  begin
+    perform public.delete_group_counter('10000000-0000-0000-0000-000000000005');
+    raise exception 'FALLO: se puede borrar un contador de grupo sin ser su administrador';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+
+  -- Antes de borrar: Ana ve el aviso de amistad aceptada y no ve los avisos de Beto.
+  select count(*) into n from public.notifications where kind = 'friend_accepted';
+  if n <> 1 then raise exception 'FALLO: no llega el aviso de amistad aceptada (%)', n; end if;
+  select count(*) into n from public.notifications where user_id <> '00000000-0000-0000-0000-0000000000a1';
+  if n <> 0 then raise exception 'FALLO: Ana ve avisos de otros'; end if;
+
+  perform public.delete_group_counter('10000000-0000-0000-0000-000000000002');
+
+  select count(*) into n from public.counters where id = '10000000-0000-0000-0000-000000000002';
+  if n <> 0 then raise exception 'FALLO: el contador de grupo no se borra'; end if;
+
+  select sum(amount) into v_total from public.entries e
+    join public.counters c on c.id = e.counter_id
+   where c.group_id is null and c.name = 'Compartido'
+     and e.user_id = '00000000-0000-0000-0000-0000000000a1';
+  if v_total <> 3 then raise exception 'FALLO: Ana pierde sus registros al borrar (%)', v_total; end if;
+end $$;
+
+-- Beto lo tenía fusionado con el del grupo 2: sus registros siguen allí, solo para él.
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}', true);
+do $$
+declare n int; v_total numeric;
+begin
+  select my_total into v_total from public.counter_totals
+   where counter_id = '10000000-0000-0000-0000-000000000005';
+  if v_total <> 109 then raise exception 'FALLO: Beto pierde registros al borrarse un contador (%)', v_total; end if;
+
+  select total into v_total from public.get_leaderboard('10000000-0000-0000-0000-000000000005', 'all')
+   where username = 'beto_prueba';
+  if v_total <> 5 then raise exception 'FALLO: lo del grupo borrado suma en otro grupo (%)', v_total; end if;
+
+  select count(*) into n from public.notifications where kind = 'counter_deleted';
+  if n <> 1 then raise exception 'FALLO: no llega el aviso de contador borrado (%)', n; end if;
+
+  -- Ocultos: personales.
+  insert into public.hidden_counters (counter_id) values ('10000000-0000-0000-0000-000000000005');
+end $$;
+
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.hidden_counters;
+  if n <> 0 then raise exception 'FALLO: Ana ve los contadores ocultos de Beto'; end if;
 end $$;
 
 -- ---------------------------------------------------------------------------

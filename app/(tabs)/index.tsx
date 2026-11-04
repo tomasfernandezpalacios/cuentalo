@@ -1,23 +1,40 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, Stack } from 'expo-router';
-import { useState } from 'react';
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { router, Stack, useFocusEffect } from 'expo-router';
+import { useCallback, useState, type ComponentProps } from 'react';
+import {
+  Alert,
+  BackHandler,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
-import type { CounterWithTotal, EntryInput } from '@/features/contadores/api';
+import type { CounterWithTotal } from '@/features/contadores/api';
 import { CounterCard } from '@/features/contadores/components/CounterCard';
 import { EntryDialog } from '@/features/contadores/components/EntryDialog';
 import { FilterMenu } from '@/features/contadores/components/FilterMenu';
 import { FolderBar } from '@/features/contadores/components/FolderBar';
+import { FolderPicker } from '@/features/contadores/components/FolderPicker';
+import { confirmDeleteCounters } from '@/features/contadores/confirmDelete';
 import {
   activeFilterCount,
   DEFAULT_FILTERS,
   filterCounters,
   type CounterFilters,
 } from '@/features/contadores/filters';
-import { useDeleteFolder, useFolders, type Folder } from '@/features/contadores/folders';
-import { useAddEntry, useCounterList, useRemoveOne } from '@/features/contadores/hooks';
+import {
+  useDeleteFolder,
+  useFolders,
+  useAddToFolder,
+  type Folder,
+} from '@/features/contadores/folders';
+import { useCounterList, useDeleteCounters, useSetHidden } from '@/features/contadores/hooks';
+import { useCounterActions } from '@/features/contadores/useCounterActions';
 import { StreakBadge } from '@/features/estadisticas/components/StreakBadge';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
@@ -27,22 +44,43 @@ function openNewCounter() {
 }
 
 function showError(error: unknown) {
-  Alert.alert('No se ha podido guardar', getErrorMessage(error));
+  Alert.alert('Error', getErrorMessage(error));
 }
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 
 export default function CountersScreen() {
   const colors = useThemeColors();
   const { data, error, isPending, isRefetching, refetch } = useCounterList();
   const folders = useFolders();
   const deleteFolder = useDeleteFolder();
-  const addEntry = useAddEntry();
-  const removeOne = useRemoveOne();
+  const deleteCounters = useDeleteCounters();
+  const setHidden = useSetHidden();
+  const actions = useCounterActions();
   const [showArchived, setShowArchived] = useState(false);
   // Al abrir la app siempre se empieza en «Todos» y sin filtros.
   const [filters, setFilters] = useState<CounterFilters>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   // Contador para el que se está escribiendo una cantidad personalizada.
   const [customFor, setCustomFor] = useState<CounterWithTotal | null>(null);
+  // Modo selección: se entra manteniendo pulsado un contador.
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  const addToFolderMutation = useAddToFolder();
+
+  const selecting = selectedIds.length > 0;
+
+  // El botón «atrás» de Android sale del modo selección en vez de salir de la pantalla.
+  useFocusEffect(
+    useCallback(() => {
+      if (!selecting) return;
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        setSelectedIds([]);
+        return true;
+      });
+      return () => sub.remove();
+    }, [selecting]),
+  );
 
   if (isPending) return <LoadingView />;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
@@ -53,12 +91,82 @@ export default function CountersScreen() {
   // Solo los míos y los de grupos donde sigo; los de grupos que dejé quedan para estadísticas.
   const active = data.filter((c) => c.isActive && !c.linkedInto);
   const filtered = filterCounters(active, filters, folderList);
-  const archivedCount = filtered.filter((c) => c.archived).length;
-  const counters = showArchived ? filtered : filtered.filter((c) => !c.archived);
+  const archivedCount = filtered.filter((c) => c.archived && !c.hidden).length;
+  const shown = filtered.filter((c) => !c.hidden && (showArchived || !c.archived));
+  // Los ocultos salen al final de la lista.
+  const hidden = filtered.filter((c) => c.hidden);
+  const selected = active.filter((c) => selectedIds.includes(c.id));
 
-  function add(counterId: string, input: EntryInput, onSuccess?: () => void) {
-    addEntry.mutate({ counterId, input }, { onSuccess, onError: showError });
+  function toggleSelected(id: string) {
+    setSelectedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   }
+
+  function clearSelection() {
+    setSelectedIds([]);
+  }
+
+  // --- Acciones del modo selección ---------------------------------------------------------
+
+  function deleteSelected() {
+    // Los individuales los borra su dueño; los de grupo, solo su administrador.
+    const notAllowed = selected.filter((c) => !c.canManage);
+    if (notAllowed.length > 0) {
+      Alert.alert(
+        'No puedes borrar algunos',
+        `Solo el administrador puede borrar ${notAllowed.map((c) => `«${c.name}»`).join(', ')}. ` +
+          'Quítalos de la selección para borrar el resto.',
+      );
+      return;
+    }
+    confirmDeleteCounters(selected, () =>
+      deleteCounters.mutate(selected, { onSuccess: clearSelection, onError: showError }),
+    );
+  }
+
+  function toggleHiddenSelected() {
+    const allHidden = selected.every((c) => c.hidden);
+    setHidden.mutate(
+      { ids: selectedIds, hidden: !allHidden },
+      { onSuccess: clearSelection, onError: showError },
+    );
+  }
+
+  function editSelected() {
+    const [counter] = selected;
+    if (selected.length !== 1 || !counter) {
+      Alert.alert('Editar', 'Solo se puede editar un contador cada vez.');
+      return;
+    }
+    if (!counter.canManage) {
+      Alert.alert('Editar', `Solo el administrador puede editar «${counter.name}».`);
+      return;
+    }
+    clearSelection();
+    router.push({ pathname: '/contadores/[id]/editar', params: { id: counter.id } });
+  }
+
+  function mergeSelected() {
+    const ids = selectedIds.join(',');
+    clearSelection();
+    router.push({ pathname: '/contadores/fusionar', params: { contadores: ids } });
+  }
+
+  function addToFolder(folder: Folder) {
+    setFolderPickerOpen(false);
+    addToFolderMutation.mutate(
+      { folder, counterIds: selectedIds },
+      { onSuccess: clearSelection, onError: showError },
+    );
+  }
+
+  function addToNewFolder() {
+    const ids = selectedIds.join(',');
+    setFolderPickerOpen(false);
+    clearSelection();
+    router.push({ pathname: '/carpetas/nueva', params: { contadores: ids } });
+  }
+
+  // --- Carpetas ---------------------------------------------------------------------------
 
   function folderOptions(folder: Folder) {
     Alert.alert(folder.name, undefined, [
@@ -95,6 +203,135 @@ export default function CountersScreen() {
     ]);
   }
 
+  // --- Vista ------------------------------------------------------------------------------
+
+  function renderCard(item: CounterWithTotal) {
+    return (
+      <CounterCard
+        key={item.id}
+        counter={item}
+        selectionMode={selecting}
+        selected={selectedIds.includes(item.id)}
+        onLongPress={() => toggleSelected(item.id)}
+        onPress={() =>
+          selecting
+            ? toggleSelected(item.id)
+            : router.push({ pathname: '/contadores/[id]', params: { id: item.id } })
+        }
+        onAdd={(amount) => actions.add(item, { amount, loggedAt: new Date(), note: null })}
+        onRemoveOne={() => actions.subtractOne(item)}
+        onCustomAdd={() => setCustomFor(item)}
+      />
+    );
+  }
+
+  function headerIcon(name: IconName, label: string, onPress: () => void, disabled = false) {
+    return (
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled }}
+        hitSlop={8}
+        style={{ opacity: disabled ? 0.35 : 1 }}
+      >
+        <Ionicons name={name} size={24} color={colors.primary} />
+      </Pressable>
+    );
+  }
+
+  const selectionOptions = {
+    headerLeft: () => (
+      <Pressable
+        onPress={clearSelection}
+        accessibilityRole="button"
+        accessibilityLabel="Salir de la selección"
+        hitSlop={10}
+        style={styles.close}
+      >
+        <Ionicons name="close" size={26} color={colors.text} />
+      </Pressable>
+    ),
+    headerTitle: () => (
+      <Text style={[styles.titleText, { color: colors.text }]} numberOfLines={1}>
+        {selectedIds.length === 1 ? '1 seleccionado' : `${selectedIds.length} seleccionados`}
+      </Text>
+    ),
+    headerRight: () => (
+      <View style={styles.selectionActions}>
+        {headerIcon('trash-outline', 'Borrar', deleteSelected)}
+        <Pressable
+          onPress={() => setFolderPickerOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Añadir a una carpeta"
+          hitSlop={8}
+        >
+          <Ionicons name="folder-outline" size={24} color={colors.primary} />
+          <View style={[styles.folderPlus, { backgroundColor: colors.surface }]}>
+            <Ionicons name="add" size={13} color={colors.primary} />
+          </View>
+        </Pressable>
+        {headerIcon(
+          selected.every((c) => c.hidden) ? 'eye-outline' : 'eye-off-outline',
+          selected.every((c) => c.hidden) ? 'Mostrar' : 'Ocultar',
+          toggleHiddenSelected,
+        )}
+        {headerIcon('create-outline', 'Editar', editSelected, selectedIds.length !== 1)}
+        {headerIcon('git-merge-outline', 'Fusionar', mergeSelected)}
+      </View>
+    ),
+  };
+
+  const normalOptions = {
+    headerLeft: undefined,
+    // Título con el fuego de la racha a su derecha.
+    headerTitle: () => (
+      <View style={styles.title}>
+        <Text style={[styles.titleText, { color: colors.text }]} numberOfLines={1}>
+          Mis contadores
+        </Text>
+        <StreakBadge />
+      </View>
+    ),
+    headerRight: () => (
+      <View style={styles.headerActions}>
+        <Pressable
+          onPress={() => router.push('/contadores/fusionar')}
+          accessibilityRole="button"
+          accessibilityLabel="Fusionar contadores"
+          hitSlop={10}
+        >
+          <Ionicons name="git-merge-outline" size={25} color={colors.primary} />
+        </Pressable>
+        <Pressable
+          onPress={() => setFiltersOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={
+            filterCount > 0 ? `Filtros, ${filterCount} activos` : 'Filtrar contadores'
+          }
+          hitSlop={10}
+        >
+          <Ionicons name="options-outline" size={26} color={colors.primary} />
+          {filterCount > 0 ? (
+            <View style={[styles.badge, { backgroundColor: colors.danger }]} />
+          ) : null}
+        </Pressable>
+        <Pressable
+          onPress={openNewCounter}
+          accessibilityRole="button"
+          accessibilityLabel="Nuevo contador"
+          hitSlop={6}
+          style={({ pressed }) => [
+            styles.addButton,
+            { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <Ionicons name="add" size={26} color="#000000" />
+        </Pressable>
+      </View>
+    ),
+  };
+
   const selectedFolder = folderList.find((f) => f.id === filters.folderId);
   const emptyView =
     active.length === 0 ? (
@@ -113,7 +350,7 @@ export default function CountersScreen() {
           router.push({ pathname: '/carpetas/[id]', params: { id: selectedFolder.id } })
         }
       />
-    ) : (
+    ) : hidden.length > 0 ? undefined : (
       <EmptyView
         title="Ningún contador cumple los filtros"
         actionTitle="Quitar filtros"
@@ -123,56 +360,7 @@ export default function CountersScreen() {
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
-      <Stack.Screen
-        options={{
-          // Título con el fuego de la racha a su derecha.
-          headerTitle: () => (
-            <View style={styles.title}>
-              <Text style={[styles.titleText, { color: colors.text }]} numberOfLines={1}>
-                Mis contadores
-              </Text>
-              <StreakBadge />
-            </View>
-          ),
-          headerRight: () => (
-            <View style={styles.headerActions}>
-              <Pressable
-                onPress={() => router.push('/contadores/fusionar')}
-                accessibilityRole="button"
-                accessibilityLabel="Fusionar contadores"
-                hitSlop={10}
-              >
-                <Ionicons name="git-merge-outline" size={25} color={colors.primary} />
-              </Pressable>
-              <Pressable
-                onPress={() => setFiltersOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  filterCount > 0 ? `Filtros, ${filterCount} activos` : 'Filtrar contadores'
-                }
-                hitSlop={10}
-              >
-                <Ionicons name="options-outline" size={26} color={colors.primary} />
-                {filterCount > 0 ? (
-                  <View style={[styles.badge, { backgroundColor: colors.danger }]} />
-                ) : null}
-              </Pressable>
-              <Pressable
-                onPress={openNewCounter}
-                accessibilityRole="button"
-                accessibilityLabel="Nuevo contador"
-                hitSlop={6}
-                style={({ pressed }) => [
-                  styles.addButton,
-                  { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
-                ]}
-              >
-                <Ionicons name="add" size={26} color="#000000" />
-              </Pressable>
-            </View>
-          ),
-        }}
-      />
+      <Stack.Screen options={selecting ? selectionOptions : normalOptions} />
       <FolderBar
         folders={folderList}
         selectedId={filters.folderId}
@@ -181,17 +369,9 @@ export default function CountersScreen() {
         onNewFolder={() => router.push('/carpetas/nueva')}
       />
       <FlatList
-        data={counters}
+        data={shown}
         keyExtractor={(counter) => counter.id}
-        renderItem={({ item }) => (
-          <CounterCard
-            counter={item}
-            onPress={() => router.push({ pathname: '/contadores/[id]', params: { id: item.id } })}
-            onAdd={(amount) => add(item.id, { amount, loggedAt: new Date(), note: null })}
-            onRemoveOne={() => removeOne.mutate(item.id, { onError: showError })}
-            onCustomAdd={() => setCustomFor(item)}
-          />
-        )}
+        renderItem={({ item }) => renderCard(item)}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl
@@ -206,13 +386,23 @@ export default function CountersScreen() {
         }
         ListEmptyComponent={emptyView}
         ListFooterComponent={
-          archivedCount > 0 ? (
-            <AppButton
-              variant="ghost"
-              title={showArchived ? 'Ocultar archivados' : `Ver archivados (${archivedCount})`}
-              onPress={() => setShowArchived((value) => !value)}
-            />
-          ) : undefined
+          <View style={styles.footer}>
+            {archivedCount > 0 ? (
+              <AppButton
+                variant="ghost"
+                title={showArchived ? 'Ocultar archivados' : `Ver archivados (${archivedCount})`}
+                onPress={() => setShowArchived((value) => !value)}
+              />
+            ) : null}
+            {hidden.length > 0 ? (
+              <View style={styles.hidden}>
+                <Text style={[styles.hiddenTitle, { color: colors.textMuted }]}>
+                  Ocultos ({hidden.length})
+                </Text>
+                {hidden.map(renderCard)}
+              </View>
+            ) : null}
+          </View>
         }
       />
       <FilterMenu
@@ -222,11 +412,19 @@ export default function CountersScreen() {
         onChange={setFilters}
         onClose={() => setFiltersOpen(false)}
       />
+      <FolderPicker
+        visible={folderPickerOpen}
+        folders={folderList}
+        counterIds={selectedIds}
+        onPick={addToFolder}
+        onNewFolder={addToNewFolder}
+        onClose={() => setFolderPickerOpen(false)}
+      />
       <EntryDialog
         visible={customFor !== null}
         unit={customFor?.unit ?? null}
-        saving={addEntry.isPending}
-        onSave={(input) => customFor && add(customFor.id, input, () => setCustomFor(null))}
+        saving={actions.saving}
+        onSave={(input) => customFor && actions.add(customFor, input, () => setCustomFor(null))}
         onClose={() => setCustomFor(null)}
       />
     </View>
@@ -239,6 +437,14 @@ const styles = StyleSheet.create({
   titleText: { fontSize: 18, fontFamily: fonts.title },
   list: { padding: 12, gap: 10, flexGrow: 1 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18, marginRight: 14 },
+  selectionActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginRight: 14 },
+  close: { marginHorizontal: 12 },
+  folderPlus: {
+    position: 'absolute',
+    right: -5,
+    bottom: -3,
+    borderRadius: 7,
+  },
   addButton: {
     width: 38,
     height: 38,
@@ -247,4 +453,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badge: { position: 'absolute', top: -1, right: -2, width: 9, height: 9, borderRadius: 5 },
+  footer: { gap: 10 },
+  hidden: { gap: 10, marginTop: 16 },
+  hiddenTitle: { fontSize: 15, fontFamily: fonts.title, marginLeft: 4 },
 });

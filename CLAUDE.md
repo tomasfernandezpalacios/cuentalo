@@ -218,6 +218,24 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - Rachas de amigos: en la pantalla de racha, clasificación de mí y mis amigos aceptados por
   racha actual (empates comparten puesto, `withPositions`). La RPC `get_friends_streaks`
   (SECURITY DEFINER, «huecos e islas») solo devuelve números; los días siguen siendo privados.
+- **Administrador de contador** (petición del usuario): en un contador de grupo es quien lo creó
+  (`owner_id`, `is_counter_admin`). Solo él edita y borra; en un común es el único que suma o
+  resta y los demás le envían `counter_requests` (acepta o rechaza con
+  `decide_counter_request`; al aceptar se suma sola). Si sale del grupo, sus contadores pasan
+  al owner del grupo (trigger). El owner del grupo ya no edita contadores de otros.
+- Borrar un contador de grupo (`delete_group_counter`) o el grupo entero (trigger) **solo lo
+  saca del grupo** (`dissolve_group_counter`): cada miembro conserva sus registros, en el
+  contador con el que lo tuviera fusionado (como `personal_only`) o en uno privado nuevo con el
+  mismo nombre. Todos reciben un aviso.
+- **Buzón** (`app/avisos.tsx`, icono de sobre en «Amigos y grupos»): pendientes (solicitudes de
+  contador, de amistad e invitaciones), avisos (`notifications`: amistad aceptada, solicitud
+  aceptada/rechazada, contador o grupo borrado) e historial de solicitudes de amistad. Punto
+  rojo en el icono y en la pestaña mientras haya algo pendiente o sin leer (`useInboxCount`);
+  los avisos se marcan como leídos al abrir el buzón. Un rechazo de amistad no se avisa.
+- **Modo selección** en «Mis contadores»: mantener pulsado un contador. Cabecera «N
+  seleccionados» con borrar, añadir a carpeta (`FolderPicker` o carpeta nueva con los
+  seleccionados), ocultar/mostrar, editar (solo con uno) y fusionar. Atrás de Android sale del
+  modo. **Ocultos** personales (`hidden_counters`) al final de la lista.
 
 ## Cambios estéticos pendientes
 

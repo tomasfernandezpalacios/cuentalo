@@ -1,11 +1,13 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
+import { router, Stack } from 'expo-router';
 import { useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { FriendsPanel } from '@/features/social/components/FriendsPanel';
 import { GroupsPanel } from '@/features/social/components/GroupsPanel';
-import { socialKeys } from '@/features/social/hooks';
+import { socialKeys, useInboxCount } from '@/features/social/hooks';
 import { useThemeColors } from '@/lib/theme';
 
 type Tab = 'friends' | 'groups';
@@ -20,6 +22,7 @@ export default function SocialScreen() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>('groups');
   const [refreshing, setRefreshing] = useState(false);
+  const inbox = useInboxCount();
 
   async function refresh() {
     setRefreshing(true);
@@ -41,6 +44,24 @@ export default function SocialScreen() {
         />
       }
     >
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push('/avisos')}
+              accessibilityRole="button"
+              accessibilityLabel={inbox > 0 ? `Buzón, ${inbox} pendientes` : 'Buzón de avisos'}
+              hitSlop={10}
+              style={styles.inbox}
+            >
+              <Ionicons name="mail-outline" size={25} color={colors.primary} />
+              {inbox > 0 ? (
+                <View style={[styles.badge, { backgroundColor: colors.danger }]} />
+              ) : null}
+            </Pressable>
+          ),
+        }}
+      />
       <SegmentedControl options={TABS} value={tab} onChange={setTab} />
       {tab === 'groups' ? <GroupsPanel /> : <FriendsPanel />}
     </ScrollView>
@@ -49,4 +70,6 @@ export default function SocialScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 20 },
+  inbox: { marginRight: 16 },
+  badge: { position: 'absolute', top: -1, right: -3, width: 10, height: 10, borderRadius: 5 },
 });

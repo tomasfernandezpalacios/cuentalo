@@ -11,13 +11,12 @@ import { EntryRow } from '@/features/contadores/components/EntryRow';
 import { Leaderboard } from '@/features/contadores/components/Leaderboard';
 import { QuickAddBar } from '@/features/contadores/components/QuickAddBar';
 import {
-  useAddEntry,
   useCounter,
   useDeleteEntry,
   useEntries,
-  useRemoveOne,
   useUpdateEntry,
 } from '@/features/contadores/hooks';
+import { useCounterActions } from '@/features/contadores/useCounterActions';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount, formatWithUnit, pluralize } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
@@ -30,8 +29,7 @@ export default function CounterDetailScreen() {
   const colors = useThemeColors();
   const counter = useCounter(id);
   const entries = useEntries(id, counter.data?.linkedCounterIds);
-  const addEntry = useAddEntry();
-  const removeOne = useRemoveOne();
+  const actions = useCounterActions();
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -65,10 +63,7 @@ export default function CounterDetailScreen() {
   }
 
   function quickAdd(amount: number) {
-    addEntry.mutate(
-      { counterId: id, input: { amount, loggedAt: new Date(), note: null } },
-      { onError: showError },
-    );
+    if (counter.data) actions.add(counter.data, { amount, loggedAt: new Date(), note: null });
   }
 
   function handleSave(input: EntryInput) {
@@ -76,7 +71,7 @@ export default function CounterDetailScreen() {
     if (editing) {
       updateEntry.mutate({ entry: editing, input }, options);
     } else {
-      addEntry.mutate({ counterId: id, input }, options);
+      if (counter.data) actions.add(counter.data, input, options.onSuccess);
     }
   }
 
@@ -124,7 +119,7 @@ export default function CounterDetailScreen() {
       <QuickAddBar
         unit={unit}
         onAdd={quickAdd}
-        onRemoveOne={() => removeOne.mutate(id, { onError: showError })}
+        onRemoveOne={() => actions.subtractOne(counter.data)}
         canRemove={isCommon ? total >= 1 : myGroupTotal >= 1}
         onCustom={() => setDialog('new')}
       />
@@ -215,7 +210,7 @@ export default function CounterDetailScreen() {
         visible={dialog !== null}
         unit={unit}
         entry={editing}
-        saving={addEntry.isPending || updateEntry.isPending}
+        saving={actions.saving || updateEntry.isPending}
         onSave={handleSave}
         onDelete={handleDelete}
         onClose={() => setDialog(null)}

@@ -72,6 +72,7 @@ export function FriendsPanel() {
     }
     if (friendship.status === 'accepted') return <Tag text="Amigos" />;
     if (friendship.direction === 'outgoing') return <Tag text="Enviada" />;
+    if (friendship.status === 'rejected') return <Tag text="Rechazada" />;
     return (
       <AppButton
         small

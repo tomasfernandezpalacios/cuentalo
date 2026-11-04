@@ -30,15 +30,17 @@ function normalize(text: string): string {
 type Props = {
   /** Carpeta a editar; si no se pasa, se crea una nueva. */
   folder?: Folder;
+  /** Al crear: contadores ya marcados (desde la selección de la pantalla principal). */
+  initialCounterIds?: string[];
 };
 
 /** Pantalla completa: nombre, buscador y lista de contadores con casillas. */
-export function FolderForm({ folder }: Props) {
+export function FolderForm({ folder, initialCounterIds = [] }: Props) {
   const colors = useThemeColors();
   const counters = useCounterList();
   const save = useSaveFolder(folder?.id ?? null);
   const [name, setName] = useState(folder?.name ?? '');
-  const [selected, setSelected] = useState<string[]>(folder?.counterIds ?? []);
+  const [selected, setSelected] = useState<string[]>(folder?.counterIds ?? initialCounterIds);
   const [query, setQuery] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
 

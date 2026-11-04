@@ -58,6 +58,20 @@ export function useSaveFolder(id: string | null) {
   });
 }
 
+/** Añade contadores a una carpeta que ya existe (sin quitar los que tenía). */
+export function useAddToFolder() {
+  const userId = useUserId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ folder, counterIds }: { folder: Folder; counterIds: string[] }) =>
+      saveFolder(folder.id, {
+        name: folder.name,
+        counterIds: [...new Set([...folder.counterIds, ...counterIds])],
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: folderKeys.all(userId) }),
+  });
+}
+
 export function useDeleteFolder() {
   const userId = useUserId();
   const queryClient = useQueryClient();

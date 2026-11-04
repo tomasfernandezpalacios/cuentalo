@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +26,9 @@ export default function MergeCountersScreen() {
   const insets = useSafeAreaInsets();
   const counters = useCounterList();
   const merge = useMergeCounters();
-  const [selected, setSelected] = useState<string[]>([]);
+  // ?contadores=id1,id2 llega desde la selección de la pantalla principal.
+  const { contadores } = useLocalSearchParams<{ contadores?: string }>();
+  const [selected, setSelected] = useState<string[]>(contadores ? contadores.split(',') : []);
   const [query, setQuery] = useState('');
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('');

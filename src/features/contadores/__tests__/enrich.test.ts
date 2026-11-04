@@ -63,9 +63,9 @@ describe('enrich', () => {
     expect(result.canManage).toBe(true);
   });
 
-  it('el owner del grupo puede editar cualquier contador del grupo', () => {
+  it('el owner del grupo no administra los contadores que crearon otros', () => {
     const result = enrich(counter({ owner_id: ME, group_id: 'g1' }), totals, groups, OTHER);
-    expect(result.canManage).toBe(true);
+    expect(result.canManage).toBe(false);
   });
 
   it('común: guarda participantes y enseña mi total si participo', () => {

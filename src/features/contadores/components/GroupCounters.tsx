@@ -1,24 +1,19 @@
 import { router } from 'expo-router';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
-import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 
-import { useAddEntry, useCounterList, useRemoveOne } from '../hooks';
+import { useCounterList } from '../hooks';
+import { useCounterActions } from '../useCounterActions';
 
 import { CounterCard } from './CounterCard';
-
-function showError(error: unknown) {
-  Alert.alert('No se ha podido guardar', getErrorMessage(error));
-}
 
 /** Contadores compartidos de un grupo, con los mismos botones rápidos que la lista de inicio. */
 export function GroupCounters({ groupId }: { groupId: string }) {
   const colors = useThemeColors();
   const counters = useCounterList();
-  const addEntry = useAddEntry();
-  const removeOne = useRemoveOne();
+  const actions = useCounterActions();
 
   const groupCounters = (counters.data ?? []).filter(
     (c) => c.group_id === groupId && c.isActive && !c.archived,
@@ -43,13 +38,8 @@ export function GroupCounters({ groupId }: { groupId: string }) {
             key={counter.id}
             counter={counter}
             onPress={() => openCounter(counter.id)}
-            onAdd={(amount) =>
-              addEntry.mutate(
-                { counterId: counter.id, input: { amount, loggedAt: new Date(), note: null } },
-                { onError: showError },
-              )
-            }
-            onRemoveOne={() => removeOne.mutate(counter.id, { onError: showError })}
+            onAdd={(amount) => actions.add(counter, { amount, loggedAt: new Date(), note: null })}
+            onRemoveOne={() => actions.subtractOne(counter)}
             onCustomAdd={() => openCounter(counter.id)}
           />
         ))

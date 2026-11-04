@@ -15,7 +15,8 @@ export type GroupMember = Tables<'group_members'>;
 /** Una amistad vista desde mi lado: quién es el otro y si la pedí yo o me la pidieron. */
 export type Friendship = {
   id: string;
-  status: 'pending' | 'accepted';
+  /** 'rejected' solo aparece en las que rechacé yo (a quien la envió le sigue saliendo pendiente). */
+  status: 'pending' | 'accepted' | 'rejected';
   direction: 'incoming' | 'outgoing';
   other: PublicProfile;
 };
@@ -72,10 +73,10 @@ export async function fetchFriendships(myId: string): Promise<Friendship[]> {
   for (const f of data) {
     const direction = f.requester_id === myId ? 'outgoing' : 'incoming';
     const other = profiles.get(otherId(f));
-    // Una solicitud rechazada desaparece para quien la rechazó; a quien la envió le sigue
-    // apareciendo como pendiente, para no comunicarle el rechazo.
-    if (!other || (f.status === 'rejected' && direction === 'incoming')) continue;
-    const status = f.status === 'accepted' ? 'accepted' : 'pending';
+    if (!other) continue;
+    // A quien la envió, una solicitud rechazada le sigue apareciendo como pendiente, para no
+    // comunicarle el rechazo. Quien la rechazó la ve como rechazada en su buzón.
+    const status = f.status === 'rejected' && direction === 'outgoing' ? 'pending' : f.status;
     result.push({ id: f.id, status, direction, other });
   }
   return result;
@@ -296,4 +297,79 @@ export async function joinGroupByCode(code: string): Promise<string> {
   const { data, error } = await supabase.rpc('join_group_by_code', { p_code: code });
   if (error) throw error;
   return data;
+}
+
+// --- Buzón de avisos --------------------------------------------------------------------------
+
+export type Notice = Tables<'notifications'> & { actor: PublicProfile | null };
+
+export type CounterRequestItem = {
+  id: string;
+  amount: number;
+  createdAt: string;
+  counterName: string;
+  counterEmoji: string | null;
+  requester: PublicProfile | null;
+};
+
+/** Mis avisos (los 50 últimos), con quién los provocó. */
+export async function fetchNotices(): Promise<Notice[]> {
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  const actors = await fetchProfilesByIds([
+    ...new Set(data.map((n) => n.actor_id).filter((id): id is string => id !== null)),
+  ]);
+  return data.map((n) => ({ ...n, actor: n.actor_id ? (actors.get(n.actor_id) ?? null) : null }));
+}
+
+/** Solicitudes pendientes de otros en contadores comunes que administro. */
+export async function fetchPendingCounterRequests(myId: string): Promise<CounterRequestItem[]> {
+  const { data, error } = await supabase
+    .from('counter_requests')
+    .select('*')
+    .eq('status', 'pending')
+    .neq('requester_id', myId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  if (data.length === 0) return [];
+
+  const [counters, profiles] = await Promise.all([
+    supabase
+      .from('counters')
+      .select('id, name, emoji')
+      .in('id', [...new Set(data.map((r) => r.counter_id))]),
+    fetchProfilesByIds([...new Set(data.map((r) => r.requester_id))]),
+  ]);
+  if (counters.error) throw counters.error;
+  return data.map((r) => {
+    const counter = counters.data.find((c) => c.id === r.counter_id);
+    return {
+      id: r.id,
+      amount: r.amount,
+      createdAt: r.created_at,
+      counterName: counter?.name ?? 'Contador',
+      counterEmoji: counter?.emoji ?? null,
+      requester: profiles.get(r.requester_id) ?? null,
+    };
+  });
+}
+
+export async function decideCounterRequest(id: string, approve: boolean): Promise<void> {
+  const { error } = await supabase.rpc('decide_counter_request', {
+    p_request_id: id,
+    p_approve: approve,
+  });
+  if (error) throw error;
+}
+
+export async function markNoticesRead(): Promise<void> {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .is('read_at', null);
+  if (error) throw error;
 }

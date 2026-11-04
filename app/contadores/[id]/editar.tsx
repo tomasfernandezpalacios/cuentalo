@@ -6,17 +6,18 @@ import { ErrorView, LoadingView } from '@/components/StateViews';
 import { CounterForm } from '@/features/contadores/components/CounterForm';
 import {
   useCounter,
-  useDeleteCounter,
+  useDeleteCounters,
   useSetParticipants,
   useUpdateCounter,
 } from '@/features/contadores/hooks';
+import { confirmDeleteCounters } from '@/features/contadores/confirmDelete';
 import { getErrorMessage } from '@/lib/errors';
 
 export default function EditCounterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const counter = useCounter(id);
   const update = useUpdateCounter(id);
-  const remove = useDeleteCounter(id);
+  const remove = useDeleteCounters();
   const setParticipants = useSetParticipants(id);
 
   if (counter.isPending) return <LoadingView />;
@@ -43,21 +44,13 @@ export default function EditCounterScreen() {
   }
 
   function confirmDelete() {
-    Alert.alert(
-      'Borrar contador',
-      `Se borrarán «${name}» y todos sus registros. Esta acción no se puede deshacer.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Borrar',
-          style: 'destructive',
-          onPress: () =>
-            remove.mutate(undefined, {
-              onSuccess: () => router.dismissTo('/'),
-              onError: (error) => Alert.alert('Error', getErrorMessage(error)),
-            }),
-        },
-      ],
+    if (!counter.data) return;
+    const data = counter.data;
+    confirmDeleteCounters([data], () =>
+      remove.mutate([data], {
+        onSuccess: () => router.dismissTo('/'),
+        onError: (error) => Alert.alert('Error', getErrorMessage(error)),
+      }),
     );
   }
 
@@ -86,15 +79,13 @@ export default function EditCounterScreen() {
             variant="secondary"
             onPress={toggleArchived}
           />
-          {/* Los compartidos no se borran (se perderían los registros de todos): se archivan. */}
-          {group ? null : (
-            <AppButton
-              title="Borrar contador"
-              variant="danger"
-              onPress={confirmDelete}
-              loading={remove.isPending}
-            />
-          )}
+          {/* Solo el administrador llega aquí; en uno de grupo, borrar solo lo saca del grupo. */}
+          <AppButton
+            title={group ? 'Borrar del grupo' : 'Borrar contador'}
+            variant="danger"
+            onPress={confirmDelete}
+            loading={remove.isPending}
+          />
         </View>
       }
     />
