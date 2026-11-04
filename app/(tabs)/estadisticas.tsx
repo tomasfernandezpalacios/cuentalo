@@ -22,6 +22,7 @@ import {
   type Period,
 } from '@/features/estadisticas/periods';
 import { toggleVisible, useStatsSelection } from '@/features/estadisticas/selection';
+import { visibleCounterId } from '@/features/contadores/links';
 import { chartColor } from '@/lib/chartColors';
 import { fonts, useThemeColors } from '@/lib/theme';
 
@@ -41,13 +42,18 @@ export default function StatsScreen() {
   const [chartType, setChartType] = useState<ChartType>('line');
 
   const today = todayInMadrid();
-  const summaries = useMemo(() => summarizeByCounter(daily.data ?? [], today), [daily.data, today]);
+  // Lo de los contadores enlazados (fusión de varios grupos) cuenta en el que se ve.
+  const days = useMemo(() => {
+    const resolve = visibleCounterId(counters.data ?? []);
+    return (daily.data ?? []).map((d) => ({ ...d, counterId: resolve(d.counterId) }));
+  }, [daily.data, counters.data]);
+  const summaries = useMemo(() => summarizeByCounter(days, today), [days, today]);
 
   // Contadores de la barra: los del filtro o, sin filtro, todos los míos (alfabético). Los de
   // grupos que dejé siguen si tengo registros en ellos.
   const pool = useMemo(() => {
     const all = (counters.data ?? [])
-      .filter((c) => c.isActive || c.myEntryCount > 0)
+      .filter((c) => !c.linkedInto && (c.isActive || c.myEntryCount > 0))
       .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
     return selection.pool ? all.filter((c) => selection.pool?.includes(c.id)) : all;
   }, [counters.data, selection.pool]);
@@ -79,8 +85,8 @@ export default function StatsScreen() {
     );
   }
 
-  const visibleIds =
-    selection.visible ?? (lastUsed.data ? [lastUsed.data] : pool[0] ? [pool[0].id] : []);
+  const lastUsedId = lastUsed.data ? visibleCounterId(counters.data)(lastUsed.data) : null;
+  const visibleIds = selection.visible ?? (lastUsedId ? [lastUsedId] : pool[0] ? [pool[0].id] : []);
   const chips = pool.map((c, i) => ({
     id: c.id,
     name: c.name,
@@ -90,7 +96,7 @@ export default function StatsScreen() {
   const shown = chips.filter((c) => visibleIds.includes(c.id));
 
   // Eje X según el periodo; en el histórico empieza en el primer registro de lo que se ve.
-  const shownDays = daily.data.filter((d) => visibleIds.includes(d.counterId));
+  const shownDays = days.filter((d) => visibleIds.includes(d.counterId));
   const firstDay = shownDays.reduce<string | null>(
     (min, d) => (min === null || d.day < min ? d.day : min),
     null,

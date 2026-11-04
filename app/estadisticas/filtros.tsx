@@ -26,7 +26,7 @@ export default function StatsFiltersScreen() {
 
   // Todos los contadores con los que tengo algo que ver, en orden alfabético.
   const all = (counters.data ?? [])
-    .filter((c) => c.isActive || c.myEntryCount > 0)
+    .filter((c) => !c.linkedInto && (c.isActive || c.myEntryCount > 0))
     .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
   const visible = query.trim()
     ? all.filter((c) => normalize(c.name).includes(normalize(query.trim())))

@@ -1,6 +1,8 @@
 import type { Tables, Views } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 
+import { applyLinks, type CounterLink, type LinkedGroup } from './links';
+
 export type Counter = Tables<'counters'>;
 export type Entry = Tables<'entries'>;
 export type CounterTotal = Views<'counter_totals'>;
@@ -41,6 +43,15 @@ export type CounterWithTotal = Counter & {
   displayTotal: number;
   /** Último registro que veo (de cualquiera, en un compartido), o null si no hay. */
   lastLoggedAt: string | null;
+  /**
+   * Contadores que para mí son este mismo (enlazados al fusionar varios de grupo), incluido él.
+   * Si no está enlazado, solo su propio id.
+   */
+  linkedCounterIds: string[];
+  /** Grupos en los que cuenta, con el total de cada uno. */
+  linkedGroups: LinkedGroup[];
+  /** Si es un enlazado secundario: id del contador que lo representa (no sale en la lista). */
+  linkedInto: string | null;
 };
 
 /** La unidad y el emoticono son opcionales: una cadena vacía se guarda como null. */
@@ -109,11 +120,22 @@ export function enrich(
     canManage,
     participantIds,
     lastLoggedAt: t?.last_logged_at ?? null,
+    linkedCounterIds: [counter.id],
+    linkedGroups: group && isActive ? [{ counterId: counter.id, group, total: t?.total ?? 0 }] : [],
+    linkedInto: null,
     displayTotal:
       counter.is_common && !participantIds.includes(myId) && participantIds.length > 0
         ? (t?.total ?? 0) / participantIds.length
         : (t?.my_total ?? 0),
   };
+}
+
+async function fetchLinks(): Promise<CounterLink[]> {
+  const { data, error } = await supabase
+    .from('counter_links')
+    .select('counter_id, link_id, is_primary');
+  if (error) throw error;
+  return data.map((l) => ({ counterId: l.counter_id, linkId: l.link_id, isPrimary: l.is_primary }));
 }
 
 /** Mis alias (nombre e icono personales) por contador. */
@@ -139,21 +161,32 @@ async function fetchParticipants(counterIds?: string[]): Promise<Map<string, str
 // --- Contadores -------------------------------------------------------------
 
 export async function fetchCounters(myId: string): Promise<CounterWithTotal[]> {
-  const [counters, totals, groups, participants, aliases] = await Promise.all([
+  const [counters, totals, groups, participants, aliases, links] = await Promise.all([
     supabase.from('counters').select('*').order('created_at', { ascending: true }),
     supabase.from('counter_totals').select('*'),
     fetchMyActiveGroups(myId),
     fetchParticipants(),
     fetchAliases(),
+    fetchLinks(),
   ]);
   if (counters.error) throw counters.error;
   if (totals.error) throw totals.error;
-  return counters.data.map((counter) =>
+  const enriched = counters.data.map((counter) =>
     enrich(counter, totals.data, groups, myId, participants, aliases),
   );
+  return applyLinks(enriched, links);
 }
 
+/** Un contador ya combinado con sus enlazados (se apoya en la lista completa). */
 export async function fetchCounter(id: string, myId: string): Promise<CounterWithTotal> {
+  const all = await fetchCounters(myId);
+  const counter = all.find((c) => c.id === id);
+  if (counter)
+    return counter.linkedInto ? (all.find((c) => c.id === counter.linkedInto) ?? counter) : counter;
+  return fetchSingleCounter(id, myId);
+}
+
+async function fetchSingleCounter(id: string, myId: string): Promise<CounterWithTotal> {
   const [counter, totals, groups, participants, aliases] = await Promise.all([
     supabase.from('counters').select('*').eq('id', id).single(),
     supabase.from('counter_totals').select('*').eq('counter_id', id),
@@ -243,34 +276,42 @@ export async function deleteCounter(id: string): Promise<void> {
 
 const ENTRIES_PAGE_SIZE = 100;
 
-/** Mi historial en el contador (en un compartido, solo mis registros). */
-export async function fetchEntries(counterId: string, myId: string): Promise<Entry[]> {
+/**
+ * Mi historial en el contador y sus enlazados, sin repetir las copias de un mismo registro (en
+ * un compartido, solo mis registros).
+ */
+export async function fetchEntries(counterIds: string[], myId: string): Promise<Entry[]> {
   const { data, error } = await supabase
     .from('entries')
     .select('*')
-    .eq('counter_id', counterId)
+    .in('counter_id', counterIds)
     .eq('user_id', myId)
+    .eq('group_only', false)
     .order('logged_at', { ascending: false })
     .limit(ENTRIES_PAGE_SIZE);
   if (error) throw error;
   return data;
 }
 
+/** +N. Si el contador está enlazado con otros, se apunta en todos (ver log_to_counter). */
 export async function createEntry(counterId: string, input: EntryInput): Promise<void> {
-  const { error } = await supabase.from('entries').insert({
-    counter_id: counterId,
-    amount: input.amount,
-    logged_at: input.loggedAt.toISOString(),
-    note: input.note,
+  const { error } = await supabase.rpc('log_to_counter', {
+    p_counter_id: counterId,
+    p_amount: input.amount,
+    p_logged_at: input.loggedAt.toISOString(),
+    p_note: input.note,
   });
   if (error) throw error;
 }
 
-export async function updateEntry(id: string, input: EntryInput): Promise<void> {
-  const { error } = await supabase
+/** Edita un registro y, si tiene copias en contadores enlazados, también las copias. */
+export async function updateEntry(entry: Entry, input: EntryInput): Promise<void> {
+  const query = supabase
     .from('entries')
-    .update({ amount: input.amount, logged_at: input.loggedAt.toISOString(), note: input.note })
-    .eq('id', id);
+    .update({ amount: input.amount, logged_at: input.loggedAt.toISOString(), note: input.note });
+  const { error } = await (entry.batch_id
+    ? query.eq('batch_id', entry.batch_id)
+    : query.eq('id', entry.id));
   if (error) throw error;
 }
 
@@ -302,8 +343,12 @@ export async function removeOneFromCommonCounter(counterId: string): Promise<voi
   if (error) throw error;
 }
 
-export async function deleteEntry(id: string): Promise<void> {
-  const { error } = await supabase.from('entries').delete().eq('id', id);
+/** Borra un registro y sus copias en contadores enlazados. */
+export async function deleteEntry(entry: Entry): Promise<void> {
+  const query = supabase.from('entries').delete();
+  const { error } = await (entry.batch_id
+    ? query.eq('batch_id', entry.batch_id)
+    : query.eq('id', entry.id));
   if (error) throw error;
 }
 

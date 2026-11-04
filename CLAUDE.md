@@ -189,6 +189,15 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   grupo y mis registros antiguos se mueven como `entries.personal_only = true`: cuentan en mi
   total (`my_total`) y mis estadísticas, pero no en `total`, la clasificación ni los ve nadie
   más. Máximo un contador de grupo; nunca comunes; irreversible. El −1 usa `my_group_total`.
+- **Fusionar varios contadores de grupo** (petición del usuario): cada grupo conserva su propio
+  contador; se **enlazan** solo para quien fusiona (`counter_links`, con un principal). Al
+  registrar (`log_to_counter`, ahora la vía normal de +N en no comunes) se inserta una copia en
+  cada enlazado con el mismo `batch_id`; solo la primera cuenta para mí, las demás son
+  `group_only`. `my_total` y `entry_daily_totals` excluyen `group_only`; el total del grupo y la
+  clasificación excluyen `personal_only`. Editar/borrar un registro actúa sobre todo su
+  `batch_id`. No se pueden enlazar dos contadores del mismo grupo. En la app, `applyLinks`
+  junta los enlazados en el principal (`linkedGroups`, `linkedCounterIds`) y marca los demás con
+  `linkedInto` (no salen en listas; las estadísticas los suman al principal).
 - Alias personales (`counter_aliases`): nombre/icono que solo ve uno (se crean al fusionar con
   un contador de grupo). `enrich` los aplica a `name`/`emoji`; editar usa
   `sharedName`/`sharedEmoji` para no guardar el alias como nombre del grupo.

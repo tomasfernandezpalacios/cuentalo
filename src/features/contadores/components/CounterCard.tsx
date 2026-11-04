@@ -43,7 +43,9 @@ export function CounterCard({ counter, onPress, onAdd, onRemoveOne, onCustomAdd 
         {counter.group || counter.archived ? (
           <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
             {[
-              counter.group ? `👥 ${counter.group.name}` : null,
+              counter.linkedGroups.length > 0
+                ? `👥 ${counter.linkedGroups.map((g) => g.group.name).join(' · ')}`
+                : null,
               counter.is_common ? 'Común' : null,
               counter.archived ? 'Archivado' : null,
             ]

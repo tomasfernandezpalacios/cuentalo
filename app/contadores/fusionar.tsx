@@ -33,7 +33,7 @@ export default function MergeCountersScreen() {
 
   // Se pueden fusionar los míos y los de mis grupos, salvo los comunes.
   const candidates = (counters.data ?? [])
-    .filter((c) => c.isActive && !c.archived && !c.is_common)
+    .filter((c) => c.isActive && !c.archived && !c.is_common && !c.linkedInto)
     .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
   const visible = query.trim()
     ? candidates.filter((c) => normalize(c.name).includes(normalize(query.trim())))
@@ -43,8 +43,13 @@ export default function MergeCountersScreen() {
     .map((id) => candidates.find((c) => c.id === id))
     .filter((c): c is CounterWithTotal => c !== undefined);
   const groupCounter = chosen.find((c) => c.group_id !== null);
-  // El que queda: el de grupo si hay uno; si no, el primero elegido.
+  // El que queda: el primero de grupo elegido si hay alguno; si no, el primero elegido.
   const target = groupCounter ?? chosen[0];
+  // Grupos ya cubiertos por lo elegido: no se pueden juntar dos contadores del mismo grupo.
+  const chosenGroupIds = new Set(chosen.flatMap((c) => c.linkedGroups.map((g) => g.group.id)));
+  const chosenGroupNames = [
+    ...new Set(chosen.flatMap((c) => c.linkedGroups.map((g) => g.group.name))),
+  ];
 
   function toggle(counter: CounterWithTotal) {
     if (selected.includes(counter.id)) {
@@ -57,11 +62,12 @@ export default function MergeCountersScreen() {
   function confirmMerge() {
     if (!target || chosen.length < 2) return;
     const finalName = name.trim() || target.name;
-    const message = groupCounter
-      ? `Quedará un solo contador, «${finalName}», del grupo ${groupCounter.group?.name}. ` +
-        'Tus registros anteriores seguirán contando en tus estadísticas, pero en el grupo solo ' +
-        'cuentan los que ya tenía y los que sumes a partir de ahora.'
-      : `Quedará un solo contador, «${finalName}», con todos los registros juntos.`;
+    const message =
+      chosenGroupNames.length > 0
+        ? `Quedará un solo contador, «${finalName}», que cuenta en ${chosenGroupNames.join(' y ')}. ` +
+          'En tus estadísticas se suma todo lo que llevabas; en cada grupo solo cuenta lo que ya ' +
+          'tenía allí y lo que sumes a partir de ahora.'
+        : `Quedará un solo contador, «${finalName}», con todos los registros juntos.`;
     Alert.alert('Fusionar contadores', `${message}\n\nNo se puede deshacer.`, [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -89,8 +95,10 @@ export default function MergeCountersScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={[styles.detail, { color: colors.textMuted }]}>
-              Une dos o más contadores que cuentan lo mismo para tener uno solo. Si uno es de un
-              grupo, tus registros anteriores siguen en tus estadísticas pero no suman en el grupo.
+              Une dos o más contadores que cuentan lo mismo para tener uno solo. En tus estadísticas
+              se suma todo. Si hay contadores de grupos, en cada grupo solo cuenta lo que ya tenía
+              allí y lo que sumes después. Puedes unir varios grupos, pero no dos contadores del
+              mismo grupo.
             </Text>
             <View
               style={[
@@ -116,8 +124,8 @@ export default function MergeCountersScreen() {
         }
         renderItem={({ item }) => {
           const checked = selected.includes(item.id);
-          // Solo puede haber uno de grupo en la fusión.
-          const blocked = !checked && item.group_id !== null && groupCounter !== undefined;
+          // No se pueden juntar dos contadores del mismo grupo.
+          const blocked = !checked && item.linkedGroups.some((g) => chosenGroupIds.has(g.group.id));
           return (
             <Pressable
               onPress={() => toggle(item)}
@@ -138,7 +146,9 @@ export default function MergeCountersScreen() {
                   {item.name}
                 </Text>
                 <Text style={[styles.small, { color: colors.textMuted }]} numberOfLines={1}>
-                  {item.group ? `👥 ${item.group.name} · ` : 'Individual · '}
+                  {item.linkedGroups.length > 0
+                    ? `👥 ${item.linkedGroups.map((g) => g.group.name).join(' · ')} · `
+                    : 'Individual · '}
                   {formatWithUnit(item.myTotal, item.unit)}
                 </Text>
               </View>

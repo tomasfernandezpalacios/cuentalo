@@ -21,6 +21,7 @@ import {
   updateEntry,
   type CounterInput,
   type CounterWithTotal,
+  type Entry,
   type EntryInput,
   type LeaderboardPeriod,
 } from './api';
@@ -62,12 +63,13 @@ export function useCounter(id: string) {
   });
 }
 
-export function useEntries(counterId: string) {
+/** Mi historial del contador; `counterIds` incluye sus enlazados (si los tiene). */
+export function useEntries(counterId: string, counterIds: string[] | undefined) {
   const userId = useUserId();
   return useQuery({
-    queryKey: counterKeys.entries(counterId),
-    queryFn: () => fetchEntries(counterId, userId),
-    enabled: userId !== '',
+    queryKey: [...counterKeys.entries(counterId), ...(counterIds ?? [])],
+    queryFn: () => fetchEntries(counterIds ?? [counterId], userId),
+    enabled: userId !== '' && counterIds !== undefined,
   });
 }
 
@@ -263,7 +265,8 @@ export function useRemoveOne() {
 export function useUpdateEntry() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: EntryInput }) => updateEntry(id, input),
+    mutationFn: ({ entry, input }: { entry: Entry; input: EntryInput }) =>
+      updateEntry(entry, input),
     onSuccess: () => invalidateCounters(queryClient),
   });
 }
@@ -271,7 +274,7 @@ export function useUpdateEntry() {
 export function useDeleteEntry() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteEntry(id),
+    mutationFn: (entry: Entry) => deleteEntry(entry),
     onSuccess: () => invalidateCounters(queryClient),
   });
 }

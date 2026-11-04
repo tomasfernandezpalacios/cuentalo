@@ -368,6 +368,84 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- 3d. Fusionar contadores de dos grupos (enlazados)
+-- ---------------------------------------------------------------------------
+
+-- Beto crea un segundo grupo con un contador donde lleva 5 y lo fusiona con el del primer grupo.
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}', true);
+insert into public.groups (id, name) values ('30000000-0000-0000-0000-000000000002', 'Grupo 2 de Beto');
+insert into public.counters (id, name, unit, group_id)
+  values ('10000000-0000-0000-0000-000000000005', 'Cervezas G2', 'cosas',
+          '30000000-0000-0000-0000-000000000002');
+insert into public.entries (counter_id, amount)
+  values ('10000000-0000-0000-0000-000000000005', 5);
+insert into public.counters (id, name, unit, group_id)
+  values ('10000000-0000-0000-0000-000000000006', 'Otro del grupo 1', 'cosas',
+          '30000000-0000-0000-0000-000000000001');
+
+do $$
+declare n int; v_total numeric; v_entry uuid;
+begin
+  -- Dos del mismo grupo no se pueden juntar.
+  begin
+    perform public.merge_counters(
+      array['10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000006']::uuid[],
+      null, null);
+    raise exception 'FALLO: se pueden fusionar dos contadores del mismo grupo';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+
+  perform public.merge_counters(
+    array['10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005']::uuid[],
+    null, null);
+
+  select count(*) into n from public.counter_links where link_id is not null;
+  if n <> 2 then raise exception 'FALLO: no se enlazan los dos contadores de grupo (%)', n; end if;
+
+  -- +1 una vez: se apunta en los dos grupos.
+  n := public.log_to_counter('10000000-0000-0000-0000-000000000002', 1);
+  if n <> 2 then raise exception 'FALLO: el +1 no llega a los dos grupos (%)', n; end if;
+
+  select total into v_total from public.get_leaderboard('10000000-0000-0000-0000-000000000002', 'all')
+   where username = 'beto_prueba';
+  if v_total <> 5 then raise exception 'FALLO: clasificación del grupo 1 incorrecta (%)', v_total; end if;
+
+  select total into v_total from public.get_leaderboard('10000000-0000-0000-0000-000000000005', 'all')
+   where username = 'beto_prueba';
+  if v_total <> 6 then raise exception 'FALLO: clasificación del grupo 2 incorrecta (%)', v_total; end if;
+
+  -- Personal: 104 + 5 + 1 (una sola vez) = 110.
+  select sum(total) into v_total from public.entry_daily_totals
+   where user_id = '00000000-0000-0000-0000-0000000000b2'
+     and counter_id in ('10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005');
+  if v_total <> 110 then raise exception 'FALLO: total personal duplicado o incompleto (%)', v_total; end if;
+
+  -- Borrar el registro quita sus copias en los dos grupos.
+  select id into v_entry from public.entries
+   where counter_id = '10000000-0000-0000-0000-000000000002' and batch_id is not null
+     and amount = 1 and not group_only
+   limit 1;
+  delete from public.entries
+   where batch_id = (select batch_id from public.entries where id = v_entry);
+  select count(*) into n from public.entries
+   where batch_id is not null and amount = 1 and counter_id = '10000000-0000-0000-0000-000000000005';
+  if n <> 0 then raise exception 'FALLO: borrar no quita la copia del otro grupo'; end if;
+end $$;
+
+-- Ana (solo en el grupo 1) no ve nada del grupo 2 ni los enlaces de Beto.
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.entries where counter_id = '10000000-0000-0000-0000-000000000005';
+  if n <> 0 then raise exception 'FALLO: Ana ve registros de un grupo ajeno'; end if;
+
+  select count(*) into n from public.counter_links;
+  if n <> 0 then raise exception 'FALLO: Ana ve los enlaces de Beto'; end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- 4. Salir del grupo conserva las estadísticas personales
 -- ---------------------------------------------------------------------------
 

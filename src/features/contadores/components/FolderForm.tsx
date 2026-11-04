@@ -43,7 +43,7 @@ export function FolderForm({ folder }: Props) {
   const [nameError, setNameError] = useState<string | null>(null);
 
   const all: CounterWithTotal[] = (counters.data ?? [])
-    .filter((c) => c.isActive)
+    .filter((c) => c.isActive && !c.linkedInto)
     .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
   const visible = query.trim()
     ? all.filter((c) => normalize(c.name).includes(normalize(query.trim())))

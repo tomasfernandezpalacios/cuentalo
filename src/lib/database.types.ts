@@ -64,6 +64,8 @@ export type Database = {
           note: string | null;
           created_at: string;
           personal_only: boolean;
+          group_only: boolean;
+          batch_id: string | null;
         };
         Insert: {
           id?: string;
@@ -132,6 +134,12 @@ export type Database = {
       folder_counters: {
         Row: { folder_id: string; counter_id: string };
         Insert: { folder_id: string; counter_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      counter_links: {
+        Row: { user_id: string; counter_id: string; link_id: string; is_primary: boolean };
+        Insert: never;
         Update: never;
         Relationships: [];
       };
@@ -226,6 +234,15 @@ export type Database = {
       save_folder: {
         Args: { p_folder_id: string | null; p_name: string; p_counter_ids: string[] };
         Returns: string;
+      };
+      log_to_counter: {
+        Args: {
+          p_counter_id: string;
+          p_amount: number;
+          p_logged_at?: string;
+          p_note?: string | null;
+        };
+        Returns: number;
       };
       merge_counters: {
         Args: { p_counter_ids: string[]; p_name: string | null; p_emoji: string | null };

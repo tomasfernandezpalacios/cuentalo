@@ -50,7 +50,7 @@ export default function CountersScreen() {
   const filterCount = activeFilterCount(filters);
 
   // Solo los míos y los de grupos donde sigo; los de grupos que dejé quedan para estadísticas.
-  const active = data.filter((c) => c.isActive);
+  const active = data.filter((c) => c.isActive && !c.linkedInto);
   const filtered = filterCounters(active, filters, folderList);
   const archivedCount = filtered.filter((c) => c.archived).length;
   const counters = showArchived ? filtered : filtered.filter((c) => !c.archived);

@@ -35,7 +35,8 @@ const CUSTOM_MESSAGES: Record<string, string> = {
   no_participants: 'Elige al menos una persona para el contador común.',
   folder_not_found: 'Esa carpeta ya no existe.',
   merge_needs_two: 'Elige al menos dos contadores para fusionar.',
-  merge_two_groups: 'Solo puedes fusionar un contador de grupo cada vez.',
+  merge_same_group: 'No puedes fusionar dos contadores del mismo grupo.',
+  cannot_log: 'No puedes registrar en este contador.',
   merge_invalid_counters: 'Alguno de esos contadores no se puede fusionar.',
 };
 

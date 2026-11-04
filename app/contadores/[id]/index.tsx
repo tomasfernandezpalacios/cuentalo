@@ -29,12 +29,14 @@ export default function CounterDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useThemeColors();
   const counter = useCounter(id);
-  const entries = useEntries(id);
+  const entries = useEntries(id, counter.data?.linkedCounterIds);
   const addEntry = useAddEntry();
   const removeOne = useRemoveOne();
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
   const [dialog, setDialog] = useState<DialogState>(null);
+  // Si cuenta en varios grupos (contadores enlazados), de qué grupo se ve la clasificación.
+  const [boardCounterId, setBoardCounterId] = useState<string | null>(null);
 
   if (counter.isPending) return <LoadingView />;
   if (counter.error) return <ErrorView error={counter.error} onRetry={counter.refetch} />;
@@ -52,7 +54,10 @@ export default function CounterDetailScreen() {
     canManage,
     is_common: isCommon,
     participantIds,
+    linkedGroups,
   } = counter.data;
+  const counterId = counter.data.id;
+  const board = linkedGroups.find((g) => g.counterId === boardCounterId) ?? linkedGroups[0] ?? null;
   const editing = dialog !== null && dialog !== 'new' ? dialog : null;
 
   function showError(error: unknown) {
@@ -69,7 +74,7 @@ export default function CounterDetailScreen() {
   function handleSave(input: EntryInput) {
     const options = { onSuccess: () => setDialog(null), onError: showError };
     if (editing) {
-      updateEntry.mutate({ id: editing.id, input }, options);
+      updateEntry.mutate({ entry: editing, input }, options);
     } else {
       addEntry.mutate({ counterId: id, input }, options);
     }
@@ -83,7 +88,7 @@ export default function CounterDetailScreen() {
         text: 'Borrar',
         style: 'destructive',
         onPress: () =>
-          deleteEntry.mutate(editing.id, { onSuccess: () => setDialog(null), onError: showError }),
+          deleteEntry.mutate(editing, { onSuccess: () => setDialog(null), onError: showError }),
       },
     ]);
   }
@@ -93,11 +98,10 @@ export default function CounterDetailScreen() {
       <View
         style={styles.totalBox}
         accessible
-        accessibilityLabel={
-          group
-            ? `Tú: ${formatWithUnit(myTotal, unit)}. Grupo ${group.name}: ${formatWithUnit(total, unit)}`
-            : `Total: ${formatWithUnit(myTotal, unit)}`
-        }
+        accessibilityLabel={[
+          `${group ? 'Tú' : 'Total'}: ${formatWithUnit(myTotal, unit)}`,
+          ...linkedGroups.map((g) => `Grupo ${g.group.name}: ${formatWithUnit(g.total, unit)}`),
+        ].join('. ')}
       >
         <CounterAvatar emoji={emoji} name={name} size={72} />
         <Text style={[styles.total, { color: colors.text }]}>{formatAmount(displayTotal)}</Text>
@@ -106,11 +110,11 @@ export default function CounterDetailScreen() {
           {group ? 'Tú · ' : ''}
           {pluralize(myEntryCount, 'registro', 'registros')}
         </Text>
-        {group ? (
-          <Text style={[styles.groupTotal, { color: colors.primary }]}>
-            👥 {group.name}: {formatWithUnit(total, unit)} entre todos
+        {linkedGroups.map((g) => (
+          <Text key={g.counterId} style={[styles.groupTotal, { color: colors.primary }]}>
+            👥 {g.group.name}: {formatWithUnit(g.total, unit)} entre todos
           </Text>
-        ) : null}
+        ))}
         {isCommon ? (
           <Text style={[styles.count, { color: colors.textMuted }]}>
             Común: cada +1 se suma a {pluralize(participantIds.length, 'persona', 'personas')}
@@ -124,16 +128,47 @@ export default function CounterDetailScreen() {
         canRemove={isCommon ? total >= 1 : myGroupTotal >= 1}
         onCustom={() => setDialog('new')}
       />
-      {group ? (
+      {board ? (
         <>
           <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
             Clasificación
           </Text>
-          <Leaderboard counterId={id} unit={unit} />
+          {linkedGroups.length > 1 ? (
+            <View style={styles.groupChips}>
+              {linkedGroups.map((g) => {
+                const selected = g.counterId === board.counterId;
+                return (
+                  <Pressable
+                    key={g.counterId}
+                    onPress={() => setBoardCounterId(g.counterId)}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected }}
+                    style={[
+                      styles.groupChip,
+                      {
+                        backgroundColor: selected ? colors.primary : colors.surface,
+                        borderColor: selected ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.groupChipText,
+                        { color: selected ? colors.onPrimary : colors.text },
+                      ]}
+                    >
+                      👥 {g.group.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+          <Leaderboard counterId={board.counterId} unit={unit} />
         </>
       ) : null}
       <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
-        {group ? 'Tu historial' : 'Historial'}
+        {linkedGroups.length > 0 ? 'Tu historial' : 'Historial'}
       </Text>
     </View>
   );
@@ -146,7 +181,9 @@ export default function CounterDetailScreen() {
           headerRight: () =>
             canManage ? (
               <Pressable
-                onPress={() => router.push({ pathname: '/contadores/[id]/editar', params: { id } })}
+                onPress={() =>
+                  router.push({ pathname: '/contadores/[id]/editar', params: { id: counterId } })
+                }
                 accessibilityRole="button"
                 accessibilityLabel="Editar contador"
                 hitSlop={12}
@@ -196,6 +233,9 @@ const styles = StyleSheet.create({
   unit: { fontSize: 18, fontFamily: fonts.detail },
   count: { fontSize: 14, marginTop: 4, fontFamily: fonts.detail },
   groupTotal: { fontSize: 15, marginTop: 6, fontFamily: fonts.title, textAlign: 'center' },
+  groupChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  groupChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1 },
+  groupChipText: { fontSize: 14, fontFamily: fonts.title },
   sectionTitle: { fontSize: 18, fontFamily: fonts.title, marginTop: 8 },
   empty: { textAlign: 'center', paddingVertical: 24, fontFamily: fonts.detail },
 });
