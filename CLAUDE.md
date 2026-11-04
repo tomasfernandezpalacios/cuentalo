@@ -215,6 +215,9 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   que acabe hoy (`currentStreak` en `streaks.ts`, con tests). Fuego (`StreakBadge`, color
   `colors.flame`) junto al título «Mis contadores»; pantalla `app/racha.tsx` con `StreakCard` y
   calendario mensual; la misma tarjeta va al final de Estadísticas y lleva a esa pantalla.
+- Rachas de amigos: en la pantalla de racha, clasificación de mí y mis amigos aceptados por
+  racha actual (empates comparten puesto, `withPositions`). La RPC `get_friends_streaks`
+  (SECURITY DEFINER, «huecos e islas») solo devuelve números; los días siguen siendo privados.
 
 ## Cambios estéticos pendientes
 

@@ -1,7 +1,9 @@
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 
+import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import { useStreak } from '@/features/estadisticas/api';
+import { FriendsStreaks } from '@/features/estadisticas/components/FriendsStreaks';
 import { StreakCalendar } from '@/features/estadisticas/components/StreakCalendar';
 import { StreakCard } from '@/features/estadisticas/components/StreakCard';
 import { useThemeColors } from '@/lib/theme';
@@ -29,6 +31,10 @@ export default function StreakScreen() {
     >
       <StreakCard />
       <StreakCalendar activeDays={streak.data.days} />
+
+      <Section title="Rachas de amigos">
+        <FriendsStreaks />
+      </Section>
     </ScrollView>
   );
 }

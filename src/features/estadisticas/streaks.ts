@@ -55,3 +55,18 @@ export function monthGrid(year: number, month: number): (string | null)[][] {
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
   return weeks;
 }
+
+/**
+ * Posiciones de una clasificación ya ordenada de mayor a menor: quien empata en `value` comparte
+ * puesto (1, 2, 2, 4…).
+ */
+export function withPositions<T>(
+  rows: T[],
+  value: (row: T) => number,
+): (T & { position: number })[] {
+  return rows.map((row, index) => {
+    let first = index;
+    while (first > 0 && value(rows[first - 1] as T) === value(row)) first--;
+    return { ...row, position: first + 1 };
+  });
+}

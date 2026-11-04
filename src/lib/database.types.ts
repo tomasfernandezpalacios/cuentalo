@@ -267,6 +267,16 @@ export type Database = {
         Args: { p_counter_ids: string[]; p_name: string | null; p_emoji: string | null };
         Returns: string;
       };
+      get_friends_streaks: {
+        Args: Record<string, never>;
+        Returns: {
+          user_id: string;
+          username: string;
+          display_name: string;
+          current_streak: number;
+          best_streak: number;
+        }[];
+      };
       delete_my_account: {
         Args: Record<string, never>;
         Returns: undefined;

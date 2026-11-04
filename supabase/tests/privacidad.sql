@@ -463,6 +463,30 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- 3e. Rachas de amigos: solo amigos aceptados y solo números
+-- ---------------------------------------------------------------------------
+
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+do $$
+declare n int; v_streak int;
+begin
+  select count(*) into n from public.get_friends_streaks();
+  if n <> 2 then raise exception 'FALLO: Ana no ve exactamente su racha y la de Beto (%)', n; end if;
+
+  select current_streak into v_streak from public.get_friends_streaks()
+   where username = 'ana_prueba';
+  if v_streak < 1 then raise exception 'FALLO: la racha de Ana debería ser al menos 1 (%)', v_streak; end if;
+end $$;
+
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000c3", "role": "authenticated"}', true);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.get_friends_streaks() where username <> 'carla_prueba';
+  if n <> 0 then raise exception 'FALLO: Carla ve rachas de quien no es su amigo'; end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- 4. Salir del grupo conserva las estadísticas personales
 -- ---------------------------------------------------------------------------
 
