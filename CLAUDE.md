@@ -356,9 +356,12 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - **Tutorial de bienvenida** (petición del usuario, `src/features/tutorial/`). Sale la primera
   vez que alguien entra si `profiles.tutorial_done = false` (migración `20261124`; sin la
   columna no sale nunca) y se marca al terminar o saltar. «Ver tutorial» en Configuración →
-  Información. Pasos (`steps.ts`, puros con tests): bienvenida a pantalla completa, crear
-  contador (solo si no tiene ninguno), sumar, trucos de la tarjeta, racha, Estadísticas y
-  Amigos y grupos. Los de acción avanzan con `tutorialEvent` desde el código que ya existe
+  Información. Pasos (`steps.ts`, puros con tests; rehechos a petición del usuario):
+  bienvenida a pantalla completa («Tu base de estadísticas vitales»), «Esto es Cuéntalo» 2 s
+  sobre la app (`banner`, se pasa solo), crear contador (solo si no tiene ninguno; el
+  formulario va en modo `simple`: guía, ideas, nombre y emoticono), sumar, restar 1, la
+  tarjeta, Estadísticas y Amigos y grupos (`tour`: va a la pestaña con `step.screen`, sin
+  oscurecer, anillo en su botón) y, de vuelta en inicio, la racha con «Terminar». Los de acción avanzan con `tutorialEvent` desde el código que ya existe
   (`useCounterActions.add`, `contadores/nuevo`; durante el tutorial crear vuelve a la lista y
   ofrece ideas de un toque) y solo dejan tocar el hueco. `TutorialHost` (montado en
   `app/_layout.tsx`, solo se ve en «Mis contadores»): oscurecido con hueco (SVG evenodd),

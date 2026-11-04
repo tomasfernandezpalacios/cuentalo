@@ -98,6 +98,8 @@ export function useCounterActions() {
 
   function doSubtract(counter: CounterWithTotal) {
     tap();
+    // Paso «Resta 1» del tutorial (si está en marcha).
+    tutorialEvent('entry-removed');
     removeOne.mutate(counter.id, {
       onSuccess: () => {
         markActiveToday();

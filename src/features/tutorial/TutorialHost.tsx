@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { usePathname } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
@@ -18,7 +18,7 @@ import { AppButton } from '@/components/AppButton';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import { dimPath, holeFor, placeBubble, type Rect } from './layout';
-import type { Step } from './steps';
+import { stepKind, type Step } from './steps';
 import { getTarget, nextStep, skipTutorial, useTutorial, type ViewRef } from './store';
 
 const DIM = 'rgba(8, 8, 16, 0.66)';
@@ -28,16 +28,36 @@ const MEASURE_EVERY_MS = 250;
 
 /**
  * Tutorial de bienvenida: se monta una vez en el layout raíz (como DialogHost) y pinta el paso
- * actual por encima de la app. La bienvenida va a pantalla completa; el resto ilumina un
- * elemento (TutorialTarget) con un bocadillo, una flecha y un anillo que late. Solo se ve en
- * «Mis contadores»: si el usuario va a otra pantalla (p. ej. a crear el contador), se aparta.
+ * actual por encima de la app. La bienvenida va a pantalla completa; «Esto es Cuéntalo» es un
+ * aviso sobre la app que se pasa solo; el resto ilumina un elemento (TutorialTarget) con un
+ * bocadillo, una flecha y un anillo que late. Cada paso dice en qué pestaña se enseña: al
+ * llegar a él, el tutorial va a esa pestaña; si el usuario está en otra pantalla (p. ej.
+ * creando el contador), se aparta.
  */
 export function TutorialHost() {
   const { step, index, steps, celebrating } = useTutorial();
   const pathname = usePathname();
+  const stepId = step?.id;
+  const screen = step?.screen;
+  const autoAdvanceMs = step?.autoAdvanceMs;
+
+  // Al llegar a un paso, a su pestaña (solo una vez: luego el usuario puede moverse).
+  useEffect(() => {
+    if (screen) router.navigate(screen);
+  }, [stepId, screen]);
+
+  // Pasos que se pasan solos («Esto es Cuéntalo»).
+  useEffect(() => {
+    if (!autoAdvanceMs) return;
+    const timer = setTimeout(nextStep, autoAdvanceMs);
+    return () => clearTimeout(timer);
+  }, [stepId, autoAdvanceMs]);
+
   if (!step || index === null) return null;
-  if (!step.target) return <Welcome step={step} />;
-  if (pathname !== '/') return null;
+  const kind = stepKind(step);
+  if (kind === 'welcome') return <Welcome step={step} />;
+  if (pathname !== (step.screen ?? '/')) return null;
+  if (kind === 'banner') return <Banner step={step} />;
   return (
     <Layer>
       {(origin, size) => (
@@ -49,6 +69,7 @@ export function TutorialHost() {
           celebrating={celebrating}
           origin={origin}
           size={size}
+          dim={kind !== 'tour'}
         />
       )}
     </Layer>
@@ -176,44 +197,74 @@ function useAnnounce(step: Step) {
   }, [step]);
 }
 
+/** Primera pantalla: ocupa todo el dispositivo, con el logo, el saludo y «Siguiente». */
 function Welcome({ step }: { step: Step }) {
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
   const opacity = useFadeIn();
-  const bounce = useLoop(900);
+  const float = useLoop(1400);
   useAnnounce(step);
   return (
     <Animated.View
-      style={[StyleSheet.absoluteFill, styles.welcome, { backgroundColor: DIM, opacity }]}
+      style={[
+        StyleSheet.absoluteFill,
+        styles.welcome,
+        {
+          backgroundColor: colors.background,
+          opacity,
+          paddingTop: insets.top + 24,
+          paddingBottom: insets.bottom + 24,
+        },
+      ]}
       accessibilityViewIsModal
     >
-      <View style={[styles.welcomeCard, { backgroundColor: colors.surface }]}>
-        <Animated.Text
+      <View style={styles.welcomeBody}>
+        <Animated.View
+          accessibilityElementsHidden
+          importantForAccessibility="no"
           style={[
-            styles.wave,
+            styles.logo,
             {
+              backgroundColor: colors.primary,
               transform: [
-                {
-                  rotate: bounce.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['-12deg', '14deg'],
-                  }),
-                },
+                { translateY: float.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
               ],
             },
           ]}
-          accessibilityElementsHidden
-          importantForAccessibility="no"
         >
-          👋
-        </Animated.Text>
+          <Text style={[styles.logoText, { color: colors.onPrimary }]}>+1</Text>
+        </Animated.View>
         <Text style={[styles.welcomeTitle, { color: colors.text }]} accessibilityRole="header">
           {step.title}
         </Text>
+        {step.subtitle ? (
+          <Text style={[styles.welcomeSubtitle, { color: colors.primary }]}>{step.subtitle}</Text>
+        ) : null}
         <Text style={[styles.welcomeText, { color: colors.textMuted }]}>{step.text}</Text>
-        <AppButton title="Empezar" onPress={nextStep} />
+      </View>
+      <View style={styles.welcomeButtons}>
+        <AppButton title="Siguiente" onPress={nextStep} />
         <AppButton title="Saltar" variant="ghost" onPress={skipTutorial} />
       </View>
     </Animated.View>
+  );
+}
+
+/** «Esto es Cuéntalo»: se ve la app entera unos segundos con un aviso encima (sin tocar nada). */
+function Banner({ step }: { step: Step }) {
+  const colors = useThemeColors();
+  const opacity = useFadeIn();
+  useAnnounce(step);
+  return (
+    <View style={[StyleSheet.absoluteFill, styles.layer, styles.bannerLayer]}>
+      <Blocker style={StyleSheet.absoluteFill} />
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.banner, { backgroundColor: colors.text, opacity }]}
+      >
+        <Text style={[styles.bannerText, { color: colors.background }]}>{step.title}</Text>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -224,9 +275,11 @@ type SpotlightProps = {
   celebrating: boolean;
   origin: ViewRef | null;
   size: Size | null;
+  /** false en los pasos que enseñan una pestaña entera: no se oscurece, solo el anillo. */
+  dim: boolean;
 };
 
-function Spotlight({ step, index, total, celebrating, origin, size }: SpotlightProps) {
+function Spotlight({ step, index, total, celebrating, origin, size, dim }: SpotlightProps) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const windowSize = useWindowDimensions();
@@ -248,12 +301,12 @@ function Spotlight({ step, index, total, celebrating, origin, size }: SpotlightP
 
   if (!hole && !missing) {
     // Aún midiendo: solo el oscurecido, sin dejar tocar nada.
-    return <View style={[StyleSheet.absoluteFill, { backgroundColor: DIM }]} />;
+    return <View style={[StyleSheet.absoluteFill, dim && { backgroundColor: DIM }]} />;
   }
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity }]} pointerEvents="box-none">
-      {hole ? (
+      {!dim ? null : hole ? (
         <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
           <Path d={dimPath(width, height, hole)} fill={DIM} fillRule="evenodd" />
         </Svg>
@@ -320,7 +373,7 @@ function Spotlight({ step, index, total, celebrating, origin, size }: SpotlightP
           <Ionicons
             name={place.placement === 'below' ? 'arrow-up' : 'arrow-down'}
             size={30}
-            color="#FFFFFF"
+            color={dim ? '#FFFFFF' : colors.primary}
           />
         </Animated.View>
       ) : null}
@@ -454,17 +507,33 @@ function Confetti({ x, y }: { x: number; y: number }) {
 }
 
 const styles = StyleSheet.create({
-  welcome: { justifyContent: 'center', padding: 24, zIndex: 1000, elevation: 1000 },
-  welcomeCard: { borderRadius: 24, padding: 24, gap: 12, alignItems: 'stretch' },
-  wave: { fontSize: 56, textAlign: 'center' },
-  welcomeTitle: { fontSize: 24, fontFamily: fonts.title, textAlign: 'center' },
-  welcomeText: {
-    fontSize: 16,
-    fontFamily: fonts.detail,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 8,
+  welcome: { paddingHorizontal: 24, zIndex: 1000, elevation: 1000 },
+  welcomeBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  logo: {
+    width: 112,
+    height: 112,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
+  logoText: { fontSize: 48, fontFamily: fonts.title },
+  welcomeTitle: { fontSize: 30, fontFamily: fonts.title, textAlign: 'center' },
+  welcomeSubtitle: { fontSize: 19, fontFamily: fonts.title, textAlign: 'center' },
+  welcomeText: { fontSize: 17, fontFamily: fonts.detail, textAlign: 'center', lineHeight: 24 },
+  welcomeButtons: { gap: 8 },
+  bannerLayer: { justifyContent: 'center', alignItems: 'center' },
+  banner: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 20,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  bannerText: { fontSize: 22, fontFamily: fonts.title },
   layer: { zIndex: 1000, elevation: 1000 },
   blocker: { position: 'absolute' },
   ring: { position: 'absolute', borderWidth: 3 },

@@ -1,16 +1,18 @@
 import { dimPath, holeFor, placeBubble, ARROW_SPACE, HOLE_PADDING } from '../layout';
-import { advancesOn, buildSteps, nextIndex } from '../steps';
+import { advancesOn, buildSteps, nextIndex, stepKind } from '../steps';
 
 describe('pasos', () => {
   it('sin contadores, primero se crea uno', () => {
     expect(buildSteps(false).map((s) => s.id)).toEqual([
       'welcome',
+      'intro',
       'create',
       'add',
+      'remove',
       'tips',
-      'streak',
       'stats',
       'social',
+      'streak',
     ]);
   });
 
@@ -25,10 +27,12 @@ describe('pasos', () => {
   });
 
   it('solo la acción que pide el paso lo hace avanzar', () => {
-    const [, create, add] = buildSteps(false);
+    const [, , create, add, remove] = buildSteps(false);
     expect(advancesOn(create, 'counter-created')).toBe(true);
     expect(advancesOn(create, 'entry-added')).toBe(false);
     expect(advancesOn(add, 'entry-added')).toBe(true);
+    expect(advancesOn(remove, 'entry-removed')).toBe(true);
+    expect(advancesOn(remove, 'entry-added')).toBe(false);
     expect(advancesOn(undefined, 'entry-added')).toBe(false);
   });
 
@@ -36,7 +40,7 @@ describe('pasos', () => {
     const withAction = buildSteps(false)
       .filter((s) => s.action)
       .map((s) => s.id);
-    expect(withAction).toEqual(['create', 'add']);
+    expect(withAction).toEqual(['create', 'add', 'remove']);
   });
 });
 
@@ -86,5 +90,21 @@ describe('foco', () => {
     const path = dimPath(400, 800, { x: 10, y: 10, width: 50, height: 50, radius: 10 });
     expect(path.startsWith('M0 0H400V800H0Z')).toBe(true);
     expect(path).toContain('M20 10');
+  });
+});
+
+describe('recorrido', () => {
+  it('empieza a pantalla completa, enseña la app unos segundos y termina en la racha', () => {
+    const steps = buildSteps(false);
+    expect(stepKind(steps[0]!)).toBe('welcome');
+    expect(stepKind(steps[1]!)).toBe('banner');
+    expect(steps[1]?.autoAdvanceMs).toBe(2000);
+    expect(steps.at(-1)?.target).toBe('racha');
+    expect(steps.at(-1)?.screen).toBe('/');
+  });
+
+  it('va a Estadísticas y luego a Amigos y grupos, enseñando la pestaña entera', () => {
+    const tour = buildSteps(true).filter((s) => stepKind(s) === 'tour');
+    expect(tour.map((s) => s.screen)).toEqual(['/estadisticas', '/social']);
   });
 });

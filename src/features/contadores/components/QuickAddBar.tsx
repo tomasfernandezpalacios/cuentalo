@@ -81,29 +81,35 @@ export function QuickAddBar({
           </Pressable>
         </TutorialTarget>
       ))}
-      <Pressable
-        onPress={onRemoveOne}
-        disabled={!canRemove}
-        accessibilityRole="button"
-        accessibilityLabel="Restar 1"
-        accessibilityHint="Guarda una resta de 1 en el historial"
-        accessibilityState={{ disabled: !canRemove }}
-        hitSlop={compact ? 4 : 0}
-        style={({ pressed }) => [
-          styles.button,
-          size,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            borderWidth: 1,
-            opacity: !canRemove ? 0.4 : pressed ? 0.75 : 1,
-          },
-        ]}
+      <TutorialTarget
+        id="restar"
+        enabled={tutorialTarget}
+        style={compact ? undefined : styles.flexTarget}
       >
-        <Text maxFontSizeMultiplier={compact ? 1.2 : 1.5} style={[label, { color: colors.text }]}>
-          −1
-        </Text>
-      </Pressable>
+        <Pressable
+          onPress={onRemoveOne}
+          disabled={!canRemove}
+          accessibilityRole="button"
+          accessibilityLabel="Restar 1"
+          accessibilityHint="Guarda una resta de 1 en el historial"
+          accessibilityState={{ disabled: !canRemove }}
+          hitSlop={compact ? 4 : 0}
+          style={({ pressed }) => [
+            styles.button,
+            compact ? styles.compact : styles.largeInTarget,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: 1,
+              opacity: !canRemove ? 0.4 : pressed ? 0.75 : 1,
+            },
+          ]}
+        >
+          <Text maxFontSizeMultiplier={compact ? 1.2 : 1.5} style={[label, { color: colors.text }]}>
+            −1
+          </Text>
+        </Pressable>
+      </TutorialTarget>
       {onCustom ? (
         <Pressable
           onPress={onCustom}

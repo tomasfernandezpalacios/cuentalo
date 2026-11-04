@@ -11,7 +11,7 @@ export default function NewCounterScreen() {
   const create = useCreateCounter();
   const groups = useMyGroups();
   const activeGroups = (groups.data ?? []).filter((g) => g.status === 'active');
-  // Durante el tutorial: ideas de un toque y, al crear, de vuelta a la lista (paso «Sumar»).
+  // Durante el tutorial: contador sencillo guiado y, al crear, de vuelta a la lista («Sumar»).
   const tutorial = useTutorial();
   const inTutorial = tutorial.step?.id === 'create';
 
@@ -22,7 +22,7 @@ export default function NewCounterScreen() {
       error={create.error}
       groups={activeGroups}
       initialGroupId={grupo ?? null}
-      suggestions={inTutorial}
+      simple={inTutorial}
       onSubmit={(input, groupId, participantIds) =>
         create.mutate(
           { input, groupId, participantIds },

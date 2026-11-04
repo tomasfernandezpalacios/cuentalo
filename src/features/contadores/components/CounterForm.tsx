@@ -34,8 +34,11 @@ type Props = {
   initialParticipantIds?: string[] | null;
   /** Contenido extra al final (p. ej. archivar o borrar en la pantalla de edición). */
   footer?: ReactNode;
-  /** Ideas de un toque que rellenan nombre, emoticono y unidad (tutorial de bienvenida). */
-  suggestions?: boolean;
+  /**
+   * Tutorial de bienvenida: contador sencillo. Una guía arriba, ideas de un toque y solo
+   * nombre y emoticono (sin unidad, visibilidad, común ni formato racha: queda privado y amigos).
+   */
+  simple?: boolean;
 };
 
 const SUGGESTIONS = [
@@ -57,7 +60,7 @@ export function CounterForm({
   sharedGroupId = null,
   initialParticipantIds = null,
   footer,
-  suggestions = false,
+  simple = false,
 }: Props) {
   const colors = useThemeColors();
   const [name, setName] = useState(initial?.name ?? '');
@@ -166,7 +169,20 @@ export function CounterForm({
 
   return (
     <FormScreen>
-      {suggestions ? (
+      {simple ? (
+        <View style={[styles.guide, { backgroundColor: colors.primarySoft }]}>
+          <Text style={[styles.optionTitle, { color: colors.text }]}>
+            Tu primer contador, en dos pasos
+          </Text>
+          <Text style={[styles.hint, { color: colors.text }]}>
+            1. Toca una idea o escribe un nombre (y un emoticono, si quieres).
+          </Text>
+          <Text style={[styles.hint, { color: colors.text }]}>
+            2. Pulsa «Crear contador» abajo.
+          </Text>
+        </View>
+      ) : null}
+      {simple ? (
         <View style={styles.visibility}>
           <Text style={[styles.label, { color: colors.text }]}>Ideas para empezar</Text>
           <View style={styles.ideas}>
@@ -209,76 +225,87 @@ export function CounterForm({
         autoFocus={!initial}
       />
       <EmojiPicker value={emoji} onChange={setEmoji} />
-      <TextField
-        label="Unidad (opcional)"
-        value={unit}
-        onChangeText={setUnit}
-        error={errors.unit}
-        placeholder="ej. cervezas, libros, km. Déjalo vacío si no hace falta"
-        maxLength={LIMITS.unit}
-        autoCapitalize="none"
-      />
-
-      {groups ? (
-        <View style={styles.visibility}>
-          <Text style={[styles.label, { color: colors.text }]}>¿Quién lo ve?</Text>
-          {privateOptions}
-          {groups.map((group) => (
-            <VisibilityOption
-              key={group.id}
-              title={`👥 ${group.name}`}
-              description="Cada miembro suma lo suyo y hay clasificación."
-              selected={groupId === group.id}
-              onPress={() => selectGroup(group.id)}
-            />
-          ))}
-          {groups.length === 0 ? (
-            <Text style={[styles.hint, { color: colors.textMuted }]}>
-              Para compartir un contador, crea o únete a un grupo en Amigos y grupos.
-            </Text>
-          ) : null}
-          {/* Fuera de la V1: compartir con un grupo un contador privado ya existente. */}
-        </View>
-      ) : sharedGroupName ? (
-        <View
-          style={[styles.option, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        >
-          <Text style={[styles.optionTitle, { color: colors.text }]}>👥 {sharedGroupName}</Text>
-          <Text style={[styles.hint, { color: colors.textMuted }]}>Compartido con el grupo.</Text>
-        </View>
-      ) : (
-        // Al editar un individual se puede cambiar entre «Privado» y «Privado y amigos».
-        <View style={styles.visibility}>
-          <Text style={[styles.label, { color: colors.text }]}>¿Quién lo ve?</Text>
-          {privateOptions}
-        </View>
+      {simple ? null : (
+        <TextField
+          label="Unidad (opcional)"
+          value={unit}
+          onChangeText={setUnit}
+          error={errors.unit}
+          placeholder="ej. cervezas, libros, km. Déjalo vacío si no hace falta"
+          maxLength={LIMITS.unit}
+          autoCapitalize="none"
+        />
       )}
 
-      {commonSection}
+      {simple ? null : (
+        <>
+          {groups ? (
+            <View style={styles.visibility}>
+              <Text style={[styles.label, { color: colors.text }]}>¿Quién lo ve?</Text>
+              {privateOptions}
+              {groups.map((group) => (
+                <VisibilityOption
+                  key={group.id}
+                  title={`👥 ${group.name}`}
+                  description="Cada miembro suma lo suyo y hay clasificación."
+                  selected={groupId === group.id}
+                  onPress={() => selectGroup(group.id)}
+                />
+              ))}
+              {groups.length === 0 ? (
+                <Text style={[styles.hint, { color: colors.textMuted }]}>
+                  Para compartir un contador, crea o únete a un grupo en Amigos y grupos.
+                </Text>
+              ) : null}
+              {/* Fuera de la V1: compartir con un grupo un contador privado ya existente. */}
+            </View>
+          ) : sharedGroupName ? (
+            <View
+              style={[
+                styles.option,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.optionTitle, { color: colors.text }]}>👥 {sharedGroupName}</Text>
+              <Text style={[styles.hint, { color: colors.textMuted }]}>
+                Compartido con el grupo.
+              </Text>
+            </View>
+          ) : (
+            // Al editar un individual se puede cambiar entre «Privado» y «Privado y amigos».
+            <View style={styles.visibility}>
+              <Text style={[styles.label, { color: colors.text }]}>¿Quién lo ve?</Text>
+              {privateOptions}
+            </View>
+          )}
 
-      <Pressable
-        onPress={() => setStreakEnabled((value) => !value)}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: streakEnabled }}
-        style={styles.checkbox}
-      >
-        <Ionicons
-          name={streakEnabled ? 'checkbox' : 'square-outline'}
-          size={24}
-          color={streakEnabled ? colors.primary : colors.textMuted}
-        />
-        <View style={styles.flexText}>
-          <Text style={[styles.optionTitle, { color: colors.text }]}>🔥 Formato racha</Text>
-          <Text style={[styles.hint, { color: colors.textMuted }]}>
-            Para cosas como «días sin fumar»: el contador suma como siempre y, además, lleva una
-            racha de días seguidos en los que sumes +1 o más. Si un día no llegas, la racha vuelve a
-            0, pero el contador no. Se guarda tu récord.
-            {(creating ? groupId !== null : Boolean(sharedGroupName))
-              ? ' En un grupo, cada uno tiene su propia racha.'
-              : ''}
-          </Text>
-        </View>
-      </Pressable>
+          {commonSection}
+
+          <Pressable
+            onPress={() => setStreakEnabled((value) => !value)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: streakEnabled }}
+            style={styles.checkbox}
+          >
+            <Ionicons
+              name={streakEnabled ? 'checkbox' : 'square-outline'}
+              size={24}
+              color={streakEnabled ? colors.primary : colors.textMuted}
+            />
+            <View style={styles.flexText}>
+              <Text style={[styles.optionTitle, { color: colors.text }]}>🔥 Formato racha</Text>
+              <Text style={[styles.hint, { color: colors.textMuted }]}>
+                Para cosas como «días sin fumar»: el contador suma como siempre y, además, lleva una
+                racha de días seguidos en los que sumes +1 o más. Si un día no llegas, la racha
+                vuelve a 0, pero el contador no. Se guarda tu récord.
+                {(creating ? groupId !== null : Boolean(sharedGroupName))
+                  ? ' En un grupo, cada uno tiene su propia racha.'
+                  : ''}
+              </Text>
+            </View>
+          </Pressable>
+        </>
+      )}
 
       {error ? (
         <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>
@@ -320,6 +347,7 @@ function VisibilityOption({ title, description, selected, onPress }: OptionProps
 }
 
 const styles = StyleSheet.create({
+  guide: { borderRadius: 14, padding: 14, gap: 6 },
   visibility: { gap: 8 },
   label: { fontSize: 15, fontFamily: fonts.detail },
   option: { padding: 14, borderRadius: 12, borderWidth: 1, gap: 4 },
