@@ -50,8 +50,8 @@ function IconButton({
 
 /**
  * Tarjeta de arriba del grupo: imagen y nombre del grupo y, para el administrador, el código
- * para unirse en una línea con tres botones de icono debajo (copiar, compartir enlace y código
- * nuevo).
+ * para unirse en una línea (con copiar a su derecha) y dos botones de icono debajo (compartir
+ * enlace y código nuevo).
  */
 export function GroupHeaderCard({
   groupId,
@@ -64,7 +64,7 @@ export function GroupHeaderCard({
   return (
     <View style={[styles.card, { backgroundColor: colors.primarySoft }]}>
       <View style={styles.group}>
-        <GroupAvatar emoji={emoji} photoPath={photoPath} size={isOwner ? 96 : 120} />
+        <GroupAvatar emoji={emoji} photoPath={photoPath} size={isOwner ? 112 : 128} />
         <Text
           style={[styles.groupName, { color: colors.text }, !isOwner && styles.groupNameLarge]}
           numberOfLines={3}
@@ -142,22 +142,32 @@ function InviteCode({ groupId, groupName }: Props) {
   return (
     <View style={styles.codeBox}>
       <Text style={[styles.label, { color: colors.textMuted }]}>Código para unirse</Text>
-      {/* En una línea: si no cabe a este tamaño, la letra se reduce sola. */}
-      <Text
-        style={[styles.code, { color: colors.primary }]}
-        selectable
-        adjustsFontSizeToFit
-        numberOfLines={1}
-        accessibilityLabel={`Código: ${code.data.split('').join(' ')}`}
-      >
-        {formatted}
-      </Text>
-      <View style={styles.buttons}>
-        <IconButton
-          icon={copied ? 'checkmark' : 'copy-outline'}
-          label={copied ? 'Código copiado' : 'Copiar código'}
+      {/* En una línea (si no cabe, la letra se reduce sola) y el copiar a su derecha, sin fondo. */}
+      <View style={styles.codeRow}>
+        <Text
+          style={[styles.code, { color: colors.primary }]}
+          selectable
+          adjustsFontSizeToFit
+          numberOfLines={1}
+          accessibilityLabel={`Código: ${code.data.split('').join(' ')}`}
+        >
+          {formatted}
+        </Text>
+        <Pressable
           onPress={() => copy(code.data)}
-        />
+          accessibilityRole="button"
+          accessibilityLabel={copied ? 'Código copiado' : 'Copiar código'}
+          hitSlop={10}
+          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+        >
+          <Ionicons
+            name={copied ? 'checkmark' : 'copy-outline'}
+            size={20}
+            color={colors.textMuted}
+          />
+        </Pressable>
+      </View>
+      <View style={styles.buttons}>
         <IconButton
           icon="share-social-outline"
           label="Compartir enlace"
@@ -176,18 +186,18 @@ function InviteCode({ groupId, groupName }: Props) {
 
 const styles = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, padding: 14 },
-  group: { alignItems: 'center', gap: 8, width: 112 },
+  group: { alignItems: 'center', gap: 8, width: 120 },
   groupName: { fontSize: 20, fontFamily: fonts.title, textAlign: 'center' },
   groupNameLarge: { fontSize: 24 },
   codeBox: { flex: 1, alignItems: 'stretch', gap: 6 },
-  label: { fontSize: 13, fontFamily: fonts.detail, textAlign: 'center' },
+  label: { fontSize: 13, fontFamily: fonts.detail },
+  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   code: {
-    alignSelf: 'stretch',
+    flexShrink: 1,
     fontSize: 26,
     lineHeight: 32,
     fontFamily: fonts.title,
     letterSpacing: 1.5,
-    textAlign: 'center',
   },
   buttons: { flexDirection: 'row', gap: 6, marginTop: 4 },
   iconButton: {
