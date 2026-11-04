@@ -68,7 +68,9 @@ export default function MergeCountersScreen() {
       chosenGroupNames.length > 0
         ? `Quedará un solo contador, «${finalName}», que cuenta en ${chosenGroupNames.join(' y ')}. ` +
           'En tus estadísticas se suma todo lo que llevabas; en cada grupo solo cuenta lo que ya ' +
-          'tenía allí y lo que sumes a partir de ahora.'
+          'tenía allí y lo que sumes a partir de ahora.\n\n' +
+          `El contador pasará a ser visible para todos los miembros de ${chosenGroupNames.join(' y ')}, ` +
+          'sean o no tus amigos.'
         : `Quedará un solo contador, «${finalName}», con todos los registros juntos.`;
     Alert.alert('Fusionar contadores', `${message}\n\nNo se puede deshacer.`, [
       { text: 'Cancelar', style: 'cancel' },

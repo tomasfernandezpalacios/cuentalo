@@ -373,3 +373,43 @@ export async function markNoticesRead(): Promise<void> {
     .is('read_at', null);
   if (error) throw error;
 }
+
+// --- Perfil de otro usuario ------------------------------------------------------------------
+
+export type UserCounter = {
+  id: string;
+  name: string;
+  emoji: string | null;
+  unit: string | null;
+  groupName: string | null;
+  /** 'public': suyo, visible por ser su amigo. 'common': de un grupo en el que estamos los dos. */
+  kind: 'public' | 'common';
+  theirTotal: number;
+  myTotal: number | null;
+};
+
+export async function fetchPublicProfile(userId: string): Promise<PublicProfile> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(PROFILE_COLUMNS)
+    .eq('id', userId)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/** Contadores de otra persona que puedo ver (solo totales, nunca registros). */
+export async function fetchUserCounters(userId: string): Promise<UserCounter[]> {
+  const { data, error } = await supabase.rpc('get_user_counters', { p_user_id: userId });
+  if (error) throw error;
+  return data.map((c) => ({
+    id: c.counter_id,
+    name: c.name,
+    emoji: c.emoji,
+    unit: c.unit,
+    groupName: c.group_name,
+    kind: c.kind,
+    theirTotal: c.their_total,
+    myTotal: c.my_total,
+  }));
+}

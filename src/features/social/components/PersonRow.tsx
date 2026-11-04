@@ -1,5 +1,6 @@
+import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { fonts, useThemeColors } from '@/lib/theme';
@@ -14,20 +15,29 @@ type Props = {
   actions?: ReactNode;
 };
 
+/** Fila de una persona. Tocar su foto o su nombre abre su perfil. */
 export function PersonRow({ profile, note, actions }: Props) {
   const colors = useThemeColors();
   return (
     <View style={[styles.row, { borderBottomColor: colors.border }]}>
-      <CounterAvatar emoji={null} name={profile.display_name} size={40} />
-      <View style={styles.info} accessible>
-        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-          {profile.display_name}
-        </Text>
-        <Text style={[styles.detail, { color: colors.textMuted }]} numberOfLines={1}>
-          @{profile.username}
-          {note ? ` · ${note}` : ''}
-        </Text>
-      </View>
+      <Pressable
+        onPress={() => router.push({ pathname: '/usuario/[id]', params: { id: profile.id } })}
+        accessibilityRole="button"
+        accessibilityLabel={`${profile.display_name}, @${profile.username}${note ? `, ${note}` : ''}`}
+        accessibilityHint="Abre su perfil"
+        style={({ pressed }) => [styles.person, { opacity: pressed ? 0.6 : 1 }]}
+      >
+        <CounterAvatar emoji={null} name={profile.display_name} size={40} />
+        <View style={styles.info}>
+          <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+            {profile.display_name}
+          </Text>
+          <Text style={[styles.detail, { color: colors.textMuted }]} numberOfLines={1}>
+            @{profile.username}
+            {note ? ` · ${note}` : ''}
+          </Text>
+        </View>
+      </Pressable>
       {actions ? <View style={styles.actions}>{actions}</View> : null}
     </View>
   );
@@ -41,6 +51,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  person: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   info: { flex: 1, gap: 2 },
   name: { fontSize: 16, fontFamily: fonts.title },
   detail: { fontSize: 13, fontFamily: fonts.detail },

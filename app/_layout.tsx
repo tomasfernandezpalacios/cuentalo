@@ -65,6 +65,7 @@ function RootNavigator() {
           name="grupos/[id]/invitar"
           options={{ title: 'Invitar amigos', presentation: 'modal' }}
         />
+        <Stack.Screen name="usuario/[id]" options={{ title: '' }} />
         <Stack.Screen name="avisos" options={{ title: 'Buzón' }} />
         <Stack.Screen name="racha" options={{ title: 'Tu racha' }} />
         <Stack.Screen name="estadisticas/filtros" options={{ presentation: 'fullScreenModal' }} />

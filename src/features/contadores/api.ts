@@ -66,7 +66,13 @@ export type CounterWithTotal = Counter & {
 };
 
 /** La unidad y el emoticono son opcionales: una cadena vacía se guarda como null. */
-export type CounterInput = { name: string; unit: string; emoji: string };
+export type CounterInput = {
+  name: string;
+  unit: string;
+  emoji: string;
+  /** Solo en individuales: si es true, mis amigos no lo ven en mi perfil. */
+  hiddenFromFriends: boolean;
+};
 export type EntryInput = { amount: number; loggedAt: Date; note: string | null };
 
 export type LeaderboardRow = {
@@ -230,7 +236,7 @@ async function fetchSingleCounter(id: string, myId: string): Promise<CounterWith
  * es un contador común.
  */
 export async function createCounter(
-  { name, unit, emoji }: CounterInput,
+  { name, unit, emoji, hiddenFromFriends }: CounterInput,
   groupId: string | null,
   participantIds: string[] | null = null,
 ): Promise<Counter> {
@@ -243,6 +249,7 @@ export async function createCounter(
       emoji: emptyToNull(emoji),
       group_id: groupId,
       is_common: isCommon,
+      hidden_from_friends: groupId === null && hiddenFromFriends,
     })
     .select()
     .single();
@@ -270,6 +277,7 @@ export async function updateCounter(
       unit: patch.unit === undefined ? undefined : emptyToNull(patch.unit),
       emoji: patch.emoji === undefined ? undefined : emptyToNull(patch.emoji),
       archived: patch.archived,
+      hidden_from_friends: patch.hiddenFromFriends,
     })
     .eq('id', id);
   if (error) throw error;

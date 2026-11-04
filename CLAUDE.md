@@ -237,6 +237,13 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   seleccionados» con borrar, añadir a carpeta (`FolderPicker` o carpeta nueva con los
   seleccionados), ocultar/mostrar, editar (solo con uno) y fusionar. Atrás de Android sale del
   modo. **Ocultos** personales (`hidden_counters`) al final de la lista.
+- **Perfil de otros** (`app/usuario/[id].tsx`, se abre tocando a cualquier persona en
+  `PersonRow`): si no sois amigos, botón de solicitud; si lo sois, su racha y sus contadores
+  visibles. Siempre, los contadores en común (los de grupos de los dos) con su total y el mío.
+  Datos por la RPC `get_user_counters` (SECURITY DEFINER, solo totales). Los individuales son
+  visibles para amigos salvo `counters.hidden_from_friends` (casilla «Ocultar a mis amigos»,
+  desmarcada por defecto, editable). Los de grupo los ven los miembros del grupo; al fusionar
+  con uno de grupo se avisa de que pasa a ser visible para sus miembros.
 
 ## Cambios estéticos pendientes
 

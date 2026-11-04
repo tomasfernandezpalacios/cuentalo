@@ -518,6 +518,45 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- 3f. Perfil: lo que ven amigos y no amigos
+-- ---------------------------------------------------------------------------
+
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}', true);
+insert into public.counters (id, name, unit) values
+  ('10000000-0000-0000-0000-000000000007', 'Visible de Beto', 'cosas');
+insert into public.counters (id, name, unit, hidden_from_friends) values
+  ('10000000-0000-0000-0000-000000000008', 'Oculto de Beto', 'cosas', true);
+insert into public.entries (counter_id, amount)
+  values ('10000000-0000-0000-0000-000000000007', 7);
+
+-- Ana (amiga y del mismo grupo) ve el visible con su total, no el oculto, y el compartido en común.
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+do $$
+declare n int; v_total numeric;
+begin
+  select their_total into v_total from public.get_user_counters('00000000-0000-0000-0000-0000000000b2')
+   where name = 'Visible de Beto' and kind = 'public';
+  if v_total is distinct from 7 then raise exception 'FALLO: una amiga no ve el contador visible (%)', v_total; end if;
+
+  select count(*) into n from public.get_user_counters('00000000-0000-0000-0000-0000000000b2')
+   where name = 'Oculto de Beto';
+  if n <> 0 then raise exception 'FALLO: una amiga ve un contador oculto para amigos'; end if;
+
+  select count(*) into n from public.get_user_counters('00000000-0000-0000-0000-0000000000b2')
+   where counter_id = '10000000-0000-0000-0000-000000000002' and kind = 'common';
+  if n <> 1 then raise exception 'FALLO: no sale el contador en común (%)', n; end if;
+end $$;
+
+-- Carla (ni amiga ni del grupo) no ve ningún contador de Beto.
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000c3", "role": "authenticated"}', true);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.get_user_counters('00000000-0000-0000-0000-0000000000b2');
+  if n <> 0 then raise exception 'FALLO: alguien que no es amigo ve contadores de otro (%)', n; end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- 4. Salir del grupo conserva las estadísticas personales
 -- ---------------------------------------------------------------------------
 

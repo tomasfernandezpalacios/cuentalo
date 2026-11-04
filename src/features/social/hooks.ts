@@ -27,6 +27,8 @@ import {
   fetchNotices,
   fetchPendingCounterRequests,
   markNoticesRead,
+  fetchPublicProfile,
+  fetchUserCounters,
 } from './api';
 
 export const socialKeys = {
@@ -222,4 +224,21 @@ export function useInboxCount(): number {
     (requests.data ?? []).length +
     (notices.data ?? []).filter((n) => n.read_at === null).length
   );
+}
+
+// --- Perfil de otro usuario ------------------------------------------------------------------
+
+export function usePublicProfile(userId: string) {
+  return useQuery({
+    queryKey: [...socialKeys.all, 'profile', userId],
+    queryFn: () => fetchPublicProfile(userId),
+  });
+}
+
+export function useUserCounters(userId: string) {
+  return useQuery({
+    // Cuelga también de social: cambia al hacerse amigos o entrar en un grupo.
+    queryKey: [...socialKeys.all, 'user-counters', userId],
+    queryFn: () => fetchUserCounters(userId),
+  });
 }

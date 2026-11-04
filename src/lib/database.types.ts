@@ -29,6 +29,7 @@ export type Database = {
           emoji: string | null;
           group_id: string | null;
           is_common: boolean;
+          hidden_from_friends: boolean;
           streak_enabled: boolean;
           archived: boolean;
           created_at: string;
@@ -41,6 +42,7 @@ export type Database = {
           emoji?: string | null;
           group_id?: string | null;
           is_common?: boolean;
+          hidden_from_friends?: boolean;
           streak_enabled?: boolean;
           archived?: boolean;
           created_at?: string;
@@ -51,6 +53,7 @@ export type Database = {
           emoji?: string | null;
           streak_enabled?: boolean;
           archived?: boolean;
+          hidden_from_friends?: boolean;
         };
         Relationships: [];
       };
@@ -325,6 +328,19 @@ export type Database = {
       delete_group_counter: {
         Args: { p_counter_id: string };
         Returns: undefined;
+      };
+      get_user_counters: {
+        Args: { p_user_id: string };
+        Returns: {
+          counter_id: string;
+          name: string;
+          emoji: string | null;
+          unit: string | null;
+          group_name: string | null;
+          kind: 'public' | 'common';
+          their_total: number;
+          my_total: number | null;
+        }[];
       };
       delete_my_account: {
         Args: Record<string, never>;

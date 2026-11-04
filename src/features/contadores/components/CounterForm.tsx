@@ -53,6 +53,8 @@ export function CounterForm({
   const [name, setName] = useState(initial?.name ?? '');
   const [unit, setUnit] = useState(initial?.unit ?? '');
   const [emoji, setEmoji] = useState(initial?.emoji ?? '');
+  // Desmarcada por defecto: mis amigos ven mis contadores individuales salvo que lo marque.
+  const [hiddenFromFriends, setHiddenFromFriends] = useState(initial?.hiddenFromFriends ?? false);
   const [groupId, setGroupId] = useState<string | null>(initialGroupId);
   // Al editar, el contador ya es (o no es) común; al crear, se elige con la casilla.
   const [isCommon, setIsCommon] = useState(initialParticipantIds !== null);
@@ -82,7 +84,7 @@ export function CounterForm({
     };
     setErrors(next);
     if (!next.name && !next.unit && !next.participants) {
-      onSubmit({ name, unit, emoji }, groupId, common ? participants : null);
+      onSubmit({ name, unit, emoji, hiddenFromFriends }, groupId, common ? participants : null);
     }
   }
 
@@ -186,6 +188,28 @@ export function CounterForm({
 
       {commonSection}
 
+      {/* Solo en individuales: los de grupo los ven siempre los miembros del grupo. */}
+      {(creating ? groupId === null : !sharedGroupName) ? (
+        <Pressable
+          onPress={() => setHiddenFromFriends((value) => !value)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: hiddenFromFriends }}
+          style={styles.checkbox}
+        >
+          <Ionicons
+            name={hiddenFromFriends ? 'checkbox' : 'square-outline'}
+            size={24}
+            color={hiddenFromFriends ? colors.primary : colors.textMuted}
+          />
+          <View style={styles.flexText}>
+            <Text style={[styles.optionTitle, { color: colors.text }]}>Ocultar a mis amigos</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>
+              Si no lo marcas, tus amigos verán este contador y su total en tu perfil.
+            </Text>
+          </View>
+        </Pressable>
+      ) : null}
+
       {error ? (
         <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>
           {getErrorMessage(error)}
@@ -233,4 +257,5 @@ const styles = StyleSheet.create({
   hint: { fontSize: 14, fontFamily: fonts.detail },
   commonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   checkbox: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  flexText: { flex: 1, gap: 2 },
 });

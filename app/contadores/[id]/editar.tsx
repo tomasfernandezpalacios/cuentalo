@@ -56,7 +56,12 @@ export default function EditCounterScreen() {
 
   return (
     <CounterForm
-      initial={{ name, unit: unit ?? '', emoji: emoji ?? '' }}
+      initial={{
+        name,
+        unit: unit ?? '',
+        emoji: emoji ?? '',
+        hiddenFromFriends: counter.data.hidden_from_friends,
+      }}
       sharedGroupName={group?.name}
       submitTitle="Guardar cambios"
       saving={update.isPending || setParticipants.isPending}

@@ -14,6 +14,7 @@ function counter(overrides: Partial<Counter>): Counter {
     emoji: null,
     group_id: null,
     is_common: false,
+    hidden_from_friends: false,
     streak_enabled: false,
     archived: false,
     created_at: '2026-01-01T00:00:00Z',
