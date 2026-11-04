@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { appAlert } from '@/components/AppDialog';
 import { getSettings } from '@/features/configuracion/settings';
 import { markActiveToday } from '@/features/configuracion/reminder';
+import { tutorialEvent } from '@/features/tutorial/store';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount } from '@/lib/format';
 
@@ -63,6 +64,8 @@ export function useCounterActions() {
       return;
     }
     tap();
+    // Paso «Suma con un toque» del tutorial (si está en marcha).
+    tutorialEvent('entry-added');
     addEntry.mutate(
       { counterId: counter.id, input },
       {

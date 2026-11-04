@@ -34,7 +34,16 @@ type Props = {
   initialParticipantIds?: string[] | null;
   /** Contenido extra al final (p. ej. archivar o borrar en la pantalla de edición). */
   footer?: ReactNode;
+  /** Ideas de un toque que rellenan nombre, emoticono y unidad (tutorial de bienvenida). */
+  suggestions?: boolean;
 };
+
+const SUGGESTIONS = [
+  { emoji: '☕', name: 'Cafés', unit: 'cafés' },
+  { emoji: '📚', name: 'Libros leídos', unit: 'libros' },
+  { emoji: '🏃', name: 'Kilómetros', unit: 'km' },
+  { emoji: '💧', name: 'Vasos de agua', unit: 'vasos' },
+];
 
 export function CounterForm({
   initial,
@@ -48,6 +57,7 @@ export function CounterForm({
   sharedGroupId = null,
   initialParticipantIds = null,
   footer,
+  suggestions = false,
 }: Props) {
   const colors = useThemeColors();
   const [name, setName] = useState(initial?.name ?? '');
@@ -156,6 +166,39 @@ export function CounterForm({
 
   return (
     <FormScreen>
+      {suggestions ? (
+        <View style={styles.visibility}>
+          <Text style={[styles.label, { color: colors.text }]}>Ideas para empezar</Text>
+          <View style={styles.ideas}>
+            {SUGGESTIONS.map((idea) => {
+              const chosen = name === idea.name;
+              return (
+                <Pressable
+                  key={idea.name}
+                  onPress={() => {
+                    setName(idea.name);
+                    setEmoji(idea.emoji);
+                    setUnit(idea.unit);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Usar ${idea.name}`}
+                  style={[
+                    styles.idea,
+                    {
+                      backgroundColor: chosen ? colors.primarySoft : colors.surface,
+                      borderColor: chosen ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.optionTitle, { color: colors.text }]}>
+                    {idea.emoji} {idea.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
       <TextField
         label="Nombre"
         value={name}
@@ -284,4 +327,12 @@ const styles = StyleSheet.create({
   commonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   checkbox: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   flexText: { flex: 1, gap: 2 },
+  ideas: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  idea: {
+    paddingHorizontal: 12,
+    minHeight: 44,
+    justifyContent: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+  },
 });

@@ -1,5 +1,6 @@
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
+import { useStartTutorial } from '@/features/tutorial/useTutorialAutoStart';
 import { useMutation } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
@@ -56,6 +57,7 @@ export default function SettingsScreen() {
   const privacy = useUpdatePrivacy();
   const counters = useCounterList();
   const deleteAccount = useDeleteAccount();
+  const startTutorial = useStartTutorial();
   const logout = useMutation({
     mutationFn: signOut,
     onError: (error) => appAlert('Error', getErrorMessage(error)),
@@ -320,6 +322,11 @@ export default function SettingsScreen() {
               {Constants.expoConfig?.version ?? '—'}
             </Text>
           }
+        />
+        <SettingsRow
+          label="Ver tutorial"
+          detail="Repasa en un minuto cómo funciona la app."
+          onPress={startTutorial}
         />
         <SettingsRow
           label="Privacidad y datos"

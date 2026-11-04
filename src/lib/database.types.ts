@@ -16,6 +16,7 @@ export type Database = {
           group_invites: 'friends' | 'nobody';
           emoji: string | null;
           photo_path: string | null;
+          tutorial_done: boolean;
         };
         Insert: never;
         Update: {
@@ -27,6 +28,7 @@ export type Database = {
           group_invites?: 'friends' | 'nobody';
           emoji?: string | null;
           photo_path?: string | null;
+          tutorial_done?: boolean;
         };
         Relationships: [];
       };

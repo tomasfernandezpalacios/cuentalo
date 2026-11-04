@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useSettings } from '@/features/configuracion/settings';
+import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { formatWithUnit } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
 
@@ -17,6 +18,8 @@ type Props = {
   /** Mantener pulsado el primer botón abre la cantidad personalizada (versión compacta). */
   onLongPressAdd?: () => void;
   compact?: boolean;
+  /** El primer botón es el que ilumina el tutorial («Suma con un toque»). */
+  tutorialTarget?: boolean;
 };
 
 /** Botones rápidos (+1 +5 por defecto), −1 y, opcionalmente, "Otra". */
@@ -28,6 +31,7 @@ export function QuickAddBar({
   onCustom,
   onLongPressAdd,
   compact = false,
+  tutorialTarget = false,
 }: Props) {
   const colors = useThemeColors();
   const { quickAmounts } = useSettings();
@@ -37,29 +41,35 @@ export function QuickAddBar({
   return (
     <View style={[styles.row, compact && styles.compactRow]}>
       {quickAmounts.map((amount, index) => (
-        <Pressable
+        <TutorialTarget
           key={amount}
-          onPress={() => onAdd(amount)}
-          onLongPress={index === 0 ? onLongPressAdd : undefined}
-          accessibilityRole="button"
-          accessibilityLabel={`Añadir ${formatWithUnit(amount, unit)}`}
-          accessibilityHint={
-            index === 0 && onLongPressAdd ? 'Mantén pulsado para añadir otra cantidad' : undefined
-          }
-          hitSlop={compact ? 4 : 0}
-          style={({ pressed }) => [
-            styles.button,
-            size,
-            { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 },
-          ]}
+          id="sumar"
+          enabled={tutorialTarget && index === 0}
+          style={compact ? undefined : styles.flexTarget}
         >
-          <Text
-            maxFontSizeMultiplier={compact ? 1.2 : 1.5}
-            style={[label, { color: colors.onPrimary }]}
+          <Pressable
+            onPress={() => onAdd(amount)}
+            onLongPress={index === 0 ? onLongPressAdd : undefined}
+            accessibilityRole="button"
+            accessibilityLabel={`Añadir ${formatWithUnit(amount, unit)}`}
+            accessibilityHint={
+              index === 0 && onLongPressAdd ? 'Mantén pulsado para añadir otra cantidad' : undefined
+            }
+            hitSlop={compact ? 4 : 0}
+            style={({ pressed }) => [
+              styles.button,
+              compact ? styles.compact : styles.largeInTarget,
+              { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 },
+            ]}
           >
-            +{amount}
-          </Text>
-        </Pressable>
+            <Text
+              maxFontSizeMultiplier={compact ? 1.2 : 1.5}
+              style={[label, { color: colors.onPrimary }]}
+            >
+              +{amount}
+            </Text>
+          </Pressable>
+        </TutorialTarget>
       ))}
       <Pressable
         onPress={onRemoveOne}
@@ -111,9 +121,12 @@ export function QuickAddBar({
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
+  flexTarget: { flex: 1 },
   compactRow: { gap: 4 },
   button: { alignItems: 'center', justifyContent: 'center' },
   large: { flex: 1, height: 60, borderRadius: 16 },
+  // Los botones de cantidad van dentro de un envoltorio (TutorialTarget) que es quien estira.
+  largeInTarget: { height: 60, borderRadius: 16 },
   compact: { width: 36, height: 36, borderRadius: 10 },
   largeLabel: { fontSize: 19, fontFamily: fonts.title },
   compactLabel: { fontSize: 14, fontFamily: fonts.title },

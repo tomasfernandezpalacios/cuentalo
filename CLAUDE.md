@@ -327,6 +327,23 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - Cabecera del grupo: arriba la imagen y, a su derecha y a la misma altura, el bloque del código
   (solo el admin); debajo, el nombre del grupo a la izquierda y a todo lo ancho.
 
+- **Tutorial de bienvenida** (petición del usuario, `src/features/tutorial/`). Sale la primera
+  vez que alguien entra si `profiles.tutorial_done = false` (migración `20261124`; sin la
+  columna no sale nunca) y se marca al terminar o saltar. «Ver tutorial» en Configuración →
+  Información. Pasos (`steps.ts`, puros con tests): bienvenida a pantalla completa, crear
+  contador (solo si no tiene ninguno), sumar, trucos de la tarjeta, racha, Estadísticas y
+  Amigos y grupos. Los de acción avanzan con `tutorialEvent` desde el código que ya existe
+  (`useCounterActions.add`, `contadores/nuevo`; durante el tutorial crear vuelve a la lista y
+  ofrece ideas de un toque) y solo dejan tocar el hueco. `TutorialHost` (montado en
+  `app/_layout.tsx`, solo se ve en «Mis contadores»): oscurecido con hueco (SVG evenodd),
+  anillo que late, flecha, bocadillo arriba o abajo (`layout.ts`, con tests), puntos de
+  progreso, confeti al primer +1. Los elementos se marcan con `TutorialTarget` (View con
+  `collapsable={false}`) y se miden con `measureInWindow` cada 250 ms; si no aparece en 1,5 s,
+  el paso sale sin foco y con «Siguiente». Pestañas: `tabBarButton` envuelve
+  `PlatformPressable` (de `expo-router/react-navigation`).
+- Valores de `Animated` en componentes: `useState(() => new Animated.Value(0))[0]`, no
+  `useRef(...).current` (la regla react-hooks/refs lo marca como error).
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

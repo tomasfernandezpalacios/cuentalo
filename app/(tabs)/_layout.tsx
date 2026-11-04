@@ -1,9 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Tabs } from 'expo-router';
+import { PlatformPressable } from 'expo-router/react-navigation';
 import type { ComponentProps } from 'react';
-import { type ColorValue, Pressable } from 'react-native';
+import { type ColorValue, Pressable, StyleSheet } from 'react-native';
 
 import { useInboxCount } from '@/features/social/hooks';
+import type { TargetId } from '@/features/tutorial/steps';
+import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -13,6 +16,17 @@ function tabIcon(name: IconName) {
     // Los tintes de la barra son siempre strings del tema; los tipos de ambas librerías no encajan.
     return (
       <Ionicons name={name} color={typeof color === 'string' ? color : undefined} size={size} />
+    );
+  };
+}
+
+/** Botón de pestaña normal, marcado para que el tutorial pueda iluminarlo. */
+function tutorialTabButton(id: TargetId) {
+  return function TabButton(props: ComponentProps<typeof PlatformPressable>) {
+    return (
+      <TutorialTarget id={id} style={styles.tabTarget}>
+        <PlatformPressable {...props} />
+      </TutorialTarget>
     );
   };
 }
@@ -39,13 +53,18 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="estadisticas"
-        options={{ title: 'Estadísticas', tabBarIcon: tabIcon('bar-chart-outline') }}
+        options={{
+          title: 'Estadísticas',
+          tabBarIcon: tabIcon('bar-chart-outline'),
+          tabBarButton: tutorialTabButton('tab-estadisticas'),
+        }}
       />
       <Tabs.Screen
         name="social"
         options={{
           title: 'Amigos y grupos',
           tabBarIcon: tabIcon('people-outline'),
+          tabBarButton: tutorialTabButton('tab-social'),
           tabBarBadge: inbox > 0 ? '' : undefined,
           tabBarBadgeStyle: {
             backgroundColor: colors.danger,
@@ -77,3 +96,7 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabTarget: { flex: 1 },
+});

@@ -10,6 +10,8 @@ import { BackButton } from '@/components/BackButton';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { useReminderSync } from '@/features/configuracion/reminder';
 import { usePendingInvite } from '@/features/social/pendingInvite';
+import { TutorialHost } from '@/features/tutorial/TutorialHost';
+import { useTutorialAutoStart } from '@/features/tutorial/useTutorialAutoStart';
 import { queryClient } from '@/lib/queryClient';
 import { fonts, useColorMode, useThemeColors } from '@/lib/theme';
 
@@ -24,6 +26,7 @@ function RootNavigator() {
   const isSignedIn = session !== null;
   usePendingInvite(isSignedIn);
   useReminderSync(isSignedIn);
+  useTutorialAutoStart(isSignedIn);
 
   useEffect(() => {
     if (!isLoading) SplashScreen.hideAsync();
@@ -119,6 +122,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <RootNavigator />
+        <TutorialHost />
         <DialogHost />
         <ThemedStatusBar />
       </AuthProvider>

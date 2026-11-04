@@ -41,6 +41,7 @@ import {
 } from '@/features/contadores/hooks';
 import { useCounterActions } from '@/features/contadores/useCounterActions';
 import { StreakBadge } from '@/features/estadisticas/components/StreakBadge';
+import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 
@@ -221,11 +222,12 @@ export default function CountersScreen() {
 
   // --- Vista ------------------------------------------------------------------------------
 
-  function renderCard(item: CounterWithTotal) {
+  function renderCard(item: CounterWithTotal, isFirst = false) {
     return (
       <CounterCard
         key={item.id}
         counter={item}
+        tutorialTarget={isFirst}
         selectionMode={selecting}
         selected={selectedIds.includes(item.id)}
         onLongPress={() => toggleSelected(item.id)}
@@ -306,7 +308,9 @@ export default function CountersScreen() {
         <Text style={[styles.titleText, { color: colors.text }]} numberOfLines={1}>
           Mis contadores
         </Text>
-        <StreakBadge />
+        <TutorialTarget id="racha">
+          <StreakBadge />
+        </TutorialTarget>
       </View>
     ),
     headerRight: () => (
@@ -332,18 +336,20 @@ export default function CountersScreen() {
             <View style={[styles.badge, { backgroundColor: colors.danger }]} />
           ) : null}
         </Pressable>
-        <Pressable
-          onPress={openNewCounter}
-          accessibilityRole="button"
-          accessibilityLabel="Nuevo contador"
-          hitSlop={6}
-          style={({ pressed }) => [
-            styles.addButton,
-            { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
-          ]}
-        >
-          <Ionicons name="add" size={26} color="#000000" />
-        </Pressable>
+        <TutorialTarget id="nuevo-contador">
+          <Pressable
+            onPress={openNewCounter}
+            accessibilityRole="button"
+            accessibilityLabel="Nuevo contador"
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.addButton,
+              { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <Ionicons name="add" size={26} color="#000000" />
+          </Pressable>
+        </TutorialTarget>
       </View>
     ),
   };
@@ -387,7 +393,7 @@ export default function CountersScreen() {
       <FlatList
         data={shown}
         keyExtractor={(counter) => counter.id}
-        renderItem={({ item }) => renderCard(item)}
+        renderItem={({ item, index }) => renderCard(item, index === 0)}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl
@@ -437,7 +443,7 @@ export default function CountersScreen() {
                     color={colors.textMuted}
                   />
                 </Pressable>
-                {showHidden ? hidden.map(renderCard) : null}
+                {showHidden ? hidden.map((item) => renderCard(item)) : null}
               </View>
             ) : null}
           </View>
