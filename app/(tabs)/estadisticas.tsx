@@ -9,6 +9,7 @@ import { useCounterList, useMyLastCounterId } from '@/features/contadores/hooks'
 import { useMyDailyTotals } from '@/features/estadisticas/api';
 import { CounterChipsBar } from '@/features/estadisticas/components/CounterChipsBar';
 import { ChartTotals } from '@/features/estadisticas/components/ChartTotals';
+import { StreakCard } from '@/features/estadisticas/components/StreakCard';
 import { StatsChart, type ChartType } from '@/features/estadisticas/components/StatsChart';
 import {
   chartBuckets,
@@ -155,6 +156,8 @@ export default function StatsScreen() {
       />
 
       <ChartTotals totals={totals} />
+
+      <StreakCard onPress={() => router.push('/racha')} />
     </ScrollView>
   );
 }

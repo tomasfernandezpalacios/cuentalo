@@ -207,6 +207,13 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   las leen miembros e invitados con enlaces firmados de 1 h (`useGroupPhotoUrl`) y solo el owner
   sube/cambia/borra. `expo-image-picker` recorta cuadrado y da base64 (`base64ToBytes`). El
   owner edita nombre e imagen en `app/grupos/[id]/editar.tsx`.
+- **Rachas** (petición del usuario): días seguidos con algún registro. `user_activity_days`
+  (RLS: cada uno los suyos) se rellena con un trigger al insertar en `entries`, con el día
+  (Madrid) en que se pulsa y para `auth.uid()` (quien pulsa; en un común no cuenta para los
+  demás participantes). Borrar un registro no quita el día. La racha de ayer sigue viva hasta
+  que acabe hoy (`currentStreak` en `streaks.ts`, con tests). Fuego (`StreakBadge`, color
+  `colors.flame`) junto al título «Mis contadores»; pantalla `app/racha.tsx` con `StreakCard` y
+  calendario mensual; la misma tarjeta va al final de Estadísticas y lleva a esa pantalla.
 
 ## Cambios estéticos pendientes
 

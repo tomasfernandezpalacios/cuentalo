@@ -150,6 +150,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      user_activity_days: {
+        Row: { user_id: string; day: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       counter_links: {
         Row: { user_id: string; counter_id: string; link_id: string; is_primary: boolean };
         Insert: never;

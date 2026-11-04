@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { useUserId } from '@/features/auth/AuthProvider';
 import { counterKeys } from '@/features/contadores/hooks';
 import { supabase } from '@/lib/supabase';
 
-import type { DailyTotal } from './periods';
+import { todayInMadrid, type DailyTotal } from './periods';
+import { bestStreak, currentStreak } from './streaks';
 
 // Supabase devuelve como máximo 1000 filas por consulta, así que pedimos por páginas.
 const PAGE_SIZE = 1000;
@@ -38,5 +40,42 @@ export function useMyDailyTotals(userId: string) {
     queryKey: [...counterKeys.all, 'daily-totals', userId],
     queryFn: () => fetchMyDailyTotals(userId),
     enabled: userId !== '',
+  });
+}
+
+// --- Rachas -----------------------------------------------------------------------------------
+
+/** Días ('AAAA-MM-DD', Madrid) en los que he registrado algo. */
+export async function fetchMyActivityDays(userId: string): Promise<string[]> {
+  const days: string[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('user_activity_days')
+      .select('day')
+      .eq('user_id', userId)
+      .order('day', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    days.push(...data.map((row) => row.day));
+    if (data.length < PAGE_SIZE) return days;
+  }
+}
+
+/** Mi racha actual, la mejor y los días activos (para el calendario). */
+export function useStreak() {
+  const userId = useUserId();
+  return useQuery({
+    // Cuelga de counterKeys.all: al registrar algo se refresca sola.
+    queryKey: [...counterKeys.all, 'activity', userId],
+    queryFn: () => fetchMyActivityDays(userId),
+    enabled: userId !== '',
+    select: (days) => {
+      const today = todayInMadrid();
+      return {
+        days: new Set(days),
+        current: currentStreak(days, today),
+        best: bestStreak(days),
+      };
+    },
   });
 }

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
@@ -18,8 +18,9 @@ import {
 } from '@/features/contadores/filters';
 import { useDeleteFolder, useFolders, type Folder } from '@/features/contadores/folders';
 import { useAddEntry, useCounterList, useRemoveOne } from '@/features/contadores/hooks';
+import { StreakBadge } from '@/features/estadisticas/components/StreakBadge';
 import { getErrorMessage } from '@/lib/errors';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 function openNewCounter() {
   router.push('/contadores/nuevo');
@@ -124,6 +125,15 @@ export default function CountersScreen() {
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
+          // Título con el fuego de la racha a su derecha.
+          headerTitle: () => (
+            <View style={styles.title}>
+              <Text style={[styles.titleText, { color: colors.text }]} numberOfLines={1}>
+                Mis contadores
+              </Text>
+              <StreakBadge />
+            </View>
+          ),
           headerRight: () => (
             <View style={styles.headerActions}>
               <Pressable
@@ -225,6 +235,8 @@ export default function CountersScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  title: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  titleText: { fontSize: 18, fontFamily: fonts.title },
   list: { padding: 12, gap: 10, flexGrow: 1 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18, marginRight: 14 },
   addButton: {

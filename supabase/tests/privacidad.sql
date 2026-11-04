@@ -77,6 +77,23 @@ begin
   end if;
 end $$;
 
+-- Rachas: el registro de Ana apunta su día de actividad y Beto no puede verlo.
+do $$
+declare n int;
+begin
+  select count(*) into n from public.user_activity_days;
+  if n <> 0 then raise exception 'FALLO: Beto ve los días de actividad de Ana'; end if;
+end $$;
+
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.user_activity_days
+   where day = (now() at time zone 'Europe/Madrid')::date;
+  if n <> 1 then raise exception 'FALLO: registrar no apunta el día de racha (%)', n; end if;
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- 1b. Carpetas: son personales
 -- ---------------------------------------------------------------------------
