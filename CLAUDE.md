@@ -370,10 +370,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   cubrir la pantalla (soltar antes lo devuelve con un rebote) y sale «"Me comprometo a
   registrar mi vida"» antes de terminar. La bienvenida no tiene «Saltar» (barra y «Seguir»
   abajo). Barra de progreso (`Progress`): lo hecho es barra, el paso actual una bolita llena y
-  los pendientes bolitas huecas. Los pasos intermedios no tienen «Siguiente»
-  (solo «Saltar», a la derecha de la barra): se superan haciendo la tarea, sin pausa; las
-  pestañas y la racha se «tocan» y lo recoge el tutorial (`target-tapped`, no se abre la
-  pestaña). El bocadillo es el mismo de paso a paso: el foco se desliza al elemento nuevo
+  los pendientes bolitas huecas. Los pasos de tarea (crear, sumar, restar) se
+  superan haciéndola, sin pausa ni «Siguiente»; Estadísticas, Amigos y grupos y la racha
+  llevan «Siguiente». «Saltar», a la derecha de la barra. Sin confeti (el usuario lo quitó).
+  Movimientos lentos y suaves (fluidez antes que velocidad, `MOVE_MS`). El bocadillo es el mismo de paso a paso: el foco se desliza al elemento nuevo
   (`useGlidingHole`, `lerpHole`), todo lo sigue, el texto entra con un fundido y la barra
   avanza. Si el elemento no aparece, sale «Siguiente». Al final, tras la promesa sale
   «Cuéntalo». Los de acción avanzan con `tutorialEvent` desde el código que ya existe
@@ -381,7 +381,7 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   ofrece ideas de un toque) y solo dejan tocar el hueco. `TutorialHost` (montado en
   `app/_layout.tsx`, solo se ve en «Mis contadores»): oscurecido con hueco (SVG evenodd),
   anillo que late, flecha, bocadillo arriba o abajo (`layout.ts`, con tests), puntos de
-  progreso, confeti al primer +1. Los elementos se marcan con `TutorialTarget` (View con
+  progreso. Los elementos se marcan con `TutorialTarget` (View con
   `collapsable={false}`) y se miden con `measureInWindow` cada 250 ms **restando la posición de
   la propia capa del tutorial** (medida igual): la ventana y la vista raíz no empiezan en el
   mismo sitio en Android y, sin restarla, el foco caía desplazado; si no aparece en 1,5 s,

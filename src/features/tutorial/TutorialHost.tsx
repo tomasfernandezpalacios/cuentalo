@@ -26,7 +26,6 @@ import {
   getTarget,
   nextStep,
   skipTutorial,
-  tutorialEvent,
   useTutorial,
   type ViewRef,
 } from './store';
@@ -45,7 +44,7 @@ const MEASURE_EVERY_MS = 250;
  * creando el contador), se aparta.
  */
 export function TutorialHost() {
-  const { step, index, steps, celebrate } = useTutorial();
+  const { step, index, steps } = useTutorial();
   const pathname = usePathname();
   const stepId = step?.id;
   // Pantalla del paso: a la que va el tutorial al llegar a él (una sola vez), salvo que llegue
@@ -75,14 +74,7 @@ export function TutorialHost() {
   return (
     <Layer>
       {(origin, size) => (
-        <Spotlight
-          step={step}
-          index={index}
-          total={steps.length}
-          celebrate={celebrate}
-          origin={origin}
-          size={size}
-        />
+        <Spotlight step={step} index={index} total={steps.length} origin={origin} size={size} />
       )}
     </Layer>
   );
@@ -171,7 +163,12 @@ function useTargetRect(
 function useFadeIn() {
   const opacity = useState(() => new Animated.Value(0))[0];
   useEffect(() => {
-    Animated.timing(opacity, { toValue: 1, duration: 260, useNativeDriver: true }).start();
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 500,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
   }, [opacity]);
   return opacity;
 }
@@ -479,13 +476,12 @@ type SpotlightProps = {
   step: Step;
   index: number;
   total: number;
-  /** Confeti (el paso llega tras el primer registro). */
-  celebrate: boolean;
   origin: ViewRef | null;
   size: Size | null;
 };
 
-const MOVE_MS = 560;
+// Movimientos lentos y suaves: fluidez antes que velocidad.
+const MOVE_MS = 950;
 
 /**
  * El foco que se enseña: cuando el paso cambia de elemento, se desliza del anterior al nuevo
@@ -521,7 +517,7 @@ function useGlidingHole(target: Hole | null): Hole | null {
   return shown;
 }
 
-function Spotlight({ step, index, total, celebrate, origin, size }: SpotlightProps) {
+function Spotlight({ step, index, total, origin, size }: SpotlightProps) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const windowSize = useWindowDimensions();
@@ -531,8 +527,8 @@ function Spotlight({ step, index, total, celebrate, origin, size }: SpotlightPro
   const { rect, missing } = useTargetRect(step, origin);
   const [bubbleHeight, setBubbleHeight] = useState(150);
   const opacity = useFadeIn();
-  const pulse = useLoop(900);
-  const nudge = useLoop(650);
+  const pulse = useLoop(1300);
+  const nudge = useLoop(900);
   useAnnounce(step);
 
   const target = useMemo(() => (rect && !missing ? holeFor(rect) : null), [rect, missing]);
@@ -544,8 +540,8 @@ function Spotlight({ step, index, total, celebrate, origin, size }: SpotlightPro
     textIn.setValue(0);
     Animated.timing(textIn, {
       toValue: 1,
-      duration: 420,
-      delay: 120,
+      duration: 650,
+      delay: 250,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
@@ -556,8 +552,7 @@ function Spotlight({ step, index, total, celebrate, origin, size }: SpotlightPro
   const place = shownHole ? placeBubble(shownHole, bubbleHeight, screen) : null;
   // Tocar el elemento iluminado: o se deja tocar la app (sumar, restar, el +…) o lo recoge el
   // propio tutorial (pestañas y racha: se sigue sin cambiar de pantalla).
-  const passThrough = Boolean(step.action) && step.action !== 'target-tapped' && shownHole;
-  const tapToContinue = step.action === 'target-tapped' && shownHole;
+  const passThrough = Boolean(step.action) && shownHole;
 
   if (!shownHole && !missing) {
     // Aún midiendo: solo el oscurecido, sin dejar tocar nada.
@@ -599,21 +594,6 @@ function Spotlight({ step, index, total, celebrate, origin, size }: SpotlightPro
       ) : (
         <Blocker style={StyleSheet.absoluteFill} />
       )}
-      {tapToContinue && shownHole ? (
-        <Pressable
-          onPress={() => tutorialEvent('target-tapped')}
-          accessibilityRole="button"
-          accessibilityLabel={`${step.title}. Toca para seguir`}
-          style={{
-            position: 'absolute',
-            left: shownHole.x,
-            top: shownHole.y,
-            width: shownHole.width,
-            height: shownHole.height,
-            borderRadius: shownHole.radius,
-          }}
-        />
-      ) : null}
 
       {shownHole ? (
         <Animated.View
@@ -691,8 +671,10 @@ function Spotlight({ step, index, total, celebrate, origin, size }: SpotlightPro
         </Animated.View>
         <View style={styles.footer}>
           <Progress index={index} total={total} style={styles.progressInBubble} />
-          {/* Sin el elemento en pantalla no hay tarea que hacer: se puede seguir con el botón. */}
-          {missing ? <AppButton small title="Siguiente" onPress={continueTutorial} /> : null}
+          {/* Pasos que solo enseñan algo (o sin el elemento en pantalla): «Siguiente». */}
+          {!step.action || missing ? (
+            <AppButton small title="Siguiente" onPress={continueTutorial} />
+          ) : null}
           <Pressable
             onPress={skipTutorial}
             accessibilityRole="button"
@@ -704,14 +686,6 @@ function Spotlight({ step, index, total, celebrate, origin, size }: SpotlightPro
           </Pressable>
         </View>
       </View>
-
-      {celebrate && shownHole ? (
-        <Confetti
-          key={index}
-          x={shownHole.x + shownHole.width / 2}
-          y={shownHole.y + shownHole.height / 2}
-        />
-      ) : null}
     </Animated.View>
   );
 }
@@ -736,10 +710,11 @@ function Progress({ index, total, style }: { index: number; total: number; style
   const [progress] = useState(() => new Animated.Value(Math.min(shownProgress, index)));
   useEffect(() => {
     shownProgress = index;
-    Animated.spring(progress, {
+    Animated.timing(progress, {
       toValue: index,
-      friction: 9,
-      tension: 50,
+      duration: 1100,
+      delay: 200,
+      easing: Easing.inOut(Easing.cubic),
       // Anima ancho y color: no se puede con el driver nativo.
       useNativeDriver: false,
     }).start();
@@ -811,65 +786,6 @@ function Progress({ index, total, style }: { index: number; total: number; style
           ]}
         />
       ))}
-    </View>
-  );
-}
-
-const CONFETTI = ['🎉', '✨', '⭐', '🎊', '💜', '✨', '🎉', '⭐', '🎊', '✨', '💜', '🎉'];
-
-/** Pequeña celebración al hacer el primer registro: emoticonos que salen disparados. */
-function Confetti({ x, y }: { x: number; y: number }) {
-  const progress = useState(() => new Animated.Value(0))[0];
-  useEffect(() => {
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 1100,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [progress]);
-
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {CONFETTI.map((emoji, i) => {
-        const angle = (i / CONFETTI.length) * Math.PI * 2;
-        const distance = 70 + (i % 3) * 25;
-        return (
-          <Animated.Text
-            key={i}
-            style={[
-              styles.confetti,
-              {
-                left: x - 12,
-                top: y - 14,
-                opacity: progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 1, 0] }),
-                transform: [
-                  {
-                    translateX: progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, Math.cos(angle) * distance],
-                    }),
-                  },
-                  {
-                    translateY: progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, Math.sin(angle) * distance - 30],
-                    }),
-                  },
-                  {
-                    scale: progress.interpolate({
-                      inputRange: [0, 0.3, 1],
-                      outputRange: [0.4, 1.2, 0.9],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            {emoji}
-          </Animated.Text>
-        );
-      })}
     </View>
   );
 }
@@ -956,5 +872,4 @@ const styles = StyleSheet.create({
   promise: { alignItems: 'center', justifyContent: 'center', padding: 32 },
   brandText: { fontSize: 44, fontFamily: fonts.title, textAlign: 'center' },
   promiseText: { fontSize: 26, fontFamily: fonts.title, textAlign: 'center', lineHeight: 34 },
-  confetti: { position: 'absolute', fontSize: 24 },
 });

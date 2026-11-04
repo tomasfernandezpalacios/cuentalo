@@ -36,19 +36,11 @@ describe('pasos', () => {
     expect(advancesOn(undefined, 'entry-added')).toBe(false);
   });
 
-  it('todos los pasos intermedios se superan haciendo su tarea (sin «Siguiente»)', () => {
-    const withoutAction = buildSteps()
-      .filter((s) => !s.action)
+  it('los pasos de tarea no tienen «Siguiente»; los que solo enseñan algo, sí', () => {
+    const withAction = buildSteps()
+      .filter((s) => s.action)
       .map((s) => s.id);
-    // Solo la bienvenida (botón), «Esto es Cuéntalo» (se pasa solo) y el final.
-    expect(withoutAction).toEqual(['welcome', 'intro', 'done']);
-  });
-
-  it('las pestañas y la racha se superan tocándolas', () => {
-    const byId = Object.fromEntries(buildSteps().map((s) => [s.id, s]));
-    for (const id of ['stats', 'social', 'streak']) {
-      expect(advancesOn(byId[id], 'target-tapped')).toBe(true);
-    }
+    expect(withAction).toEqual(['create', 'pick-idea', 'submit', 'add', 'remove']);
   });
 });
 

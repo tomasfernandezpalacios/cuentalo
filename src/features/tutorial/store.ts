@@ -17,11 +17,9 @@ type State = {
   steps: Step[];
   /** null = no hay tutorial en marcha. */
   index: number | null;
-  /** El paso actual llega tras el primer registro: se celebra con confeti. */
-  celebrate: boolean;
 };
 
-let state: State = { steps: [], index: null, celebrate: false };
+let state: State = { steps: [], index: null };
 const listeners = new Set<() => void>();
 /** Se llama al terminar o saltar (lo usa el arranque para marcarlo en el perfil). */
 let onFinish: (() => void) | null = null;
@@ -38,30 +36,26 @@ function subscribe(listener: () => void) {
 
 export function startTutorial(finish: () => void) {
   onFinish = finish;
-  set({ steps: buildSteps(), index: 0, celebrate: false });
+  set({ steps: buildSteps(), index: 0 });
 }
 
 function finishTutorial() {
-  set({ index: null, celebrate: false });
+  set({ index: null });
   onFinish?.();
   onFinish = null;
 }
 
-function goNext(celebrate: boolean) {
+/** Pasa al paso siguiente (o termina si era el último). La barra avanza en el paso nuevo. */
+export function nextStep() {
   if (state.index === null) return;
   const next = nextIndex(state.steps, state.index);
   if (next === null) finishTutorial();
-  else set({ index: next, celebrate });
+  else set({ index: next });
 }
 
-/** Pasa al paso siguiente (o termina si era el último). La barra avanza en el paso nuevo. */
-export function nextStep() {
-  goNext(false);
-}
-
-/** El botón de las pantallas completas (bienvenida). */
+/** «Siguiente» / «Seguir». */
 export function continueTutorial() {
-  goNext(false);
+  nextStep();
 }
 
 /** «Saltar»: se termina y no vuelve a salir (se puede repetir desde Configuración). */
@@ -77,7 +71,7 @@ export function skipTutorial() {
 export function tutorialEvent(event: TutorialEvent) {
   if (state.index === null) return;
   if (!advancesOn(state.steps[state.index], event)) return;
-  goNext(event === 'entry-added');
+  nextStep();
 }
 
 export function isTutorialActive(): boolean {
