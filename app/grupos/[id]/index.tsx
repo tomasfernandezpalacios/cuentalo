@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
@@ -10,8 +10,7 @@ import { useUserId } from '@/features/auth/AuthProvider';
 import { GroupCounters } from '@/features/contadores/components/GroupCounters';
 import { GroupLeaderboard } from '@/features/contadores/components/GroupLeaderboard';
 import type { MemberWithProfile } from '@/features/social/api';
-import { GroupAvatar } from '@/features/social/components/GroupAvatar';
-import { InviteCodeCard } from '@/features/social/components/InviteCodeCard';
+import { GroupHeaderCard } from '@/features/social/components/GroupHeaderCard';
 import { PersonRow } from '@/features/social/components/PersonRow';
 import {
   useDeleteGroup,
@@ -21,7 +20,7 @@ import {
   useResignGroupAdmin,
 } from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { useThemeColors } from '@/lib/theme';
 
 function showError(error: unknown) {
   appAlert('Error', getErrorMessage(error));
@@ -231,20 +230,14 @@ export default function GroupScreen() {
         }}
       />
 
-      {/* Imagen y nombre a la izquierda; el código para unirse (solo el admin) a la derecha. */}
-      <View style={styles.top}>
-        <View style={styles.hero}>
-          <GroupAvatar emoji={group.data.emoji} photoPath={group.data.photo_path} size={88} />
-          <Text style={[styles.heroName, { color: colors.text }]} numberOfLines={3}>
-            {name}
-          </Text>
-        </View>
-        {isOwner ? (
-          <View style={styles.flex}>
-            <InviteCodeCard groupId={id} groupName={name} compact />
-          </View>
-        ) : null}
-      </View>
+      {/* Imagen y nombre del grupo y, para el administrador, el código para unirse. */}
+      <GroupHeaderCard
+        groupId={id}
+        groupName={name}
+        emoji={group.data.emoji}
+        photoPath={group.data.photo_path}
+        isOwner={isOwner}
+      />
 
       <Section title="Clasificación">
         <GroupLeaderboard groupId={id} />
@@ -253,14 +246,6 @@ export default function GroupScreen() {
       <Section title="Contadores del grupo">
         <GroupCounters groupId={id} />
       </Section>
-
-      {isOwner ? (
-        <AppButton
-          title="Invitar a amigos de la app"
-          variant="secondary"
-          onPress={() => router.push({ pathname: '/grupos/[id]/invitar', params: { id } })}
-        />
-      ) : null}
 
       <Section title={`Miembros (${active.length})`}>
         <View>
@@ -299,6 +284,13 @@ export default function GroupScreen() {
       ) : null}
 
       <View style={styles.danger}>
+        {isOwner ? (
+          <AppButton
+            title="Invitar a amigos de la app"
+            variant="secondary"
+            onPress={() => router.push({ pathname: '/grupos/[id]/invitar', params: { id } })}
+          />
+        ) : null}
         <AppButton
           title="Abandonar el grupo"
           variant="secondary"
@@ -319,10 +311,6 @@ export default function GroupScreen() {
 }
 
 const styles = StyleSheet.create({
-  top: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  hero: { alignItems: 'center', gap: 8, width: 112 },
-  flex: { flex: 1 },
-  heroName: { fontSize: 18, fontFamily: fonts.title, textAlign: 'center' },
   content: { padding: 16, gap: 24 },
   danger: { marginTop: 8, gap: 10 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
