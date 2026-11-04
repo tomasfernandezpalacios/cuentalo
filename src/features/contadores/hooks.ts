@@ -42,10 +42,12 @@ export const counterKeys = {
   lastUsed: (ids: string[]) => [...counterKeys.all, 'last-used', ...ids] as const,
 };
 
-// Tras cualquier cambio refrescamos todo lo de contadores: son pocas consultas y así la lista,
-// el detalle, la clasificación y las estadísticas nunca se desincronizan.
+// Tras cualquier cambio refrescamos todo (no solo lo de contadores): son pocas consultas y así
+// la lista, el detalle, la clasificación, las estadísticas, las rachas de amigos, los perfiles y
+// el buzón se ven al instante y nunca se desincronizan. Solo se vuelven a pedir las que están
+// en pantalla; el resto se marca como antiguo y se pide al abrirlas.
 function invalidateCounters(queryClient: QueryClient) {
-  return queryClient.invalidateQueries({ queryKey: counterKeys.all });
+  return queryClient.invalidateQueries();
 }
 
 // --- Consultas --------------------------------------------------------------

@@ -45,13 +45,14 @@ export const socialKeys = {
   requests: (userId: string) => [...socialKeys.all, 'counter-requests', userId] as const,
 };
 
-// Cualquier cambio social refresca amistades y grupos: son consultas pequeñas y así todas las
-// pantallas quedan coherentes.
+// Cualquier cambio social refresca todo lo que está en pantalla: son consultas pequeñas y así
+// todas las pantallas quedan coherentes al instante.
 function useSocialMutation<TVariables, TResult>(fn: (variables: TVariables) => Promise<TResult>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: socialKeys.all }),
+    // Todo, no solo lo social: un cambio en un grupo también cambia contadores y clasificaciones.
+    onSuccess: () => queryClient.invalidateQueries(),
   });
 }
 
@@ -134,7 +135,8 @@ export function useDeleteGroup() {
     mutationFn: deleteGroup,
     onSuccess: (_result, groupId) => {
       queryClient.removeQueries({ queryKey: socialKeys.group(groupId) });
-      return queryClient.invalidateQueries({ queryKey: socialKeys.all });
+      // Al borrar el grupo sus contadores pasan a privados: se refresca todo.
+      return queryClient.invalidateQueries();
     },
   });
 }

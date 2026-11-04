@@ -128,6 +128,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   mismo bloque grande de la cabecera del grupo (`GroupHeaderCard` con `onPress`), con el código.
 - En la pantalla del grupo, el + morado de la cabecera (como en inicio) crea un contador
   compartido; el botón «Nuevo contador compartido» de la lista solo sale si no hay ninguno.
+- **Cambios al instante** (petición del usuario): toda mutación (contadores, social, carpetas,
+  perfil) refresca **todas** las consultas (`invalidateQueries()` sin clave; solo se vuelven a
+  pedir las que están en pantalla). `ChartPlot` lleva `key` con series, valores y etiquetas:
+  gifted-charts no redibujaba al cambiar de contador (solo al cambiar de tipo).
 - Fase 3: los datos se refrescan al volver a la app (`focusManager` + `AppState`) y con
   "tirar para refrescar".
 - Fase 4: contador compartido = `counters.group_id`. Lo ven los miembros activos; cualquiera

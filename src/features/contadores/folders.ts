@@ -50,17 +50,15 @@ export function useFolders() {
 }
 
 export function useSaveFolder(id: string | null) {
-  const userId = useUserId();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: FolderInput) => saveFolder(id, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: folderKeys.all(userId) }),
+    onSuccess: () => queryClient.invalidateQueries(),
   });
 }
 
 /** Añade contadores a una carpeta que ya existe (sin quitar los que tenía). */
 export function useAddToFolder() {
-  const userId = useUserId();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ folder, counterIds }: { folder: Folder; counterIds: string[] }) =>
@@ -68,15 +66,14 @@ export function useAddToFolder() {
         name: folder.name,
         counterIds: [...new Set([...folder.counterIds, ...counterIds])],
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: folderKeys.all(userId) }),
+    onSuccess: () => queryClient.invalidateQueries(),
   });
 }
 
 export function useDeleteFolder() {
-  const userId = useUserId();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteFolder,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: folderKeys.all(userId) }),
+    onSuccess: () => queryClient.invalidateQueries(),
   });
 }

@@ -121,6 +121,14 @@ export function ChartPlot({ labels, series, type, plotWidth, height, interactive
     );
   };
 
+  // La librería no siempre redibuja al cambiar las series (p. ej. al mostrar otro contador) y
+  // solo se veía al cambiar de tipo de gráfica. Con esta clave, cualquier cambio de series,
+  // valores o periodo vuelve a montar la gráfica y se ve al instante. El zoom no entra: al
+  // pellizcar no hace falta (y se perdería el desplazamiento).
+  const dataKey = `${labels.join(',')}|${series
+    .map((s) => `${s.id}:${s.color}:${s.values.join(',')}`)
+    .join('|')}`;
+
   const common = {
     width: plotWidth,
     height,
@@ -206,6 +214,7 @@ export function ChartPlot({ labels, series, type, plotWidth, height, interactive
     }));
     const chart = (
       <LineChart
+        key={dataKey}
         {...common}
         dataSet={dataSet}
         spacing={spacing}
@@ -241,6 +250,7 @@ export function ChartPlot({ labels, series, type, plotWidth, height, interactive
   );
   return (
     <BarChart
+      key={dataKey}
       {...common}
       data={data}
       barWidth={barWidth}

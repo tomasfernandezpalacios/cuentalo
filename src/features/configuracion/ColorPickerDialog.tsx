@@ -95,6 +95,12 @@ export function ColorPickerDialog({ initial, onCancel, onDone }: Props) {
         {/* El recuadro no se cierra al tocarlo por dentro. */}
         <Pressable style={[styles.card, { backgroundColor: colors.surface }]} onPress={() => {}}>
           <Text style={[styles.title, { color: colors.text }]}>Color personalizado</Text>
+          {/* Sobre el fondo del modo actual, un color parecido a él apenas se distingue. */}
+          <Text style={[styles.hint, { color: colors.textMuted }]}>
+            {mode === 'dark'
+              ? 'Estás en el tema oscuro: no escojas un color muy oscuro.'
+              : 'Estás en el tema claro: no escojas un color muy claro.'}
+          </Text>
 
           <TouchArea style={styles.square} onPick={(x, y) => update({ ...hsv, s: x, v: 1 - y })}>
             <View
