@@ -20,6 +20,8 @@ type Props = {
   round?: boolean;
   onPicked: (photo: PickedPhoto) => void;
   onRemove: () => void;
+  /** Si es false (se está eligiendo un emoticono), solo se ve la imagen, sin botón. */
+  enabled?: boolean;
 };
 
 /**
@@ -34,6 +36,7 @@ export function EditablePhoto({
   round = false,
   onPicked,
   onRemove,
+  enabled = true,
 }: Props) {
   const colors = useThemeColors();
   const [editing, setEditing] = useState<string | null>(null);
@@ -72,6 +75,8 @@ export function EditablePhoto({
       { warning: false },
     );
   }
+
+  if (!enabled) return <View style={styles.wrap}>{children}</View>;
 
   return (
     <View style={styles.wrap}>

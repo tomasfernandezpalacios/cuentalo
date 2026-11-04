@@ -8,14 +8,15 @@ import { localToday } from '../periods';
 import { weekProgress } from '../streaks';
 
 type Props = {
-  /** Si se pasa, la tarjeta se puede pulsar (en Estadísticas lleva a la pantalla de racha). */
+  /** Si se pasa, la tarjeta se puede pulsar (en Estadísticas y el perfil lleva a la racha). */
   onPress?: () => void;
-  /** Enseña debajo la semana actual con una barra por día (en Estadísticas). */
-  showWeek?: boolean;
 };
 
-/** Rectángulo grande con el fuego, los días de racha actuales, la mejor y (opcional) la semana. */
-export function StreakCard({ onPress, showWeek = false }: Props) {
+/**
+ * Rectángulo de la racha (Estadísticas, perfil y pantalla de racha): «🔥 N días de racha» en
+ * una línea, debajo la mejor racha alineada con el número y, abajo, la semana actual.
+ */
+export function StreakCard({ onPress }: Props) {
   const colors = useThemeColors();
   const streak = useStreak();
   const current = streak.data?.current ?? 0;
@@ -32,7 +33,6 @@ export function StreakCard({ onPress, showWeek = false }: Props) {
       accessibilityHint={onPress ? 'Abre el calendario de tu racha' : undefined}
       style={({ pressed }) => [
         styles.card,
-        showWeek && styles.cardWithWeek,
         {
           backgroundColor: active ? `${colors.flame}1F` : colors.surface,
           borderColor: active ? colors.flame : colors.border,
@@ -41,12 +41,14 @@ export function StreakCard({ onPress, showWeek = false }: Props) {
       ]}
     >
       <View style={styles.top}>
-        <Ionicons name="flame" size={64} color={active ? colors.flame : colors.textMuted} />
+        <Ionicons name="flame" size={40} color={active ? colors.flame : colors.textMuted} />
         <View style={styles.texts}>
-          <Text style={[styles.number, { color: colors.text }]}>{current}</Text>
-          <Text style={[styles.label, { color: colors.text }]}>
-            {current === 1 ? 'día de racha' : 'días de racha'}
-          </Text>
+          <View style={styles.headline}>
+            <Text style={[styles.number, { color: colors.text }]}>{current}</Text>
+            <Text style={[styles.label, { color: colors.text }]}>
+              {current === 1 ? 'día de racha' : 'días de racha'}
+            </Text>
+          </View>
           <Text style={[styles.detail, { color: colors.textMuted }]}>
             {`Mejor racha: ${best} ${best === 1 ? 'día' : 'días'}`}
           </Text>
@@ -60,7 +62,7 @@ export function StreakCard({ onPress, showWeek = false }: Props) {
         </View>
         {onPress ? <Ionicons name="chevron-forward" size={22} color={colors.textMuted} /> : null}
       </View>
-      {showWeek && streak.data ? <WeekBar days={streak.data.days} /> : null}
+      {streak.data ? <WeekBar days={streak.data.days} /> : null}
     </Pressable>
   );
 }
@@ -114,9 +116,10 @@ function WeekBar({ days }: { days: Set<string> }) {
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 20, borderRadius: 20, borderWidth: 1.5 },
-  cardWithWeek: { gap: 18 },
-  top: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  card: { paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1.5, gap: 12 },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  // El número y «días de racha» en la misma línea, apoyados en la misma base.
+  headline: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   week: { gap: 8 },
   weekHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   weekTitle: { fontSize: 15, fontFamily: fonts.title },
@@ -126,7 +129,7 @@ const styles = StyleSheet.create({
   segment: { alignSelf: 'stretch', height: 12, borderRadius: 6, borderWidth: 2 },
   weekLetter: { fontSize: 12, fontFamily: fonts.title },
   texts: { flex: 1, gap: 2 },
-  number: { fontSize: 44, fontFamily: fonts.title, lineHeight: 50 },
+  number: { fontSize: 34, fontFamily: fonts.title, lineHeight: 40 },
   label: { fontSize: 17, fontFamily: fonts.title },
-  detail: { fontSize: 14, fontFamily: fonts.detail, marginTop: 4 },
+  detail: { fontSize: 14, fontFamily: fonts.detail },
 });

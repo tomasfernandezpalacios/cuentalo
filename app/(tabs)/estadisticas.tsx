@@ -166,7 +166,7 @@ export default function StatsScreen() {
 
       <ChartTotals totals={totals} />
 
-      <StreakCard showWeek onPress={() => router.push('/racha')} />
+      <StreakCard onPress={() => router.push('/racha')} />
     </ScrollView>
   );
 }

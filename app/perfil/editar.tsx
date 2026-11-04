@@ -69,6 +69,7 @@ function EditProfileForm({ profile }: { profile: Profile }) {
     <FormScreen>
       <View style={styles.preview}>
         <EditablePhoto
+          enabled={mode === 'photo'}
           hasPhoto={hasPhoto}
           editUri={newPhoto?.uri ?? (mode === 'photo' ? (savedPhoto.data ?? null) : null)}
           camera

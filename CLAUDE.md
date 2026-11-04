@@ -194,11 +194,13 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - Gráficas interactivas (petición del usuario): al tocar `StatsChart` (Estadísticas y grupo)
   se abre `ChartViewer` a pantalla completa (Modal): zoom **solo pellizcando** (PanResponder
   con dos dedos, sin librería de gestos; sin botones, petición del usuario), deslizar por el eje
-  X y **tocar un punto o barra** para ver su dato en un recuadro (líneas: `focusEnabled` +
-  `onFocus` + `dataPointLabelComponent` en el punto elegido; barras: `renderTooltip`). El
+  X y **tocar un punto o barra** para ver su dato en un recuadro. Líneas: el toque se calcula a
+  mano (`onTouchStart/End` + `measure` + desplazamiento de `onScroll`), porque las franjas de
+  `focusEnabled` de gifted-charts no reciben toques en el móvil; barras: `renderTooltip`. El
   recuadro usa `bucketTitle` («mié 4 nov 2026»). Bajo la gráfica, «Toca la gráfica para
   ampliarla». El dibujo está en `ChartPlot`.
-- Tarjeta de racha en Estadísticas (`StreakCard showWeek`): número, fuego, mejor racha y la
+- Tarjeta de racha (`StreakCard`, igual en Estadísticas, perfil y pantalla de racha):
+  «🔥 N días de racha» en una línea, debajo «Mejor racha: N días» alineada con el número y la
   semana actual (lunes → domingo, `weekProgress`) con una barra por día: color de la llama si
   se mantuvo, gris si no, más clara si no ha llegado y borde en hoy.
 - Gráfica (`StatsChart`): líneas por defecto, una por contador con color de `chartColors.ts`
@@ -305,7 +307,7 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   grupo). El nuevo administrador recibe un aviso `group_admin` en el buzón.
 - **Editar la imagen** (perfil y grupo, petición del usuario): `EditablePhoto` pone un botón
   «Editar» (o «Añadir foto») sobre la imagen que abre: cambiar foto (galería, y cámara en el
-  perfil), editar foto y borrar foto. `PhotoEditor` (Modal): arrastrar, pellizcar y girar 90°
+  perfil), editar foto y borrar foto. Con «Emoticono» elegido no sale el botón (`enabled`). `PhotoEditor` (Modal): arrastrar, pellizcar y girar 90°
   dentro del marco; recorta con `expo-image-manipulator` (512 px, JPEG) y la foto guardada se
   descarga antes con `expo-file-system` (`localCopy`). Cuentas en `src/lib/photoCrop.ts` (tests).
 - Los campos de contraseña (`TextField` con `secureTextEntry`) llevan un ojo para verla.
