@@ -173,7 +173,8 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   (decisión del usuario).
 - **Estadísticas** (rediseño pedido por el usuario): periodo arriba; debajo, barra con icono de
   filtros (pantalla completa `app/estadisticas/filtros.tsx`: buscador, carpetas enteras,
-  casillas, Todos/Ninguno) y un botón por contador que lo muestra u oculta en la gráfica. Sin
+  casillas, Todos/Ninguno) y un botón por contador (de uso más reciente a menos,
+  `sortByRecentUse`) que lo muestra u oculta en la gráfica. Sin
   filtro, la barra tiene todos los contadores y se dibuja el último usado
   (`useMyLastCounterId`); al aplicar un filtro se dibujan todos los elegidos. La selección vive
   en memoria (`selection.ts`, `useSyncExternalStore`) y se reinicia al abrir la app.

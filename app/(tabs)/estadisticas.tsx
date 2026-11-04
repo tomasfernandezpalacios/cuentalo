@@ -17,6 +17,7 @@ import {
   todayInMadrid,
   type Period,
 } from '@/features/estadisticas/periods';
+import { sortByRecentUse } from '@/features/estadisticas/recentUse';
 import { toggleVisible, useStatsSelection } from '@/features/estadisticas/selection';
 import { visibleCounterId } from '@/features/contadores/links';
 import { chartColor } from '@/lib/chartColors';
@@ -44,14 +45,15 @@ export default function StatsScreen() {
     return (daily.data ?? []).map((d) => ({ ...d, counterId: resolve(d.counterId) }));
   }, [daily.data, counters.data]);
 
-  // Contadores de la barra: los del filtro o, sin filtro, todos los míos (alfabético). Los de
-  // grupos que dejé siguen si tengo registros en ellos.
+  // Contadores de la barra: los del filtro o, sin filtro, todos los míos, de uso más reciente a
+  // menos. Los de grupos que dejé siguen si tengo registros en ellos.
   const pool = useMemo(() => {
-    const all = (counters.data ?? [])
-      .filter((c) => !c.linkedInto && (c.isActive || c.myEntryCount > 0))
-      .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+    const all = sortByRecentUse(
+      (counters.data ?? []).filter((c) => !c.linkedInto && (c.isActive || c.myEntryCount > 0)),
+      days,
+    );
     return selection.pool ? all.filter((c) => selection.pool?.includes(c.id)) : all;
-  }, [counters.data, selection.pool]);
+  }, [counters.data, selection.pool, days]);
 
   // Por defecto se dibuja el último contador en el que registraste algo.
   const lastUsed = useMyLastCounterId(pool.map((c) => c.id));
