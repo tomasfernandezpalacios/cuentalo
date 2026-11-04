@@ -99,25 +99,27 @@ export function CounterCard({
         />
       )}
 
-      <View style={styles.totalBox}>
-        <Text
-          style={[styles.total, { color: colors.primary }]}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          maxFontSizeMultiplier={1.3}
-        >
-          {/* En un compartido la tarjeta muestra lo mío; el total del grupo está en el detalle. */}
-          {formatAmount(counter.displayTotal)}
-        </Text>
-        {counter.streak ? (
-          // Formato racha: una llamita indica que el número es la racha actual.
-          <Ionicons
-            name="flame"
-            size={13}
-            color={counter.displayTotal > 0 ? colors.flame : colors.textMuted}
-            accessibilityLabel="Formato racha"
-          />
-        ) : null}
+      <View style={[styles.totalBox, counter.streak && styles.streakTotalBox]}>
+        <View style={styles.totalRow}>
+          {counter.streak ? (
+            // Formato racha: una llamita a la izquierda indica que el número es la racha actual.
+            <Ionicons
+              name="flame"
+              size={16}
+              color={counter.displayTotal > 0 ? colors.flame : colors.textMuted}
+              accessibilityLabel="Formato racha"
+            />
+          ) : null}
+          <Text
+            style={[styles.total, { color: colors.primary }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.3}
+          >
+            {/* En un compartido la tarjeta muestra lo mío; el total del grupo está en el detalle. */}
+            {formatAmount(counter.displayTotal)}
+          </Text>
+        </View>
         {counter.unit ? (
           <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
             {counter.unit}
@@ -141,6 +143,8 @@ const styles = StyleSheet.create({
   name: { flex: 1, gap: 2 },
   nameText: { fontSize: 17, fontFamily: fonts.title },
   totalBox: { alignItems: 'flex-end', minWidth: 36, maxWidth: 64 },
-  total: { fontSize: 21, fontFamily: fonts.title },
+  streakTotalBox: { maxWidth: 82 },
+  totalRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  total: { fontSize: 21, fontFamily: fonts.title, flexShrink: 1 },
   unit: { fontSize: 12, fontFamily: fonts.detail },
 });
