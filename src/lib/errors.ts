@@ -28,6 +28,7 @@ const POSTGRES_MESSAGES: Record<string, string> = {
 const CUSTOM_MESSAGES: Record<string, string> = {
   invalid_invite_code: 'Ese código no corresponde a ningún grupo.',
   not_group_owner: 'Solo el líder del grupo puede hacer esto.',
+  not_group_member: 'Solo los miembros del grupo pueden hacer esto.',
   not_shared_counter: 'Este contador no es de ningún grupo del que formes parte.',
   cannot_log_common: 'En este contador común solo suma o resta su administrador.',
   not_counter_manager: 'Solo el administrador de este contador puede hacer esto.',

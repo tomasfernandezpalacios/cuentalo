@@ -14,6 +14,7 @@ import { fonts, useThemeColors } from '@/lib/theme';
 
 import { normalizeInviteCode, type MyGroup } from '../api';
 import { GroupAvatar } from './GroupAvatar';
+import { GroupHeaderCard } from './GroupHeaderCard';
 import { useAcceptInvitation, useMyGroups, useRemoveMember } from '../hooks';
 
 function showError(error: unknown) {
@@ -76,7 +77,18 @@ export function GroupsPanel() {
             Aún no estás en ningún grupo. Crea uno e invita a tus amigos.
           </Text>
         ) : (
-          mine.map((group) => <GroupRow key={group.id} group={group} />)
+          // Bloques grandes, los mismos de la cabecera del grupo (con el código para unirse).
+          mine.map((group) => (
+            <GroupHeaderCard
+              key={group.id}
+              groupId={group.id}
+              groupName={group.name}
+              emoji={group.emoji}
+              photoPath={group.photo_path}
+              showCode
+              onPress={() => router.push({ pathname: '/grupos/[id]', params: { id: group.id } })}
+            />
+          ))
         )}
       </Section>
 

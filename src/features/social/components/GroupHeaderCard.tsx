@@ -49,7 +49,7 @@ function IconButton({
 }
 
 /**
- * Tarjeta de arriba del grupo: imagen con el código a su derecha (solo el líder) y el
+ * Tarjeta del grupo (cabecera y lista de «Tus grupos»): imagen con el código a su derecha y el
  * nombre debajo, a la izquierda. El código va en una línea (con copiar a su derecha) y dos
  * botones de icono debajo (compartir enlace y código nuevo).
  */
@@ -58,29 +58,57 @@ export function GroupHeaderCard({
   groupName,
   emoji,
   photoPath,
-  isOwner,
-}: Props & { emoji: string | null; photoPath: string | null; isOwner: boolean }) {
+  showCode,
+  onPress,
+}: Props & {
+  emoji: string | null;
+  photoPath: string | null;
+  /** Miembros activos del grupo (no invitados): ven, comparten y cambian el código. */
+  showCode: boolean;
+  /** En la lista de «Tus grupos»: toda la tarjeta abre el grupo (con una flecha junto al nombre). */
+  onPress?: () => void;
+}) {
   const colors = useThemeColors();
-  return (
-    <View style={[styles.card, { backgroundColor: colors.primarySoft }]}>
-      {/* Arriba: la imagen y, a su derecha y a la misma altura, el código (solo el admin). */}
+  const content = (
+    <>
+      {/* Arriba: la imagen y, a su derecha y a la misma altura, el código (miembros activos). */}
       <View style={styles.top}>
         <GroupAvatar emoji={emoji} photoPath={photoPath} size={104} />
-        {isOwner ? (
+        {showCode ? (
           <View style={styles.side}>
             <InviteCode groupId={groupId} groupName={groupName} />
           </View>
         ) : null}
       </View>
       {/* Debajo, el nombre a la izquierda y a todo lo ancho (un nombre largo no se aprieta). */}
-      <Text style={[styles.groupName, { color: colors.text }]} numberOfLines={3}>
-        {groupName}
-      </Text>
-    </View>
+      <View style={styles.nameRow}>
+        <Text style={[styles.groupName, { color: colors.text }]} numberOfLines={3}>
+          {groupName}
+        </Text>
+        {onPress ? <Ionicons name="chevron-forward" size={22} color={colors.textMuted} /> : null}
+      </View>
+    </>
+  );
+
+  if (!onPress) {
+    return <View style={[styles.card, { backgroundColor: colors.primarySoft }]}>{content}</View>;
+  }
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Grupo ${groupName}`}
+      style={({ pressed }) => [
+        styles.card,
+        { backgroundColor: colors.primarySoft, opacity: pressed ? 0.85 : 1 },
+      ]}
+    >
+      {content}
+    </Pressable>
   );
 }
 
-/** Solo para el owner: código del grupo, copiarlo, compartir el enlace y generar uno nuevo. */
+/** Para los miembros activos: código del grupo, copiarlo, compartir el enlace y generar uno nuevo. */
 function InviteCode({ groupId, groupName }: Props) {
   const colors = useThemeColors();
   const code = useInviteCode(groupId, true);
@@ -187,7 +215,8 @@ const styles = StyleSheet.create({
   card: { gap: 12, borderRadius: 18, padding: 14 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   side: { flex: 1, gap: 10 },
-  groupName: { fontSize: 22, fontFamily: fonts.title },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  groupName: { flex: 1, fontSize: 22, fontFamily: fonts.title },
   codeBox: { alignItems: 'stretch', gap: 6 },
   label: { fontSize: 13, fontFamily: fonts.detail },
   // Misma altura de línea que el código para que el icono quede centrado con él.

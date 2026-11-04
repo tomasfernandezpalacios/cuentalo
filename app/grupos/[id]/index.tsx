@@ -306,13 +306,13 @@ export default function GroupScreen() {
         }}
       />
 
-      {/* Imagen y nombre del grupo y, para el líder, el código para unirse. */}
+      {/* Imagen y nombre del grupo y, para los miembros activos, el código para unirse. */}
       <GroupHeaderCard
         groupId={id}
         groupName={name}
         emoji={group.data.emoji}
         photoPath={group.data.photo_path}
-        isOwner={isOwner}
+        showCode={active.some((m) => m.user_id === userId)}
       />
 
       <Section title="Clasificación">

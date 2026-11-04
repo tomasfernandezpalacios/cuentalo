@@ -117,12 +117,14 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - Fase 3: funciones `is_group_member` (activo), `is_group_participant` (activo o invitado) e
   `is_group_owner`, todas SECURITY DEFINER para evitar recursión en la RLS de group_members.
 - Unirse a grupos con **código de 8 caracteres** (`ABCD-EFGH`, alfabeto sin 0/O/1/I/L) o
-  **enlace** `cuentalo://unirse/CODIGO` (en Expo Go `exp://…/--/unirse/CODIGO`). Solo el owner
-  ve el código (`get_group_invite_code`; la columna no es legible directamente) y puede
-  cambiarlo. Con el código se entra aunque no seas amigo del owner (él decide a quién lo da).
+  **enlace** `cuentalo://unirse/CODIGO` (en Expo Go `exp://…/--/unirse/CODIGO`). **Cualquier
+  miembro activo** ve el código (`get_group_invite_code`; la columna no es legible
+  directamente), lo comparte y puede cambiarlo (migración `20261129`, petición del usuario;
+  antes solo el owner). Con el código se entra aunque no seas amigo de nadie del grupo.
   Si se abre el enlace sin sesión, tras iniciar sesión hay que volver a abrirlo (V1).
 - «Amigos y grupos» se abre en la pestaña Grupos (petición del usuario). Orden: invitaciones
-  (si hay), «Tus grupos», y debajo «Crear grupo» y el código.
+  (si hay), «Tus grupos», y debajo «Crear grupo» y el código. Cada grupo de «Tus grupos» es el
+  mismo bloque grande de la cabecera del grupo (`GroupHeaderCard` con `onPress`), con el código.
 - En la pantalla del grupo, el + morado de la cabecera (como en inicio) crea un contador
   compartido; el botón «Nuevo contador compartido» de la lista solo sale si no hay ninguno.
 - Fase 3: los datos se refrescan al volver a la app (`focusManager` + `AppState`) y con
@@ -329,7 +331,7 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - Crear/editar carpeta: botones «Todos», «Ninguno» y uno por grupo (marca o desmarca los de
   ese grupo) encima del buscador.
 - Cabecera del grupo: arriba la imagen y, a su derecha y a la misma altura, el bloque del código
-  (solo el admin); debajo, el nombre del grupo a la izquierda y a todo lo ancho.
+  (miembros activos); debajo, el nombre del grupo a la izquierda y a todo lo ancho.
 
 - **Tutorial de bienvenida** (petición del usuario, `src/features/tutorial/`). Sale la primera
   vez que alguien entra si `profiles.tutorial_done = false` (migración `20261124`; sin la
