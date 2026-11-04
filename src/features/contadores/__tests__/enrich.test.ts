@@ -126,3 +126,14 @@ describe('enrich: formato racha', () => {
     expect(result.streak).toBeNull();
   });
 });
+
+describe('enrich: archivados de antes', () => {
+  it('para quien lo administra cuenta como oculto', () => {
+    expect(enrich(counter({ archived: true }), totals, groups, ME).hidden).toBe(true);
+  });
+
+  it('para otro miembro del grupo es un contador normal', () => {
+    const archivedByOther = counter({ archived: true, group_id: 'g1', owner_id: OTHER });
+    expect(enrich(archivedByOther, totals, groups, ME).hidden).toBe(false);
+  });
+});

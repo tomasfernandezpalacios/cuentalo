@@ -176,7 +176,9 @@ export function enrich(
     canManage,
     participantIds,
     lastLoggedAt: t?.last_logged_at ?? null,
-    hidden: hidden.has(counter.id) || counter.archived,
+    // Un archivado de antes solo cuenta como oculto para quien lo administra (el único que puede
+    // desarchivarlo al mostrarlo); para los demás miembros del grupo es un contador normal.
+    hidden: hidden.has(counter.id) || (counter.archived && canManage),
     removedFromHome: removedFromHome.has(counter.id),
     streak,
     linkedCounterIds: [counter.id],
