@@ -118,6 +118,7 @@ export function GroupMembersChart({ groupId, counterId, unit, period }: Props) {
         type={type}
         onChangeType={setType}
         emptyText="Toca a un miembro para verlo en la gráfica"
+        title="Evolución del grupo"
       />
       {/* Lo que dibuja la gráfica, por escrito: lo de cada uno en el periodo. */}
       {series.length > 0 ? (

@@ -14,7 +14,6 @@ import {
   inviteToGroup,
   joinGroupByCode,
   previewGroupByCode,
-  regenerateInviteCode,
   removeMember,
   updateGroup,
   fetchGroupPhotoUrl,
@@ -182,10 +181,6 @@ export function useInviteCode(groupId: string, enabled: boolean) {
     queryFn: () => fetchInviteCode(groupId),
     enabled,
   });
-}
-
-export function useRegenerateInviteCode(groupId: string) {
-  return useSocialMutation(() => regenerateInviteCode(groupId));
 }
 
 export function useGroupPreview(code: string) {

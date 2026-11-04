@@ -119,8 +119,9 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - Unirse a grupos con **código de 8 caracteres** (`ABCD-EFGH`, alfabeto sin 0/O/1/I/L) o
   **enlace** `cuentalo://unirse/CODIGO` (en Expo Go `exp://…/--/unirse/CODIGO`). **Cualquier
   miembro activo** ve el código (`get_group_invite_code`; la columna no es legible
-  directamente), lo comparte y puede cambiarlo (migración `20261129`, petición del usuario;
-  antes solo el owner). Con el código se entra aunque no seas amigo de nadie del grupo.
+  directamente), y lo comparte (migración `20261129`, petición del usuario; antes solo el
+  owner). El código es **fijo**: se genera único al crear el grupo y no se cambia (migración
+  `20261130` quita `regenerate_group_invite_code`). Bajo el código, botón «Compartir». Con el código se entra aunque no seas amigo de nadie del grupo.
   Si se abre el enlace sin sesión, tras iniciar sesión hay que volver a abrirlo (V1).
 - «Amigos y grupos» se abre en la pestaña Grupos (petición del usuario). Orden: invitaciones
   (si hay), «Tus grupos», y debajo «Crear grupo» y el código. Cada grupo de «Tus grupos» es el
@@ -190,6 +191,11 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   filtro, la barra tiene todos los contadores y se dibuja el último usado
   (`useMyLastCounterId`); al aplicar un filtro se dibujan todos los elegidos. La selección vive
   en memoria (`selection.ts`, `useSyncExternalStore`) y se reinicia al abrir la app.
+- Gráficas interactivas (petición del usuario): al tocar `StatsChart` (Estadísticas y grupo)
+  se abre `ChartViewer` a pantalla completa (Modal): zoom pellizcando (PanResponder con dos
+  dedos, sin librería de gestos) o con + y −, deslizar por el eje X y mantener pulsado para ver
+  los valores (`pointerConfig` de gifted-charts). Bajo la gráfica, «Toca la gráfica para
+  ampliarla». El dibujo está en `ChartPlot`.
 - Gráfica (`StatsChart`): líneas por defecto, una por contador con color de `chartColors.ts`
   (por posición en la barra); botón cuadrado abajo a la derecha para cambiar a barras
   agrupadas. Eje X por periodo (`chartBuckets`): semana = días lunes→hoy, mes = días 1→hoy,

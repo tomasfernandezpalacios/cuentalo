@@ -303,14 +303,6 @@ export async function fetchInviteCode(groupId: string): Promise<string> {
   return data;
 }
 
-export async function regenerateInviteCode(groupId: string): Promise<string> {
-  const { data, error } = await supabase.rpc('regenerate_group_invite_code', {
-    p_group_id: groupId,
-  });
-  if (error) throw error;
-  return data;
-}
-
 export async function previewGroupByCode(code: string): Promise<GroupPreview | null> {
   const { data, error } = await supabase.rpc('preview_group_by_code', { p_code: code });
   if (error) throw error;

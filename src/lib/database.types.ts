@@ -303,10 +303,6 @@ export type Database = {
         Args: { p_group_id: string };
         Returns: string;
       };
-      regenerate_group_invite_code: {
-        Args: { p_group_id: string };
-        Returns: string;
-      };
       preview_group_by_code: {
         Args: { p_code: string };
         Returns: { group_id: string; name: string; member_count: number; is_member: boolean }[];

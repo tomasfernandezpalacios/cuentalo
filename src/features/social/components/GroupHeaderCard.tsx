@@ -1,57 +1,22 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
-import { type ComponentProps, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
-import { appAlert } from '@/components/AppDialog';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import { buildInviteLink, formatInviteCode } from '../api';
-import { useInviteCode, useRegenerateInviteCode } from '../hooks';
+import { useInviteCode } from '../hooks';
 
 import { GroupAvatar } from './GroupAvatar';
 
 type Props = { groupId: string; groupName: string };
 
-/** Botón rectangular con icono (fila bajo el código). */
-function IconButton({
-  icon,
-  label,
-  onPress,
-  loading = false,
-}: {
-  icon: ComponentProps<typeof Ionicons>['name'];
-  label: string;
-  onPress: () => void;
-  loading?: boolean;
-}) {
-  const colors = useThemeColors();
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={loading}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      hitSlop={4}
-      style={({ pressed }) => [
-        styles.iconButton,
-        { backgroundColor: colors.surface, opacity: pressed ? 0.6 : 1 },
-      ]}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color={colors.primary} />
-      ) : (
-        <Ionicons name={icon} size={20} color={colors.primary} />
-      )}
-    </Pressable>
-  );
-}
-
 /**
  * Tarjeta del grupo (cabecera y lista de «Tus grupos»): imagen con el código a su derecha y el
- * nombre debajo, a la izquierda. El código va en una línea (con copiar a su derecha) y dos
- * botones de icono debajo (compartir enlace y código nuevo).
+ * nombre debajo, a la izquierda. El código va en una línea (con copiar a su derecha) y,
+ * debajo y alineado a su izquierda, «Compartir» (el enlace). El código es fijo: no se cambia.
  */
 export function GroupHeaderCard({
   groupId,
@@ -112,7 +77,6 @@ export function GroupHeaderCard({
 function InviteCode({ groupId, groupName }: Props) {
   const colors = useThemeColors();
   const code = useInviteCode(groupId, true);
-  const regenerate = useRegenerateInviteCode(groupId);
   const [copied, setCopied] = useState(false);
 
   // Tras copiar, el icono se convierte en un ✓ durante dos segundos.
@@ -134,24 +98,6 @@ function InviteCode({ groupId, groupName }: Props) {
         `Únete a «${groupName}» en Cuéntalo: ${buildInviteLink(value)}\n\n` +
         `O escribe el código ${formatted} en Amigos y grupos → Grupos.`,
     });
-  }
-
-  function confirmRegenerate() {
-    appAlert(
-      'Nuevo código',
-      'El código y el enlace actuales dejarán de funcionar. Quien ya esté en el grupo sigue dentro.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cambiar código',
-          onPress: () =>
-            regenerate.mutate(undefined, {
-              onError: (error) => appAlert('Error', getErrorMessage(error)),
-            }),
-        },
-      ],
-      { warning: true },
-    );
   }
 
   if (code.isPending) {
@@ -194,19 +140,19 @@ function InviteCode({ groupId, groupName }: Props) {
           <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={24} color={colors.primary} />
         </Pressable>
       </View>
-      <View style={styles.buttons}>
-        <IconButton
-          icon="share-social-outline"
-          label="Compartir enlace"
-          onPress={() => share(code.data)}
-        />
-        <IconButton
-          icon="refresh-outline"
-          label="Generar un código nuevo"
-          onPress={confirmRegenerate}
-          loading={regenerate.isPending}
-        />
-      </View>
+      <Pressable
+        onPress={() => share(code.data)}
+        accessibilityRole="button"
+        accessibilityLabel="Compartir enlace del grupo"
+        hitSlop={6}
+        style={({ pressed }) => [
+          styles.shareButton,
+          { backgroundColor: colors.surface, opacity: pressed ? 0.6 : 1 },
+        ]}
+      >
+        <Text style={[styles.shareText, { color: colors.primary }]}>Compartir</Text>
+        <Ionicons name="share-social-outline" size={18} color={colors.primary} />
+      </Pressable>
     </View>
   );
 }
@@ -228,12 +174,16 @@ const styles = StyleSheet.create({
     fontFamily: fonts.title,
     letterSpacing: 1.5,
   },
-  buttons: { flexDirection: 'row', gap: 6, marginTop: 4 },
-  iconButton: {
-    flex: 1,
-    height: 38,
-    borderRadius: 12,
+  // Alineado a la izquierda, con el código.
+  shareButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
+    height: 38,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    marginTop: 4,
   },
+  shareText: { fontSize: 15, fontFamily: fonts.title },
 });
