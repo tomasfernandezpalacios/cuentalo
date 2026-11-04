@@ -99,6 +99,12 @@ export default function CountersScreen() {
   // Los quitados de la pantalla principal tampoco (siguen dentro de su grupo).
   const active = data.filter((c) => c.isActive && !c.linkedInto && !c.removedFromHome);
   const filtered = filterCounters(active, filters, folderList);
+  // Grupos con algún contador en mi lista, por orden alfabético (filtro «De grupo» → grupo).
+  const listGroups = [
+    ...new Map(
+      active.flatMap((c) => c.linkedGroups.map((g) => [g.group.id, g.group] as const)),
+    ).values(),
+  ].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
   const archivedCount = filtered.filter((c) => c.archived && !c.hidden).length;
   const shown = filtered.filter((c) => !c.hidden && (showArchived || !c.archived));
   // Los ocultos salen al final de la lista.
@@ -441,6 +447,7 @@ export default function CountersScreen() {
         visible={filtersOpen}
         filters={filters}
         folders={folderList}
+        groups={listGroups}
         onChange={setFilters}
         onClose={() => setFiltersOpen(false)}
       />

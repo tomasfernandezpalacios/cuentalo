@@ -314,6 +314,19 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   En la app: `streak` en `CounterWithTotal` (`displayTotal` = racha actual), llamita en la
   tarjeta, «días seguidos · récord» en el detalle y clasificación por racha actual.
 
+- **Gráfica del grupo** (petición del usuario): bajo la clasificación, «Evolución» del mismo
+  contador y periodo (el periodo vive en `GroupLeaderboard`; en formato racha se elige encima
+  de la gráfica). Una serie por miembro activo (`GroupMembersChart`, reutiliza
+  `CounterChipsBar` y `StatsChart`); el icono de filtros ofrece Todos / Solo yo / Nadie. Datos
+  por la RPC `get_group_counter_daily` (SECURITY INVOKER, sin `personal_only`, migración
+  `20261123`).
+- Filtros de inicio: con «De grupo» se puede elegir qué grupo (`filters.groupId`, cuenta
+  también los enlazados).
+- Crear/editar carpeta: botones «Todos», «Ninguno» y uno por grupo (marca o desmarca los de
+  ese grupo) encima del buscador.
+- Cabecera del grupo: imagen a la izquierda y, a su derecha, el nombre a todo lo ancho con el
+  código y los botones debajo (un nombre largo no se aprieta).
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

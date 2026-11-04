@@ -63,16 +63,14 @@ export function GroupHeaderCard({
   const colors = useThemeColors();
   return (
     <View style={[styles.card, { backgroundColor: colors.primarySoft }]}>
-      <View style={styles.group}>
-        <GroupAvatar emoji={emoji} photoPath={photoPath} size={isOwner ? 112 : 128} />
-        <Text
-          style={[styles.groupName, { color: colors.text }, !isOwner && styles.groupNameLarge]}
-          numberOfLines={3}
-        >
+      <GroupAvatar emoji={emoji} photoPath={photoPath} size={isOwner ? 104 : 96} />
+      {/* El nombre ocupa todo el ancho hasta la derecha; el código y los botones van debajo. */}
+      <View style={styles.side}>
+        <Text style={[styles.groupName, { color: colors.text }]} numberOfLines={3}>
           {groupName}
         </Text>
+        {isOwner ? <InviteCode groupId={groupId} groupName={groupName} /> : null}
       </View>
-      {isOwner ? <InviteCode groupId={groupId} groupName={groupName} /> : null}
     </View>
   );
 }
@@ -181,11 +179,10 @@ function InviteCode({ groupId, groupName }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, padding: 14 },
-  group: { alignItems: 'center', gap: 8, width: 120 },
-  groupName: { fontSize: 20, fontFamily: fonts.title, textAlign: 'center' },
-  groupNameLarge: { fontSize: 24 },
-  codeBox: { flex: 1, alignItems: 'stretch', gap: 6 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 18, padding: 14 },
+  side: { flex: 1, gap: 10 },
+  groupName: { fontSize: 22, fontFamily: fonts.title },
+  codeBox: { alignItems: 'stretch', gap: 6 },
   label: { fontSize: 13, fontFamily: fonts.detail },
   // Misma altura de línea que el código para que el icono quede centrado con él.
   codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },

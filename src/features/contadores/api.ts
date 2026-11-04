@@ -481,6 +481,17 @@ export async function deleteEntry(entry: Entry): Promise<void> {
 
 // --- Clasificación ----------------------------------------------------------
 
+/** Lo que sumó cada miembro activo cada día (Madrid) en un contador de grupo. */
+export async function fetchGroupCounterDaily(
+  counterId: string,
+): Promise<{ userId: string; day: string; total: number }[]> {
+  const { data, error } = await supabase.rpc('get_group_counter_daily', {
+    p_counter_id: counterId,
+  });
+  if (error) throw error;
+  return data.map((row) => ({ userId: row.user_id, day: row.day, total: Number(row.total) }));
+}
+
 /** Clasificación de un contador de grupo en formato racha: racha actual de cada miembro. */
 export async function fetchStreakLeaderboard(counterId: string): Promise<LeaderboardRow[]> {
   const { data, error } = await supabase.rpc('get_streak_leaderboard', {

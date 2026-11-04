@@ -11,6 +11,7 @@ import {
   fetchCounter,
   fetchCounters,
   fetchEntries,
+  fetchGroupCounterDaily,
   fetchLeaderboard,
   fetchStreakLeaderboard,
   fetchMyLastCounterId,
@@ -74,6 +75,15 @@ export function useEntries(counterId: string, counterIds: string[] | undefined) 
     queryKey: [...counterKeys.entries(counterId), ...(counterIds ?? [])],
     queryFn: () => fetchEntries(counterIds ?? [counterId], userId),
     enabled: userId !== '' && counterIds !== undefined,
+  });
+}
+
+/** Totales diarios por miembro de un contador de grupo (gráfica del grupo). */
+export function useGroupCounterDaily(counterId: string) {
+  return useQuery({
+    // Cuelga de la clasificación: se refresca igual al registrar.
+    queryKey: [...counterKeys.leaderboard(counterId, 'all'), 'daily'],
+    queryFn: () => fetchGroupCounterDaily(counterId),
   });
 }
 

@@ -385,6 +385,10 @@ export type Database = {
         Args: Record<string, never>;
         Returns: undefined;
       };
+      get_group_counter_daily: {
+        Args: { p_counter_id: string };
+        Returns: { user_id: string; day: string; total: number }[];
+      };
       get_streak_leaderboard: {
         Args: { p_counter_id: string };
         Returns: {

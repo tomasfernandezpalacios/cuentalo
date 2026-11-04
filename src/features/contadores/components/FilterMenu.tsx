@@ -31,12 +31,14 @@ type Props = {
   visible: boolean;
   filters: CounterFilters;
   folders: Folder[];
+  /** Grupos que tienen contadores en la lista (para «De grupo» → qué grupo). */
+  groups: { id: string; name: string }[];
   onChange: (filters: CounterFilters) => void;
   onClose: () => void;
 };
 
 /** Rectángulo que se despliega bajo la cabecera con los filtros de la lista. */
-export function FilterMenu({ visible, filters, folders, onChange, onClose }: Props) {
+export function FilterMenu({ visible, filters, folders, groups, onChange, onClose }: Props) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
 
@@ -107,8 +109,21 @@ export function FilterMenu({ visible, filters, folders, onChange, onClose }: Pro
             <SegmentedControl
               options={KINDS}
               value={filters.kind}
-              onChange={(kind) => onChange({ ...filters, kind })}
+              onChange={(kind) => onChange({ ...filters, kind, groupId: null })}
             />
+            {filters.kind === 'group' && groups.length > 0 ? (
+              <>
+                <Text style={[styles.label, { color: colors.textMuted }]}>Grupo</Text>
+                {chips(
+                  [
+                    { value: null, label: 'Todos los grupos' },
+                    ...groups.map((g) => ({ value: g.id, label: `👥 ${g.name}` })),
+                  ],
+                  filters.groupId,
+                  (groupId) => onChange({ ...filters, groupId }),
+                )}
+              </>
+            ) : null}
 
             <Text style={[styles.label, { color: colors.textMuted }]}>Con registros en</Text>
             {chips(ACTIVITY, filters.activity, (activity) => onChange({ ...filters, activity }))}

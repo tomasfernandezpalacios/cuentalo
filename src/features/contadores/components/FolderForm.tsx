@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -50,6 +51,30 @@ export function FolderForm({ folder, initialCounterIds = [] }: Props) {
   const visible = query.trim()
     ? all.filter((c) => normalize(c.name).includes(normalize(query.trim())))
     : all;
+
+  // Grupos con contadores en la lista, para elegir todos los de un grupo de una vez.
+  const groups = [
+    ...new Map(
+      all.flatMap((c) => c.linkedGroups.map((g) => [g.group.id, g.group] as const)),
+    ).values(),
+  ].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+
+  /** Marca los contadores del grupo; si ya estaban todos marcados, los desmarca. */
+  function toggleGroup(groupId: string) {
+    const ids = all
+      .filter((c) => c.linkedGroups.some((g) => g.group.id === groupId))
+      .map((c) => c.id);
+    const allIn = ids.every((id) => selected.includes(id));
+    setSelected((current) =>
+      allIn ? current.filter((id) => !ids.includes(id)) : [...new Set([...current, ...ids])],
+    );
+  }
+
+  const quickButtons = [
+    { key: 'all', label: 'Todos', onPress: () => setSelected(all.map((c) => c.id)) },
+    { key: 'none', label: 'Ninguno', onPress: () => setSelected([]) },
+    ...groups.map((g) => ({ key: g.id, label: `👥 ${g.name}`, onPress: () => toggleGroup(g.id) })),
+  ];
 
   function toggle(id: string) {
     setSelected((current) =>
@@ -103,6 +128,39 @@ export function FolderForm({ folder, initialCounterIds = [] }: Props) {
             <Text style={[styles.detail, { color: colors.text }]}>
               Contadores incluidos ({selected.length})
             </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.quick}
+            >
+              {quickButtons.map((button) => (
+                <Pressable
+                  key={button.key}
+                  onPress={button.onPress}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    button.key === 'all'
+                      ? 'Elegir todos'
+                      : button.key === 'none'
+                        ? 'Quitar todos'
+                        : `Elegir los de ${button.label}`
+                  }
+                  style={({ pressed }) => [
+                    styles.quickChip,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      opacity: pressed ? 0.6 : 1,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.quickText, { color: colors.text }]} numberOfLines={1}>
+                    {button.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
             <View
               style={[
                 styles.search,
@@ -171,6 +229,9 @@ export function FolderForm({ folder, initialCounterIds = [] }: Props) {
 }
 
 const styles = StyleSheet.create({
+  quick: { gap: 8 },
+  quickChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, borderWidth: 1 },
+  quickText: { fontSize: 14, fontFamily: fonts.title },
   flex: { flex: 1 },
   list: { padding: 16 },
   header: { gap: 14, marginBottom: 8 },

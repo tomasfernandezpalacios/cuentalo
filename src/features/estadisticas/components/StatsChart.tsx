@@ -19,6 +19,8 @@ type Props = {
   series: ChartSeries[];
   type: ChartType;
   onChangeType: (type: ChartType) => void;
+  /** Texto cuando no hay ninguna serie elegida. */
+  emptyText?: string;
 };
 
 const Y_AXIS_WIDTH = 36;
@@ -37,7 +39,13 @@ function niceMax(value: number): number {
  * Gráfica de evolución: una línea (o grupo de barras) por contador, cada uno de su color.
  * Eje X: tiempo; eje Y: cantidad. Un periodo que quede en negativo por un −1 se dibuja en 0.
  */
-export function StatsChart({ labels, series, type, onChangeType }: Props) {
+export function StatsChart({
+  labels,
+  series,
+  type,
+  onChangeType,
+  emptyText = 'Toca un contador para verlo en la gráfica',
+}: Props) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
 
@@ -50,9 +58,7 @@ export function StatsChart({ labels, series, type, onChangeType }: Props) {
           { backgroundColor: colors.surface, borderColor: colors.border },
         ]}
       >
-        <Text style={[styles.empty, { color: colors.textMuted }]}>
-          Toca un contador para verlo en la gráfica
-        </Text>
+        <Text style={[styles.empty, { color: colors.textMuted }]}>{emptyText}</Text>
       </View>
     );
   }

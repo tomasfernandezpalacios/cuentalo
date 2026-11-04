@@ -11,7 +11,7 @@ import { fonts, useThemeColors } from '@/lib/theme';
 import type { LeaderboardPeriod } from '../api';
 import { useLeaderboard, useStreakLeaderboard } from '../hooks';
 
-const PERIODS: { value: LeaderboardPeriod; label: string }[] = [
+export const PERIODS: { value: LeaderboardPeriod; label: string }[] = [
   { value: 'week', label: 'Semana' },
   { value: 'month', label: 'Mes' },
   { value: 'year', label: 'Año' },
@@ -25,13 +25,24 @@ type Props = {
   unit: string | null;
   /** Formato racha: se compara la racha actual de cada uno (sin periodos) y se ve su récord. */
   streak?: boolean;
+  /** Periodo controlado desde fuera (la gráfica del grupo usa el mismo). */
+  period?: LeaderboardPeriod;
+  onChangePeriod?: (period: LeaderboardPeriod) => void;
 };
 
 /** Clasificación de un contador compartido. Se refresca sola al registrar (misma caché). */
-export function Leaderboard({ counterId, unit, streak = false }: Props) {
+export function Leaderboard({
+  counterId,
+  unit,
+  streak = false,
+  period: controlledPeriod,
+  onChangePeriod,
+}: Props) {
   const colors = useThemeColors();
   const userId = useUserId();
-  const [period, setPeriod] = useState<LeaderboardPeriod>('week');
+  const [ownPeriod, setOwnPeriod] = useState<LeaderboardPeriod>('week');
+  const period = controlledPeriod ?? ownPeriod;
+  const setPeriod = onChangePeriod ?? setOwnPeriod;
   const byPeriod = useLeaderboard(counterId, period, !streak);
   const byStreak = useStreakLeaderboard(counterId, streak);
   const leaderboard = streak ? byStreak : byPeriod;

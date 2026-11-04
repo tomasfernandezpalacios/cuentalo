@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { SegmentedControl } from '@/components/SegmentedControl';
 import { fonts, useThemeColors } from '@/lib/theme';
 
+import type { LeaderboardPeriod } from '../api';
 import { useCounterList, useMyLastCounterId } from '../hooks';
 
-import { Leaderboard } from './Leaderboard';
+import { GroupMembersChart } from './GroupMembersChart';
+import { Leaderboard, PERIODS } from './Leaderboard';
 
 /**
  * Clasificación del grupo con un selector de contador. Por defecto muestra el último contador
@@ -19,6 +22,8 @@ export function GroupLeaderboard({ groupId }: { groupId: string }) {
   );
   const lastUsed = useMyLastCounterId(groupCounters.map((c) => c.id));
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Mismo periodo para la clasificación y la gráfica de debajo.
+  const [period, setPeriod] = useState<LeaderboardPeriod>('week');
 
   if (groupCounters.length === 0) {
     return (
@@ -72,7 +77,27 @@ export function GroupLeaderboard({ groupId }: { groupId: string }) {
           );
         })}
       </ScrollView>
-      <Leaderboard counterId={selected.id} unit={selected.unit} streak={selected.streak_enabled} />
+      <Leaderboard
+        counterId={selected.id}
+        unit={selected.unit}
+        streak={selected.streak_enabled}
+        period={period}
+        onChangePeriod={setPeriod}
+      />
+
+      <Text style={[styles.chartTitle, { color: colors.text }]} accessibilityRole="header">
+        Evolución
+      </Text>
+      {/* En formato racha la clasificación no tiene periodos: se eligen aquí para la gráfica. */}
+      {selected.streak_enabled ? (
+        <SegmentedControl options={PERIODS} value={period} onChange={setPeriod} />
+      ) : null}
+      <GroupMembersChart
+        groupId={groupId}
+        counterId={selected.id}
+        unit={selected.unit}
+        period={period}
+      />
     </View>
   );
 }
@@ -83,4 +108,5 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
   chipText: { fontSize: 14, fontFamily: fonts.title },
   empty: { fontSize: 14, fontFamily: fonts.detail },
+  chartTitle: { fontSize: 16, fontFamily: fonts.title, marginTop: 8 },
 });
