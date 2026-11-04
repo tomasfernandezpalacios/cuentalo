@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
@@ -9,11 +9,12 @@ import { useUserId } from '@/features/auth/AuthProvider';
 import { GroupCounters } from '@/features/contadores/components/GroupCounters';
 import { GroupLeaderboard } from '@/features/contadores/components/GroupLeaderboard';
 import type { MemberWithProfile } from '@/features/social/api';
+import { GroupAvatar } from '@/features/social/components/GroupAvatar';
 import { InviteCodeCard } from '@/features/social/components/InviteCodeCard';
 import { PersonRow } from '@/features/social/components/PersonRow';
 import { useDeleteGroup, useGroup, useRemoveMember } from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
-import { useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 function showError(error: unknown) {
   Alert.alert('Error', getErrorMessage(error));
@@ -112,7 +113,27 @@ export default function GroupScreen() {
         />
       }
     >
-      <Stack.Screen options={{ title: name }} />
+      <Stack.Screen
+        options={{
+          title: name,
+          headerRight: () =>
+            isOwner ? (
+              <Pressable
+                onPress={() => router.push({ pathname: '/grupos/[id]/editar', params: { id } })}
+                accessibilityRole="button"
+                accessibilityLabel="Editar grupo"
+                hitSlop={12}
+              >
+                <Ionicons name="create-outline" size={24} color={colors.primary} />
+              </Pressable>
+            ) : null,
+        }}
+      />
+
+      <View style={styles.hero}>
+        <GroupAvatar emoji={group.data.emoji} photoPath={group.data.photo_path} size={88} />
+        <Text style={[styles.heroName, { color: colors.text }]}>{name}</Text>
+      </View>
 
       <Section title="Clasificación">
         <GroupLeaderboard groupId={id} />
@@ -178,6 +199,8 @@ export default function GroupScreen() {
 }
 
 const styles = StyleSheet.create({
+  hero: { alignItems: 'center', gap: 8 },
+  heroName: { fontSize: 22, fontFamily: fonts.title, textAlign: 'center' },
   content: { padding: 16, gap: 24 },
   danger: { marginTop: 8 },
 });

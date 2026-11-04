@@ -7,12 +7,12 @@ import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { TextField } from '@/components/TextField';
 import { ErrorView } from '@/components/StateViews';
-import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import { normalizeInviteCode, type MyGroup } from '../api';
+import { GroupAvatar } from './GroupAvatar';
 import { useAcceptInvitation, useMyGroups, useRemoveMember } from '../hooks';
 
 function showError(error: unknown) {
@@ -137,7 +137,7 @@ export function GroupRow({ group }: { group: MyGroup }) {
         },
       ]}
     >
-      <CounterAvatar emoji="👥" name={group.name} size={40} />
+      <GroupAvatar emoji={group.emoji} photoPath={group.photo_path} size={40} />
       <View style={styles.flex}>
         <Text style={[styles.groupName, { color: colors.text }]} numberOfLines={1}>
           {group.name}

@@ -16,7 +16,10 @@ import {
   previewGroupByCode,
   regenerateInviteCode,
   removeMember,
-  renameGroup,
+  updateGroup,
+  fetchGroupPhotoUrl,
+  type Group,
+  type GroupInput,
   respondFriendRequest,
   searchProfiles,
   sendFriendRequest,
@@ -98,8 +101,21 @@ export function useCreateGroup() {
   return useSocialMutation(createGroup);
 }
 
-export function useRenameGroup(groupId: string) {
-  return useSocialMutation((name: string) => renameGroup(groupId, name));
+export function useUpdateGroup(group: Group | undefined) {
+  return useSocialMutation((input: GroupInput) => {
+    if (!group) throw new Error('Grupo no cargado');
+    return updateGroup(group, input);
+  });
+}
+
+/** Enlace temporal de la foto; se renueva antes de que caduque (dura 1 h). */
+export function useGroupPhotoUrl(path: string | null) {
+  return useQuery({
+    queryKey: [...socialKeys.all, 'photo', path],
+    queryFn: () => fetchGroupPhotoUrl(path ?? ''),
+    enabled: path !== null,
+    staleTime: 50 * 60_000,
+  });
 }
 
 export function useDeleteGroup() {

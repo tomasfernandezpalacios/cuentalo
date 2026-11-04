@@ -103,9 +103,22 @@ export type Database = {
       };
       groups: {
         // invite_code no está aquí: no se puede leer directamente (ver get_group_invite_code).
-        Row: { id: string; name: string; owner_id: string; created_at: string };
-        Insert: { id?: string; name: string; owner_id?: string; created_at?: string };
-        Update: { name?: string };
+        Row: {
+          id: string;
+          name: string;
+          owner_id: string;
+          created_at: string;
+          emoji: string | null;
+          photo_path: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          owner_id?: string;
+          created_at?: string;
+          emoji?: string | null;
+        };
+        Update: { name?: string; emoji?: string | null; photo_path?: string | null };
         Relationships: [];
       };
       group_members: {

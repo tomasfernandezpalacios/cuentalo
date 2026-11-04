@@ -38,6 +38,14 @@
             "backgroundColor": "#0E0E12"
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cuéntalo usa tus fotos para poner una imagen a tus grupos.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
       ]
     ],
     "scheme": "cuentalo"

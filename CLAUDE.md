@@ -201,6 +201,11 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
 - Alias personales (`counter_aliases`): nombre/icono que solo ve uno (se crean al fusionar con
   un contador de grupo). `enrich` los aplica a `name`/`emoji`; editar usa
   `sharedName`/`sharedEmoji` para no guardar el alias como nombre del grupo.
+- Imagen de grupo (petición del usuario): `groups.emoji` o `groups.photo_path`. Las fotos van a un
+  bucket **privado** de Storage (`group-photos`, ruta `<group_id>/<timestamp>.<ext>`, máx. 2 MB):
+  las leen miembros e invitados con enlaces firmados de 1 h (`useGroupPhotoUrl`) y solo el owner
+  sube/cambia/borra. `expo-image-picker` recorta cuadrado y da base64 (`base64ToBytes`). El
+  owner edita nombre e imagen en `app/grupos/[id]/editar.tsx`.
 
 ## Cambios estéticos pendientes
 

@@ -58,6 +58,10 @@ function RootNavigator() {
         />
         <Stack.Screen name="grupos/[id]/index" options={{ title: '' }} />
         <Stack.Screen
+          name="grupos/[id]/editar"
+          options={{ title: 'Editar grupo', presentation: 'modal' }}
+        />
+        <Stack.Screen
           name="grupos/[id]/invitar"
           options={{ title: 'Invitar amigos', presentation: 'modal' }}
         />

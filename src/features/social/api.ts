@@ -2,6 +2,7 @@ import * as Linking from 'expo-linking';
 
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
+import { base64ToBytes } from '@/lib/base64';
 import { normalizeUsername } from '@/lib/validation';
 
 export type PublicProfile = Pick<
@@ -25,7 +26,8 @@ export type GroupDetail = Group & { members: MemberWithProfile[] };
 
 const PROFILE_COLUMNS = 'id, username, display_name, avatar_url';
 // Columnas legibles de groups (invite_code solo se obtiene con get_group_invite_code).
-const GROUP_COLUMNS = 'id, name, owner_id, created_at';
+const GROUP_COLUMNS = 'id, name, owner_id, created_at, emoji, photo_path';
+const PHOTO_BUCKET = 'group-photos';
 
 export async function fetchProfilesByIds(ids: string[]): Promise<Map<string, PublicProfile>> {
   if (ids.length === 0) return new Map();
@@ -135,19 +137,76 @@ export async function fetchGroup(groupId: string): Promise<GroupDetail> {
   return { ...group.data, members: withProfiles };
 }
 
-export async function createGroup(name: string): Promise<Group> {
+/** Foto elegida en el selector, lista para subir. */
+export type PickedPhoto = { uri: string; base64: string; mimeType: string };
+
+/**
+ * Datos del formulario de grupo. `photo`: una foto nueva, 'keep' para dejar la que hay o
+ * 'remove' para quitarla (y usar el emoticono).
+ */
+export type GroupInput = { name: string; emoji: string; photo: PickedPhoto | 'keep' | 'remove' };
+
+async function uploadGroupPhoto(groupId: string, photo: PickedPhoto): Promise<string> {
+  const extension = photo.mimeType.split('/')[1] ?? 'jpg';
+  // Nombre nuevo cada vez: así los enlaces firmados antiguos no muestran la foto nueva en caché.
+  const path = `${groupId}/${Date.now()}.${extension}`;
+  const { error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, base64ToBytes(photo.base64), { contentType: photo.mimeType });
+  if (error) throw error;
+  return path;
+}
+
+async function removeGroupPhoto(path: string | null): Promise<void> {
+  if (!path) return;
+  // Si falla no pasa nada grave: el grupo ya no apunta a esa foto.
+  await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+}
+
+/** Enlace temporal (1 h) para ver la foto de un grupo. Solo funciona a sus miembros. */
+export async function fetchGroupPhotoUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(path, 3600);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export async function createGroup(input: GroupInput): Promise<Group> {
   const { data, error } = await supabase
     .from('groups')
-    .insert({ name: name.trim() })
+    .insert({ name: input.name.trim(), emoji: input.emoji.trim() || null })
     .select(GROUP_COLUMNS)
     .single();
   if (error) throw error;
+  if (typeof input.photo === 'object') {
+    const photoPath = await uploadGroupPhoto(data.id, input.photo);
+    await updateGroupRow(data.id, { photo_path: photoPath });
+    return { ...data, photo_path: photoPath };
+  }
   return data;
 }
 
-export async function renameGroup(groupId: string, name: string): Promise<void> {
-  const { error } = await supabase.from('groups').update({ name: name.trim() }).eq('id', groupId);
+async function updateGroupRow(
+  groupId: string,
+  patch: { name?: string; emoji?: string | null; photo_path?: string | null },
+): Promise<void> {
+  const { error } = await supabase.from('groups').update(patch).eq('id', groupId);
   if (error) throw error;
+}
+
+/** Solo el owner: nombre, emoticono y foto. */
+export async function updateGroup(group: Group, input: GroupInput): Promise<void> {
+  let photoPath = group.photo_path;
+  if (typeof input.photo === 'object') {
+    photoPath = await uploadGroupPhoto(group.id, input.photo);
+  } else if (input.photo === 'remove') {
+    photoPath = null;
+  }
+  await updateGroupRow(group.id, {
+    name: input.name.trim(),
+    emoji: input.emoji.trim() || null,
+    photo_path: photoPath,
+  });
+  if (photoPath !== group.photo_path) await removeGroupPhoto(group.photo_path);
 }
 
 export async function deleteGroup(groupId: string): Promise<void> {
