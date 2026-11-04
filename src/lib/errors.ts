@@ -38,12 +38,24 @@ const CUSTOM_MESSAGES: Record<string, string> = {
   merge_same_group: 'No puedes fusionar dos contadores del mismo grupo.',
   cannot_log: 'No puedes registrar en este contador.',
   merge_invalid_counters: 'Alguno de esos contadores no se puede fusionar.',
+  merge_two_groups: 'Solo puedes fusionar con un contador de grupo a la vez.',
+  invalid_amount: 'Esa cantidad no es válida.',
+  invalid_period: 'Ese periodo no es válido.',
+  not_authenticated: 'Tu sesión ha caducado. Vuelve a iniciar sesión.',
+  not_common_counter: 'Este contador no es común.',
 };
+
+/** ¿Es un mensaje ya escrito para el usuario (no un código interno como «not_shared_counter»)? */
+function isReadable(message: string): boolean {
+  return !/^[a-z0-9_]+$/.test(message) && /[áéíóúñ ]/i.test(message);
+}
 
 export function getErrorMessage(error: unknown): string {
   if (error && typeof error === 'object') {
     const { code, message } = error as { code?: unknown; message?: unknown };
     if (typeof message === 'string' && CUSTOM_MESSAGES[message]) return CUSTOM_MESSAGES[message];
+    // raise exception con un texto en español (p. ej. «No eres el líder de este grupo.»).
+    if (code === 'P0001' && typeof message === 'string' && isReadable(message)) return message;
     if (typeof code === 'string') {
       const known = AUTH_MESSAGES[code] ?? POSTGRES_MESSAGES[code];
       if (known) return known;

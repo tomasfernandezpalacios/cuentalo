@@ -265,8 +265,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   mismas en la tarjeta y el detalle, el primero se mantiene pulsado para «otra»), confirmar
   −1, vibración (`expo-haptics`), contador inicial de Estadísticas y recordatorio de la racha.
   Ajustes **de privacidad** en `profiles` (migración `20261118`): `hide_streak` (fuera de
-  `get_friends_streaks`), `hide_counters_from_friends` (en `get_user_counters` solo quedan
-  los en común) y `group_invites` ('friends'/'nobody', comprobado en la política de invitar).
+  `get_friends_streaks`), `hide_counters_from_friends` (**quitado** de Configuración en la migración `20261127`:
+  se pisaba con «Privado» / «Privado y amigos»; vale siempre false) y `group_invites` ('friends'/'nobody', comprobado en la política de invitar).
 - Recordatorio con notificaciones **locales** (`expo-notifications`, funcionan en Expo Go; las
   push necesitarían build propia): se programan las de los próximos 14 días una a una para
   poder saltarse la de hoy si ya registraste (`reminder.ts`, `reminderDates.ts` con tests).
@@ -367,6 +367,16 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   otro) y también avanza si se envía una solicitud al administrador.
 - La racha de uso de la app se mantiene con cualquier registro, también un −1 (decisión del
   usuario: basta con interactuar).
+
+- **Avisos al salir de un grupo** (migración `20261127`, `leave_group_as`): al abandonar un
+  grupo o eliminar la cuenta, los demás reciben «X ha abandonado el grupo» (`member_left`). Si
+  era el líder: el nuevo recibe «Eres el nuevo líder» (`you_are_leader`) y el resto «Y es el
+  nuevo líder» (`new_leader`). Al abandonar, el nuevo líder es al azar; al eliminar la cuenta,
+  el miembro más antiguo. `notifications.actor_name` guarda el nombre por si el perfil ya no
+  existe. Expulsar a alguien no avisa.
+- Errores: `getErrorMessage` traduce todos los códigos de nuestras funciones SQL y enseña tal
+  cual los `raise exception` escritos en español (código P0001); nunca un código interno.
+- «Exportar mis datos»: fechas en la hora del móvil (`localDateTime`).
 
 ## Cambios estéticos pendientes
 

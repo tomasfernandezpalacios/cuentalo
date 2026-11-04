@@ -33,7 +33,7 @@ function change(amount: number | null): string {
 
 /** Texto de cada aviso. */
 function noticeText(n: Notice): string {
-  const who = n.actor?.display_name ?? 'Alguien';
+  const who = n.actor?.display_name ?? n.actor_name ?? 'Alguien';
   const counter = n.counter_name ? `«${n.counter_name}»` : 'un contador';
   const group = n.group_name ? ` (${n.group_name})` : '';
   switch (n.kind) {
@@ -47,6 +47,12 @@ function noticeText(n: Notice): string {
       return `${who} ha quitado ${counter} del grupo${group}. Tus registros siguen en tu contador personal.`;
     case 'group_deleted':
       return `${who} ha eliminado el grupo${group}. Tus registros de ${counter} siguen en tu contador personal.`;
+    case 'member_left':
+      return `${who} ha abandonado el grupo${n.group_name ? ` «${n.group_name}»` : ''}.`;
+    case 'new_leader':
+      return `${who} es el nuevo líder del grupo${n.group_name ? ` «${n.group_name}»` : ''}.`;
+    case 'you_are_leader':
+      return `Eres el nuevo líder del grupo${n.group_name ? ` «${n.group_name}»` : ''}.`;
     case 'group_admin':
       return `${who} te ha hecho líder del grupo${n.group_name ? ` «${n.group_name}»` : ''}.`;
   }

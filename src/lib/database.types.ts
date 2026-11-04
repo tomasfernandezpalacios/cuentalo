@@ -176,8 +176,13 @@ export type Database = {
             | 'request_rejected'
             | 'counter_deleted'
             | 'group_deleted'
-            | 'group_admin';
+            | 'group_admin'
+            | 'member_left'
+            | 'new_leader'
+            | 'you_are_leader';
           actor_id: string | null;
+          /** Nombre de quien hizo la acción (sigue ahí aunque elimine su cuenta). */
+          actor_name: string | null;
           counter_name: string | null;
           group_name: string | null;
           amount: number | null;

@@ -1,4 +1,4 @@
-import { toCsv } from '@/lib/csv';
+import { localDateTime, toCsv } from '@/lib/csv';
 
 import { reminderDates } from '../reminderDates';
 import { DEFAULT_SETTINGS, parseSettings, toggleQuickAmount } from '../settings';
@@ -63,5 +63,12 @@ describe('toCsv', () => {
         ['2026-11-04', 'hola, "tú"'],
       ]),
     ).toBe('fecha,nota\n2026-11-04,"hola, ""tú"""');
+  });
+});
+
+describe('localDateTime', () => {
+  it('formatea en la hora del móvil', () => {
+    const iso = new Date(2026, 10, 4, 9, 5).toISOString();
+    expect(localDateTime(iso)).toBe('2026-11-04 09:05');
   });
 });

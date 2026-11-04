@@ -4,7 +4,7 @@ import { useUserId } from '@/features/auth/AuthProvider';
 import { UsernameTakenError } from '@/features/auth/api';
 import type { Tables } from '@/lib/database.types';
 import { base64ToBytes } from '@/lib/base64';
-import { toCsv } from '@/lib/csv';
+import { localDateTime, toCsv } from '@/lib/csv';
 import { supabase } from '@/lib/supabase';
 import { normalizeUsername } from '@/lib/validation';
 
@@ -156,10 +156,7 @@ export function useAvatarOf(userId: string) {
   });
 }
 
-export type PrivacySettings = Pick<
-  Profile,
-  'hide_streak' | 'hide_counters_from_friends' | 'group_invites'
->;
+export type PrivacySettings = Pick<Profile, 'hide_streak' | 'group_invites'>;
 
 /** Cambia una opción de privacidad de mi perfil (Configuración → Privacidad). */
 export function useUpdatePrivacy() {
@@ -217,7 +214,7 @@ export async function exportMyEntriesCsv(userId: string): Promise<string> {
   for (const e of entries) {
     const counter = counters.get(e.counter_id);
     rows.push([
-      e.logged_at,
+      localDateTime(e.logged_at),
       counter?.name ?? '',
       String(e.amount),
       counter?.unit ?? '',

@@ -12,7 +12,6 @@ export type PublicProfile = Pick<
   | 'display_name'
   | 'avatar_url'
   | 'hide_streak'
-  | 'hide_counters_from_friends'
   | 'group_invites'
   | 'emoji'
   | 'photo_path'
@@ -37,7 +36,7 @@ export type GroupDetail = Group & { members: MemberWithProfile[] };
 // hide_*/group_invites son opciones de privacidad (Configuración) que la app necesita para
 // explicar por qué no se ve algo; emoji/photo_path, la imagen de perfil.
 const PROFILE_COLUMNS =
-  'id, username, display_name, avatar_url, hide_streak, hide_counters_from_friends, group_invites, emoji, photo_path';
+  'id, username, display_name, avatar_url, hide_streak, group_invites, emoji, photo_path';
 // Columnas legibles de groups (invite_code solo se obtiene con get_group_invite_code).
 const GROUP_COLUMNS = 'id, name, owner_id, created_at, emoji, photo_path';
 const PHOTO_BUCKET = 'group-photos';

@@ -271,13 +271,6 @@ export default function SettingsScreen() {
           onChange={(hide_streak) => setPrivacy({ hide_streak })}
           disabled={!profile.data}
         />
-        <SwitchRow
-          label="Ocultar mis contadores"
-          detail="Tus amigos no verán ninguno de tus contadores en tu perfil. Los de grupos en común se siguen viendo."
-          value={profile.data?.hide_counters_from_friends ?? false}
-          onChange={(hide_counters_from_friends) => setPrivacy({ hide_counters_from_friends })}
-          disabled={!profile.data}
-        />
         <SettingsRow
           label="Invitaciones a grupos"
           detail="Con código o enlace siempre puedes unirte a un grupo."

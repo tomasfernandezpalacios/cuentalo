@@ -192,9 +192,7 @@ export default function UserProfileScreen() {
         <Section title="Sus contadores">
           {publicCounters.length === 0 ? (
             <Text style={[styles.detail, { color: colors.textMuted }]}>
-              {person.hide_counters_from_friends
-                ? 'Tiene sus contadores ocultos para sus amigos.'
-                : 'No tiene contadores visibles para sus amigos.'}
+              No tiene contadores visibles para sus amigos.
             </Text>
           ) : (
             publicCounters.map((c) => <CounterRow key={c.id} counter={c} />)
