@@ -8,6 +8,7 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -42,6 +43,7 @@ import { useCounterActions } from '@/features/contadores/useCounterActions';
 import { StreakBadge } from '@/features/estadisticas/components/StreakBadge';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
+import { matchesSearch } from '@/lib/search';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 function openNewCounter() {
@@ -67,6 +69,8 @@ export default function CountersScreen() {
   // Al abrir la app siempre se empieza en «Todos» y sin filtros.
   const [filters, setFilters] = useState<CounterFilters>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Buscador por nombre (sale cuando hay bastantes contadores).
+  const [query, setQuery] = useState('');
   // Contador para el que se está escribiendo una cantidad personalizada.
   const [customFor, setCustomFor] = useState<CounterWithTotal | null>(null);
   // Modo selección: se entra manteniendo pulsado un contador.
@@ -97,7 +101,10 @@ export default function CountersScreen() {
   // Solo los míos y los de grupos donde sigo; los de grupos que dejé quedan para estadísticas.
   // Los quitados de la pantalla principal tampoco (siguen dentro de su grupo).
   const active = data.filter((c) => c.isActive && !c.linkedInto && !c.removedFromHome);
-  const filtered = filterCounters(active, filters, folderList);
+  const filtered = filterCounters(active, filters, folderList).filter((c) =>
+    matchesSearch(c.name, query),
+  );
+  const showSearch = active.length >= SEARCH_FROM || query !== '';
   // Grupos con algún contador en mi lista, por orden alfabético (filtro «De grupo» → grupo).
   const listGroups = [
     ...new Map(
@@ -372,6 +379,8 @@ export default function CountersScreen() {
           router.push({ pathname: '/carpetas/[id]', params: { id: selectedFolder.id } })
         }
       />
+    ) : query && hidden.length === 0 ? (
+      <EmptyView title="Ningún contador coincide con la búsqueda" />
     ) : hidden.length > 0 ? undefined : (
       <EmptyView
         title="Ningún contador cumple los filtros"
@@ -394,6 +403,39 @@ export default function CountersScreen() {
         data={shown}
         keyExtractor={(counter) => counter.id}
         renderItem={({ item }) => renderCard(item, item.id === tutorialCardId)}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={
+          showSearch ? (
+            <View
+              style={[
+                styles.search,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <Ionicons name="search" size={18} color={colors.textMuted} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Buscar contador"
+                placeholderTextColor={colors.textMuted}
+                accessibilityLabel="Buscar contador"
+                autoCorrect={false}
+                returnKeyType="search"
+                style={[styles.searchInput, { color: colors.text }]}
+              />
+              {query ? (
+                <Pressable
+                  onPress={() => setQuery('')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Borrar búsqueda"
+                  hitSlop={10}
+                >
+                  <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                </Pressable>
+              ) : null}
+            </View>
+          ) : undefined
+        }
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl
@@ -469,7 +511,21 @@ export default function CountersScreen() {
   );
 }
 
+/** A partir de cuántos contadores sale el buscador. */
+const SEARCH_FROM = 6;
+
 const styles = StyleSheet.create({
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  searchInput: { flex: 1, fontSize: 16, paddingVertical: 8 },
   flex: { flex: 1 },
   title: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   titleText: { fontSize: 18, fontFamily: fonts.title },

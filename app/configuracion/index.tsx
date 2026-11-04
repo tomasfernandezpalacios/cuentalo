@@ -78,15 +78,16 @@ export default function SettingsScreen() {
     });
   }
 
-  async function toggleReminder(enabled: boolean) {
-    if (enabled && !(await requestReminderPermission())) {
+  /** Activa o desactiva uno de los recordatorios (pide permiso la primera vez). */
+  async function toggleReminder(which: 'enabled' | 'counters', value: boolean) {
+    if (value && !(await requestReminderPermission())) {
       appAlert(
         'Notificaciones desactivadas',
         'Para recibir el recordatorio, permite las notificaciones de la app en los ajustes del móvil.',
       );
       return;
     }
-    updateSettings({ reminder: { ...reminder, enabled } });
+    updateSettings({ reminder: { ...reminder, [which]: value } });
   }
 
   function setReminderTime(date: Date) {
@@ -236,9 +237,15 @@ export default function SettingsScreen() {
           label="Recordatorio de la racha"
           detail="Un aviso a la hora elegida si ese día aún no has registrado nada."
           value={reminder.enabled}
-          onChange={toggleReminder}
+          onChange={(value) => toggleReminder('enabled', value)}
         />
-        {reminder.enabled ? (
+        <SwitchRow
+          label="Recordatorio de contadores de racha"
+          detail="Un aviso por cada contador en formato racha que ese día aún no hayas mantenido."
+          value={reminder.counters}
+          onChange={(value) => toggleReminder('counters', value)}
+        />
+        {reminder.enabled || reminder.counters ? (
           <SettingsRow
             label="Hora del aviso"
             onPress={Platform.OS === 'android' ? openAndroidTimePicker : undefined}

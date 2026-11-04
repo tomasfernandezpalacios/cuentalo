@@ -13,7 +13,7 @@ describe('parseSettings', () => {
     const s = parseSettings(JSON.stringify({ theme: 'dark', reminder: { enabled: true } }));
     expect(s.theme).toBe('dark');
     expect(s.accent).toBe('morado');
-    expect(s.reminder).toEqual({ enabled: true, hour: 21, minute: 0 });
+    expect(s.reminder).toEqual({ enabled: true, counters: false, hour: 21, minute: 0 });
   });
 
   it('limpia las cantidades rápidas: positivas, sin repetir, ordenadas y como mucho 3', () => {

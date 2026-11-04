@@ -179,7 +179,8 @@ export type Database = {
             | 'group_admin'
             | 'member_left'
             | 'new_leader'
-            | 'you_are_leader';
+            | 'you_are_leader'
+            | 'kicked';
           actor_id: string | null;
           /** Nombre de quien hizo la acción (sigue ahí aunque elimine su cuenta). */
           actor_name: string | null;
@@ -258,6 +259,7 @@ export type Database = {
           best_total: number;
           best_days: number;
           today_done: boolean | null;
+          today_amount: number | null;
         };
         Relationships: [];
       };
@@ -394,6 +396,10 @@ export type Database = {
       delete_my_account: {
         Args: Record<string, never>;
         Returns: undefined;
+      };
+      undo_last_entry: {
+        Args: { p_counter_id: string };
+        Returns: boolean;
       };
       set_my_time_zone: {
         Args: { p_time_zone: string };

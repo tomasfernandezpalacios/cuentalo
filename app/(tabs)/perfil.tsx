@@ -5,6 +5,7 @@ import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import { useAuth, useUserId } from '@/features/auth/AuthProvider';
+import { StreakCard } from '@/features/estadisticas/components/StreakCard';
 import { useProfile } from '@/features/perfil/api';
 import { GroupRow } from '@/features/social/components/GroupsPanel';
 import { useMyGroups } from '@/features/social/hooks';
@@ -51,6 +52,9 @@ export default function ProfileScreen() {
           <Text style={[styles.detail, { color: colors.textMuted }]}>{session.user.email}</Text>
         ) : null}
       </View>
+
+      {/* Mi racha de uso, como la ven mis amigos en mi perfil (lleva al calendario). */}
+      <StreakCard onPress={() => router.push('/racha')} />
 
       <AppButton
         title="Editar perfil"

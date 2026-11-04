@@ -21,6 +21,7 @@ import {
   requestCommonChange,
   setHidden,
   setRemovedFromHome,
+  undoLastEntry,
   setParticipants,
   updateCounter,
   updateEntry,
@@ -176,6 +177,15 @@ export function useSetHidden() {
   return useMutation({
     mutationFn: ({ ids, hidden }: { ids: string[]; hidden: boolean }) => setHidden(ids, hidden),
     onSuccess: () => invalidateCounters(queryClient),
+  });
+}
+
+/** Deshacer el último registro (desde el aviso «Deshacer»). */
+export function useUndoLastEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: undoLastEntry,
+    onSettled: () => invalidateCounters(queryClient),
   });
 }
 

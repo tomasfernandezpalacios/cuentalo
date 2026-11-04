@@ -47,6 +47,8 @@ function noticeText(n: Notice): string {
       return `${who} ha quitado ${counter} del grupo${group}. Tus registros siguen en tu contador personal.`;
     case 'group_deleted':
       return `${who} ha eliminado el grupo${group}. Tus registros de ${counter} siguen en tu contador personal.`;
+    case 'kicked':
+      return `${who} te ha quitado del grupo${n.group_name ? ` «${n.group_name}»` : ''}. Tus registros siguen en tus estadísticas.`;
     case 'member_left':
       return `${who} ha abandonado el grupo${n.group_name ? ` «${n.group_name}»` : ''}.`;
     case 'new_leader':

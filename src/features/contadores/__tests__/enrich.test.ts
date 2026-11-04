@@ -107,18 +107,18 @@ describe('enrich', () => {
 });
 
 describe('enrich: formato racha', () => {
-  const streaks = new Map([['c1', { current: 4, best: 9, todayDone: true }]]);
+  const streaks = new Map([['c1', { current: 4, best: 9, todayDone: true, todayAmount: 1 }]]);
   const args = [new Map(), new Map(), new Set<string>(), new Set<string>(), streaks] as const;
 
   it('el contador sigue con su total y lleva la racha aparte', () => {
     const result = enrich(counter({ streak_enabled: true }), totals, groups, ME, ...args);
     expect(result.displayTotal).toBe(3);
-    expect(result.streak).toEqual({ current: 4, best: 9, todayDone: true });
+    expect(result.streak).toEqual({ current: 4, best: 9, todayDone: true, todayAmount: 1 });
   });
 
   it('sin días buenos la racha es 0 y hoy no está hecha', () => {
     const result = enrich(counter({ id: 'c2', streak_enabled: true }), totals, groups, ME, ...args);
-    expect(result.streak).toEqual({ current: 0, best: 0, todayDone: false });
+    expect(result.streak).toEqual({ current: 0, best: 0, todayDone: false, todayAmount: 0 });
   });
 
   it('un contador normal no tiene racha', () => {

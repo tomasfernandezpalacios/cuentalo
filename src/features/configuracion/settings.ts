@@ -19,8 +19,11 @@ export type Settings = {
   haptics: boolean;
   /** Contador que se dibuja al abrir Estadísticas: 'last' (el último usado) o su id. */
   statsDefault: string;
-  /** Recordatorio diario para no perder la racha. */
-  reminder: { enabled: boolean; hour: number; minute: number };
+  /**
+   * Recordatorios diarios: el de la racha de uso (enabled) y, aparte, uno por cada contador de
+   * racha que aún no se haya mantenido ese día (counters). Misma hora para todos.
+   */
+  reminder: { enabled: boolean; counters: boolean; hour: number; minute: number };
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -30,7 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   confirmRemove: false,
   haptics: true,
   statsDefault: 'last',
-  reminder: { enabled: false, hour: 21, minute: 0 },
+  reminder: { enabled: false, counters: false, hour: 21, minute: 0 },
 };
 
 /** Cantidades que se pueden elegir para los botones rápidos. */

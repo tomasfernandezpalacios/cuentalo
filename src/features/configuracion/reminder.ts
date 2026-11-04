@@ -1,8 +1,9 @@
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
 
+import { useCounterList } from '@/features/contadores/hooks';
 import { useStreak } from '@/features/estadisticas/api';
 import { localToday } from '@/features/estadisticas/periods';
 
@@ -46,34 +47,64 @@ export async function requestReminderPermission(): Promise<boolean> {
   return (await Notifications.requestPermissionsAsync()).granted;
 }
 
+/** Contador en formato racha para el que puede tocar recordatorio. */
+export type StreakCounterReminder = { id: string; name: string; todayDone: boolean };
+
+// iOS deja programar como mucho 64 avisos a la vez: se reparten entre el general y los de cada
+// contador (menos días por adelantado cuantos más contadores).
+const MAX_SCHEDULED = 60;
+
 let lastKey = '';
 let activeDay = '';
+let streakCounters: StreakCounterReminder[] = [];
 
-async function schedule(activeToday: boolean) {
-  const { reminder } = getSettings();
-  const today = localToday();
-  const key = reminder.enabled
-    ? `${today}|${reminder.hour}:${reminder.minute}|${activeToday}`
-    : 'off';
-  if (key === lastKey) return;
-  lastKey = key;
-
-  await Notifications.cancelAllScheduledNotificationsAsync();
-  if (!reminder.enabled) return;
-  if (!(await Notifications.getPermissionsAsync()).granted) return;
-  await ensureChannel();
-  for (const date of reminderDates(new Date(), reminder.hour, reminder.minute, activeToday)) {
+async function scheduleAt(dates: Date[], title: string, body: string) {
+  for (const date of dates) {
     await Notifications.scheduleNotificationAsync({
-      content: {
-        title: '¡No pierdas tu racha! 🔥',
-        body: 'Aún no has registrado nada hoy en Cuéntalo.',
-      },
+      content: { title, body },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date,
         channelId: CHANNEL_ID,
       },
     });
+  }
+}
+
+async function schedule(activeToday: boolean) {
+  const { reminder } = getSettings();
+  const today = localToday();
+  const counters = reminder.counters ? streakCounters : [];
+  const key =
+    reminder.enabled || counters.length > 0
+      ? `${today}|${reminder.hour}:${reminder.minute}|${reminder.enabled}|${activeToday}|` +
+        counters.map((c) => `${c.id}:${c.name}:${c.todayDone}`).join(',')
+      : 'off';
+  if (key === lastKey) return;
+  lastKey = key;
+
+  await Notifications.cancelAllScheduledNotificationsAsync();
+  if (key === 'off') return;
+  if (!(await Notifications.getPermissionsAsync()).granted) return;
+  await ensureChannel();
+
+  const kinds = Number(reminder.enabled) + counters.length;
+  const days = Math.max(1, Math.min(14, Math.floor(MAX_SCHEDULED / Math.max(kinds, 1))));
+  const now = new Date();
+  if (reminder.enabled) {
+    await scheduleAt(
+      reminderDates(now, reminder.hour, reminder.minute, activeToday, days),
+      '¡No pierdas tu racha! 🔥',
+      'Aún no has registrado nada hoy en Cuéntalo.',
+    );
+  }
+  // Uno por contador de racha: solo los días en que aún no se ha mantenido.
+  for (const counter of counters) {
+    await scheduleAt(
+      reminderDates(now, reminder.hour, reminder.minute, counter.todayDone, days),
+      `🔥 ${counter.name}`,
+      `Hoy aún no has apuntado «${counter.name}». ¡No pierdas la racha!`,
+    );
   }
 }
 
@@ -99,13 +130,21 @@ export function clearReminders() {
 
 /**
  * Mantiene los avisos al día con la sesión: con sesión, según los días con registros (la racha
- * se refresca al volver a la app); sin sesión, ninguno.
+ * se refresca al volver a la app) y mis contadores de racha; sin sesión, ninguno.
  */
 export function useReminderSync(isSignedIn: boolean) {
   const { reminder } = useSettings();
   const streak = useStreak();
+  const counters = useCounterList();
   const activeToday = streak.data?.days.has(localToday()) ?? false;
   const ready = streak.data !== undefined;
+  const counterList = useMemo<StreakCounterReminder[]>(
+    () =>
+      (counters.data ?? [])
+        .filter((c) => c.streak && c.isActive && !c.linkedInto)
+        .map((c) => ({ id: c.id, name: c.name, todayDone: c.streak?.todayDone ?? false })),
+    [counters.data],
+  );
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -114,6 +153,17 @@ export function useReminderSync(isSignedIn: boolean) {
     }
     if (!ready) return;
     if (activeToday) activeDay = localToday();
+    // schedule() compara con lo ya programado y no repite si nada ha cambiado.
+    streakCounters = counterList;
     syncReminder(activeToday);
-  }, [isSignedIn, ready, activeToday, reminder.enabled, reminder.hour, reminder.minute]);
+  }, [
+    isSignedIn,
+    ready,
+    activeToday,
+    counterList,
+    reminder.enabled,
+    reminder.counters,
+    reminder.hour,
+    reminder.minute,
+  ]);
 }

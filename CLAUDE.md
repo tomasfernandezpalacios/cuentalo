@@ -378,6 +378,21 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   cual los `raise exception` escritos en español (código P0001); nunca un código interno.
 - «Exportar mis datos»: fechas en la hora del móvil (`localDateTime`).
 
+- **Deshacer** (petición del usuario): tras +N o −1 sale abajo «+1 en «Cafés» · Deshacer»
+  (`UndoToast`, montado en `app/_layout.tsx`, 4,5 s). La RPC `undo_last_entry` (migración
+  `20261128`) borra mi último registro de hace ≤ 2 min con sus copias (`batch_id`) o, en un
+  común que administro, la última tanda sumada a todos.
+- −1 en un contador de racha: si hoy ya estaba mantenida y quedaría por debajo de +1
+  (`streak.todayAmount`, nueva columna `today_amount` de `my_counter_streaks`), se avisa con
+  «Perderías la racha» antes de restar.
+- Mi racha de uso sale en mi perfil (`StreakCard`, lleva al calendario).
+- Aviso «X te ha quitado del grupo» (`kicked`) por trigger al borrar el líder la fila de un
+  miembro activo; no al salir uno mismo, al retirar una invitación ni al borrar el grupo.
+- Recordatorio de contadores de racha (`reminder.counters`): uno por contador de racha que ese
+  día aún no se ha mantenido, a la misma hora. Se reparten como mucho 60 avisos programados
+  (límite de iOS: 64), con menos días por adelantado cuantos más contadores.
+- Buscador en «Mis contadores» (ignora tildes, `src/lib/search.ts`) a partir de 6 contadores.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

@@ -97,6 +97,8 @@ export type CounterStreak = {
   best: number;
   /** Hoy ya se ha mantenido (la llama sale en color; si no, en gris). */
   todayDone: boolean;
+  /** Lo sumado hoy (para avisar si un −1 rompería la racha). */
+  todayAmount: number;
 };
 export type EntryInput = { amount: number; loggedAt: Date; note: string | null };
 
@@ -158,7 +160,7 @@ export function enrich(
   const canManage = counter.owner_id === myId && (counter.group_id === null || group !== null);
   const alias = aliases.get(counter.id);
   const streak = counter.streak_enabled
-    ? (streaks.get(counter.id) ?? { current: 0, best: 0, todayDone: false })
+    ? (streaks.get(counter.id) ?? { current: 0, best: 0, todayDone: false, todayAmount: 0 })
     : null;
   return {
     ...counter,
@@ -203,7 +205,12 @@ async function fetchStreaks(): Promise<Map<string, CounterStreak>> {
   return new Map(
     data.map((s) => [
       s.counter_id,
-      { current: s.current_days, best: s.best_days, todayDone: s.today_done === true },
+      {
+        current: s.current_days,
+        best: s.best_days,
+        todayDone: s.today_done === true,
+        todayAmount: Number(s.today_amount ?? 0),
+      },
     ]),
   );
 }
@@ -480,6 +487,13 @@ export async function removeOneFromCommonCounter(counterId: string): Promise<voi
     p_counter_id: counterId,
   });
   if (error) throw error;
+}
+
+/** Deshace lo último que acabo de apuntar en el contador (ver undo_last_entry). */
+export async function undoLastEntry(counterId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('undo_last_entry', { p_counter_id: counterId });
+  if (error) throw error;
+  return data;
 }
 
 /** Borra un registro y sus copias en contadores enlazados. */

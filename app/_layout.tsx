@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { DialogHost } from '@/components/AppDialog';
+import { UndoToastHost } from '@/components/UndoToast';
 import { BackButton } from '@/components/BackButton';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { useReminderSync } from '@/features/configuracion/reminder';
@@ -121,6 +122,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <RootNavigator />
+        <UndoToastHost />
         <TutorialHost />
         <DialogHost />
         <ThemedStatusBar />

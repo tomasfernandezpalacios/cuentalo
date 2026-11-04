@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 
 import { appAlert } from '@/components/AppDialog';
+import { showUndoToast } from '@/components/UndoToast';
 import { getSettings } from '@/features/configuracion/settings';
 import { markActiveToday } from '@/features/configuracion/reminder';
 import { tutorialEvent } from '@/features/tutorial/store';
@@ -8,7 +9,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { formatAmount } from '@/lib/format';
 
 import type { CounterWithTotal, EntryInput } from './api';
-import { useAddEntry, useRemoveOne, useRequestCommonChange } from './hooks';
+import { useAddEntry, useRemoveOne, useRequestCommonChange, useUndoLastEntry } from './hooks';
 
 function showError(error: unknown) {
   appAlert('No se ha podido guardar', getErrorMessage(error));
@@ -29,6 +30,19 @@ export function useCounterActions() {
   const addEntry = useAddEntry();
   const removeOne = useRemoveOne();
   const request = useRequestCommonChange();
+  const undo = useUndoLastEntry();
+
+  /** Aviso «+1 en Cafés · Deshacer» tras registrar (borra lo que se acaba de apuntar). */
+  function offerUndo(counter: CounterWithTotal, text: string) {
+    showUndoToast(`${text} en «${counter.name}»`, () =>
+      undo.mutate(counter.id, {
+        onSuccess: (done) => {
+          if (!done) appAlert('No se ha podido deshacer', 'Ese registro ya no se puede deshacer.');
+        },
+        onError: showError,
+      }),
+    );
+  }
 
   function askAdmin(counter: CounterWithTotal, amount: number, onSent?: () => void) {
     const change = amount > 0 ? `sumar ${formatAmount(amount)}` : `restar ${formatAmount(-amount)}`;
@@ -74,6 +88,7 @@ export function useCounterActions() {
         onSuccess: () => {
           // Hoy ya hay registro: el recordatorio de la racha de hoy sobra.
           markActiveToday();
+          offerUndo(counter, `+${formatAmount(input.amount)}`);
           onSuccess?.();
         },
         onError: showError,
@@ -83,12 +98,32 @@ export function useCounterActions() {
 
   function doSubtract(counter: CounterWithTotal) {
     tap();
-    removeOne.mutate(counter.id, { onSuccess: markActiveToday, onError: showError });
+    removeOne.mutate(counter.id, {
+      onSuccess: () => {
+        markActiveToday();
+        offerUndo(counter, '−1');
+      },
+      onError: showError,
+    });
   }
 
   function subtractOne(counter: CounterWithTotal) {
     if (needsRequest(counter)) {
       askAdmin(counter, -1);
+      return;
+    }
+    // Contador de racha: si hoy ya está mantenida y el −1 la dejaría por debajo de +1, se avisa.
+    const streak = counter.streak;
+    if (streak && streak.todayDone && streak.todayAmount - 1 < 1) {
+      appAlert(
+        'Perderías la racha',
+        `Hoy quedarías por debajo de +1 en «${counter.name}» y perderías tu racha de ` +
+          `${streak.current} ${streak.current === 1 ? 'día' : 'días'}. ¿Restar igualmente?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Restar', style: 'destructive', onPress: () => doSubtract(counter) },
+        ],
+      );
       return;
     }
     if (getSettings().confirmRemove) {
