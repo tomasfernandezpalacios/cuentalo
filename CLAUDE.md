@@ -365,9 +365,14 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   (`banner`), **siempre** crear un contador sencillo aunque ya haya (+ → en el formulario, modo
   `simple`, se ilumina una idea y luego «Crear contador»; `screen: '/contadores/nuevo'` con
   `userNavigates`), sumar, restar 1, la pestaña Estadísticas y la de Amigos y grupos (desde
-  inicio, todo oscurecido menos su botón), la racha y una pantalla final «Todo listo» con una
-  huella dactilar y «Empieza a dejar huella de tu vida». Barra de progreso con una bolita por
-  paso que se rellena animada (`Progress`). Los de acción avanzan con `tutorialEvent` desde el código que ya existe
+  inicio, todo oscurecido menos su botón), la racha y una pantalla final «Todo listo» / «Empieza a
+  dejar huella de tu vida» con un círculo con huella: mantenerlo pulsado lo hace crecer hasta
+  cubrir la pantalla (soltar antes lo devuelve con un rebote) y sale «"Me comprometo a
+  registrar mi vida"» antes de terminar. La bienvenida no tiene «Saltar» (barra y «Seguir»
+  abajo). Barra de progreso (`Progress`): lo hecho es barra, el paso actual una bolita llena y
+  los pendientes bolitas huecas. Al completar un paso (`completeStep`) la barra avanza y se
+  espera `COMPLETE_PAUSE_MS` antes del siguiente, sin poder tocar nada (salvo al abrir el
+  formulario o crear el contador, que cambian de pantalla). Los de acción avanzan con `tutorialEvent` desde el código que ya existe
   (`useCounterActions.add`, `contadores/nuevo`; durante el tutorial crear vuelve a la lista y
   ofrece ideas de un toque) y solo dejan tocar el hueco. `TutorialHost` (montado en
   `app/_layout.tsx`, solo se ve en «Mis contadores»): oscurecido con hueco (SVG evenodd),

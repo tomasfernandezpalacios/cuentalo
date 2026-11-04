@@ -12,14 +12,23 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import Svg, { Path } from 'react-native-svg';
 
 import { AppButton } from '@/components/AppButton';
+import { getSettings } from '@/features/configuracion/settings';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import { dimPath, holeFor, placeBubble, type Rect } from './layout';
 import { stepKind, type Step } from './steps';
-import { getTarget, nextStep, skipTutorial, useTutorial, type ViewRef } from './store';
+import {
+  continueTutorial,
+  getTarget,
+  nextStep,
+  skipTutorial,
+  useTutorial,
+  type ViewRef,
+} from './store';
 
 const DIM = 'rgba(8, 8, 16, 0.66)';
 /** Si el elemento no aparece en este tiempo, el paso se enseña sin foco (con «Siguiente»). */
@@ -35,7 +44,7 @@ const MEASURE_EVERY_MS = 250;
  * creando el contador), se aparta.
  */
 export function TutorialHost() {
-  const { step, index, steps, celebrating } = useTutorial();
+  const { step, index, steps, completing, completedBy } = useTutorial();
   const pathname = usePathname();
   const stepId = step?.id;
   // Pantalla del paso: a la que va el tutorial al llegar a él (una sola vez), salvo que llegue
@@ -56,9 +65,10 @@ export function TutorialHost() {
 
   if (!step || index === null) return null;
   const kind = stepKind(step);
-  if (kind === 'welcome' || kind === 'finish') {
-    return <FullScreen step={step} index={index} total={steps.length} />;
+  if (kind === 'welcome') {
+    return <Welcome step={step} index={index} total={steps.length} completing={completing} />;
   }
+  if (kind === 'finish') return <Finish step={step} index={index} total={steps.length} />;
   if (pathname !== (step.screen ?? '/')) return null;
   if (kind === 'banner') return <Banner step={step} />;
   return (
@@ -69,7 +79,8 @@ export function TutorialHost() {
           step={step}
           index={index}
           total={steps.length}
-          celebrating={celebrating}
+          completing={completing}
+          celebrate={completing && completedBy === 'entry-added'}
           origin={origin}
           size={size}
         />
@@ -199,20 +210,23 @@ function useAnnounce(step: Step) {
   }, [step]);
 }
 
-/**
- * Pasos a pantalla completa: la bienvenida (logo, saludo y «Siguiente») y el final («Todo
- * listo» con una huella dactilar grande). Todo el texto, alineado a la izquierda.
- */
-function FullScreen({ step, index, total }: { step: Step; index: number; total: number }) {
+/** Primera pantalla: ocupa todo el dispositivo; abajo, la barra de progreso y «Seguir». */
+function Welcome({
+  step,
+  index,
+  total,
+  completing,
+}: {
+  step: Step;
+  index: number;
+  total: number;
+  completing: boolean;
+}) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const opacity = useFadeIn();
   const float = useLoop(1400);
-  const finish = stepKind(step) === 'finish';
   useAnnounce(step);
-  const floating = {
-    transform: [{ translateY: float.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) }],
-  };
   return (
     <Animated.View
       style={[
@@ -227,39 +241,202 @@ function FullScreen({ step, index, total }: { step: Step; index: number; total: 
       ]}
       accessibilityViewIsModal
     >
-      <Progress index={index} total={total} />
       <View style={styles.welcomeBody}>
-        {finish ? (
-          <Animated.View
-            accessibilityElementsHidden
-            importantForAccessibility="no"
-            style={floating}
-          >
-            <Ionicons name="finger-print" size={150} color={colors.primary} />
-          </Animated.View>
-        ) : (
-          <Animated.View
-            accessibilityElementsHidden
-            importantForAccessibility="no"
-            style={[styles.logo, { backgroundColor: colors.primary }, floating]}
-          >
-            <Text style={[styles.logoText, { color: colors.onPrimary }]}>+1</Text>
-          </Animated.View>
-        )}
+        <Animated.View
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+          style={[
+            styles.logo,
+            {
+              backgroundColor: colors.primary,
+              transform: [
+                { translateY: float.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
+              ],
+            },
+          ]}
+        >
+          <Text style={[styles.logoText, { color: colors.onPrimary }]}>+1</Text>
+        </Animated.View>
         <Text style={[styles.welcomeTitle, { color: colors.text }]} accessibilityRole="header">
           {step.title}
         </Text>
         {step.subtitle ? (
           <Text style={[styles.welcomeSubtitle, { color: colors.primary }]}>{step.subtitle}</Text>
         ) : null}
-        {step.text ? (
-          <Text style={[styles.welcomeText, { color: colors.textMuted }]}>{step.text}</Text>
-        ) : null}
+        <Text style={[styles.welcomeText, { color: colors.textMuted }]}>{step.text}</Text>
       </View>
       <View style={styles.welcomeButtons}>
-        <AppButton title={step.button ?? 'Siguiente'} onPress={nextStep} />
-        {finish ? null : <AppButton title="Saltar" variant="ghost" onPress={skipTutorial} />}
+        <Progress index={index + (completing ? 1 : 0)} total={total} />
+        <AppButton
+          title={step.button ?? 'Seguir'}
+          onPress={continueTutorial}
+          disabled={completing}
+        />
       </View>
+    </Animated.View>
+  );
+}
+
+const HOLD_MS = 2600;
+const CIRCLE = 104;
+
+function haptic(style: Haptics.ImpactFeedbackStyle) {
+  if (getSettings().haptics) Haptics.impactAsync(style).catch(() => {});
+}
+
+/**
+ * Pantalla final: «Todo listo» y, abajo, un círculo con una huella. Mantenerlo pulsado hace
+ * desaparecer la huella y crecer el círculo hasta llenar la pantalla; entonces sale «"Me
+ * comprometo a registrar mi vida"» y se acaba el tutorial. Si se suelta antes, vuelve a su
+ * tamaño (con un pequeño rebote) y la huella reaparece: se puede intentar las veces que haga
+ * falta.
+ */
+function Finish({ step, index, total }: { step: Step; index: number; total: number }) {
+  const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const opacity = useFadeIn();
+  const breathe = useLoop(1100);
+  const [grow] = useState(() => new Animated.Value(0));
+  const [promise] = useState(() => new Animated.Value(0));
+  const [fadeOut] = useState(() => new Animated.Value(1));
+  const [done, setDone] = useState(false);
+  useAnnounce(step);
+
+  // Escala con la que el círculo cubre toda la pantalla desde su sitio (abajo en el centro).
+  const cover = (2 * Math.hypot(width / 2, height)) / CIRCLE + 1;
+
+  function finish() {
+    setDone(true);
+    haptic(Haptics.ImpactFeedbackStyle.Heavy);
+    Animated.sequence([
+      Animated.timing(promise, {
+        toValue: 1,
+        duration: 450,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.delay(1500),
+      Animated.timing(fadeOut, {
+        toValue: 0,
+        duration: 450,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      router.navigate('/');
+      nextStep();
+    });
+  }
+
+  function press() {
+    if (done) return;
+    haptic(Haptics.ImpactFeedbackStyle.Light);
+    grow.stopAnimation((value) => {
+      Animated.timing(grow, {
+        toValue: 1,
+        // Lo que falte, a la misma velocidad (si se vuelve a pulsar a medio camino).
+        duration: HOLD_MS * (1 - value),
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) finish();
+      });
+    });
+  }
+
+  function release() {
+    if (done) return;
+    grow.stopAnimation();
+    Animated.spring(grow, {
+      toValue: 0,
+      friction: 6,
+      tension: 60,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  const scale = grow.interpolate({ inputRange: [0, 1], outputRange: [1, cover] });
+  const printOpacity = grow.interpolate({
+    inputRange: [0, 0.12],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const printScale = grow.interpolate({
+    inputRange: [0, 0.12],
+    outputRange: [1, 0.6],
+    extrapolate: 'clamp',
+  });
+  const idle = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] });
+
+  return (
+    <Animated.View
+      style={[
+        StyleSheet.absoluteFill,
+        styles.finish,
+        {
+          backgroundColor: colors.background,
+          opacity: Animated.multiply(opacity, fadeOut),
+          paddingTop: insets.top + 24,
+          paddingBottom: insets.bottom + 32,
+        },
+      ]}
+      accessibilityViewIsModal
+    >
+      <Progress index={index} total={total} />
+      <View style={styles.finishBody}>
+        <Text style={[styles.finishTitle, { color: colors.text }]} accessibilityRole="header">
+          {step.title}
+        </Text>
+        <Text style={[styles.finishText, { color: colors.textMuted }]}>{step.text}</Text>
+      </View>
+      <View style={styles.finishBottom}>
+        {/* Latido suave mientras espera; al pulsar, crece hasta cubrir la pantalla. */}
+        <Animated.View style={{ transform: [{ scale: idle }] }}>
+          <Pressable
+            onPressIn={press}
+            onPressOut={release}
+            delayLongPress={HOLD_MS * 2}
+            accessibilityRole="button"
+            accessibilityLabel="Mantén pulsado para terminar el tutorial"
+          >
+            <Animated.View
+              style={[styles.circle, { backgroundColor: colors.primary, transform: [{ scale }] }]}
+            />
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.print, { opacity: printOpacity, transform: [{ scale: printScale }] }]}
+            >
+              <Ionicons name="finger-print" size={64} color={colors.background} />
+            </Animated.View>
+          </Pressable>
+        </Animated.View>
+        <Animated.Text
+          style={[styles.holdHint, { color: colors.textMuted, opacity: printOpacity }]}
+        >
+          Mantén pulsado
+        </Animated.Text>
+      </View>
+      {/* Con la pantalla ya cubierta: la promesa, sobre el color del círculo. */}
+      {done ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            styles.promise,
+            {
+              opacity: promise,
+              transform: [
+                { scale: promise.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) },
+              ],
+            },
+          ]}
+        >
+          <Text style={[styles.promiseText, { color: colors.onPrimary }]}>
+            &quot;Me comprometo a registrar mi vida&quot;
+          </Text>
+        </Animated.View>
+      ) : null}
     </Animated.View>
   );
 }
@@ -286,12 +463,15 @@ type SpotlightProps = {
   step: Step;
   index: number;
   total: number;
-  celebrating: boolean;
+  /** El paso ya está hecho: la barra avanza y se espera un momento (sin poder tocar nada). */
+  completing: boolean;
+  /** Confeti (tras el primer registro). */
+  celebrate: boolean;
   origin: ViewRef | null;
   size: Size | null;
 };
 
-function Spotlight({ step, index, total, celebrating, origin, size }: SpotlightProps) {
+function Spotlight({ step, index, total, completing, celebrate, origin, size }: SpotlightProps) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const windowSize = useWindowDimensions();
@@ -308,7 +488,8 @@ function Spotlight({ step, index, total, celebrating, origin, size }: SpotlightP
   const screen = { width, height, top: insets.top, bottom: insets.bottom };
   // Sin elemento que iluminar (no está en pantalla): bocadillo en el centro y «Siguiente».
   const hole = rect && !missing ? holeFor(rect) : null;
-  const isAction = Boolean(step.action) && hole !== null;
+  // Con el paso ya hecho no se deja tocar nada (tampoco el hueco) hasta el siguiente.
+  const isAction = Boolean(step.action) && hole !== null && !completing;
   const place = hole ? placeBubble(hole, bubbleHeight, screen) : null;
 
   if (!hole && !missing) {
@@ -407,7 +588,11 @@ function Spotlight({ step, index, total, celebrating, origin, size }: SpotlightP
         </Text>
         <Text style={[styles.text, { color: colors.textMuted }]}>{step.text}</Text>
         <View style={styles.footer}>
-          <Progress index={index} total={total} style={styles.progressInBubble} />
+          <Progress
+            index={index + (completing ? 1 : 0)}
+            total={total}
+            style={styles.progressInBubble}
+          />
           <View style={styles.buttons}>
             <Pressable
               onPress={skipTutorial}
@@ -418,18 +603,14 @@ function Spotlight({ step, index, total, celebrating, origin, size }: SpotlightP
             >
               <Text style={[styles.skipText, { color: colors.textMuted }]}>Saltar</Text>
             </Pressable>
-            {isAction ? null : (
-              <AppButton
-                small
-                title={index === total - 1 ? 'Terminar' : 'Siguiente'}
-                onPress={nextStep}
-              />
+            {step.action || completing ? null : (
+              <AppButton small title="Siguiente" onPress={continueTutorial} />
             )}
           </View>
         </View>
       </View>
 
-      {celebrating && hole ? (
+      {celebrate && hole ? (
         <Confetti x={hole.x + hole.width / 2} y={hole.y + hole.height / 2} />
       ) : null}
     </Animated.View>
@@ -443,11 +624,12 @@ function Blocker({ style }: { style: object }) {
 
 // Último punto de la barra que se ha enseñado: el paso siguiente anima desde ahí.
 let shownProgress = 0;
-const DOT = 12;
+const DOT = 14;
 
 /**
- * Barra de pasos: una línea con una bolita por paso. Al avanzar, la línea se va rellenando
- * desde el paso anterior y cada bolita se colorea cuando la línea llega a ella.
+ * Barra de pasos. Lo ya hecho es barra rellena; el paso actual, una bolita de color (más
+ * grande), y los que faltan, bolitas huecas. Al completar un paso la barra avanza hasta el
+ * siguiente: la bolita que se deja se funde en la barra y la nueva se llena y crece.
  */
 function Progress({ index, total, style }: { index: number; total: number; style?: object }) {
   const colors = useThemeColors();
@@ -455,10 +637,10 @@ function Progress({ index, total, style }: { index: number; total: number; style
   const [progress] = useState(() => new Animated.Value(Math.min(shownProgress, index)));
   useEffect(() => {
     shownProgress = index;
-    Animated.timing(progress, {
+    Animated.spring(progress, {
       toValue: index,
-      duration: 700,
-      easing: Easing.out(Easing.cubic),
+      friction: 9,
+      tension: 50,
       // Anima ancho y color: no se puede con el driver nativo.
       useNativeDriver: false,
     }).start();
@@ -471,7 +653,7 @@ function Progress({ index, total, style }: { index: number; total: number; style
       style={[styles.progress, style]}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       accessible
-      accessibilityLabel={`Paso ${index + 1} de ${total}`}
+      accessibilityLabel={`Paso ${Math.min(index + 1, total)} de ${total}`}
     >
       <View
         style={[styles.track, { left: DOT / 2, right: DOT / 2, backgroundColor: colors.border }]}
@@ -479,10 +661,15 @@ function Progress({ index, total, style }: { index: number; total: number; style
       <Animated.View
         style={[
           styles.track,
+          styles.trackFill,
           {
             left: DOT / 2,
             backgroundColor: colors.primary,
-            width: progress.interpolate({ inputRange: [0, last], outputRange: [0, track] }),
+            width: progress.interpolate({
+              inputRange: [0, last],
+              outputRange: [0, track],
+              extrapolate: 'clamp',
+            }),
           },
         ]}
       />
@@ -496,12 +683,31 @@ function Progress({ index, total, style }: { index: number; total: number; style
               height: DOT,
               borderRadius: DOT / 2,
               left: (i / last) * track,
-              borderColor: colors.border,
+              borderColor: progress.interpolate({
+                inputRange: [i - 1, i],
+                outputRange: [colors.border, colors.primary],
+                extrapolate: 'clamp',
+              }),
               backgroundColor: progress.interpolate({
-                inputRange: [Math.max(0, i - 0.05), Math.max(0.001, i)],
+                inputRange: [i - 1, i],
                 outputRange: [colors.surface, colors.primary],
                 extrapolate: 'clamp',
               }),
+              // Pendiente → actual (crece) → hecho (se funde en la barra).
+              opacity: progress.interpolate({
+                inputRange: [i, i + 0.7],
+                outputRange: [1, 0],
+                extrapolate: 'clamp',
+              }),
+              transform: [
+                {
+                  scale: progress.interpolate({
+                    inputRange: [i - 1, i, i + 0.7],
+                    outputRange: [0.75, 1.25, 0.3],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ],
             },
           ]}
         />
@@ -630,6 +836,25 @@ const styles = StyleSheet.create({
   progress: { height: 14, justifyContent: 'center', alignSelf: 'stretch' },
   progressInBubble: { flex: 1 },
   track: { position: 'absolute', height: 3, borderRadius: 2 },
-  progressDot: { position: 'absolute', borderWidth: 1.5 },
+  progressDot: { position: 'absolute', borderWidth: 2 },
+  trackFill: { height: 4, borderRadius: 2 },
+  finish: { paddingHorizontal: 24, zIndex: 1000, elevation: 1000 },
+  finishBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  finishTitle: { fontSize: 34, fontFamily: fonts.title, textAlign: 'center' },
+  finishText: { fontSize: 18, fontFamily: fonts.detail, textAlign: 'center', lineHeight: 25 },
+  finishBottom: { alignItems: 'center', gap: 12 },
+  circle: { width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2 },
+  print: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  holdHint: { fontSize: 14, fontFamily: fonts.detail },
+  promise: { alignItems: 'center', justifyContent: 'center', padding: 32 },
+  promiseText: { fontSize: 26, fontFamily: fonts.title, textAlign: 'center', lineHeight: 34 },
   confetti: { position: 'absolute', fontSize: 24 },
 });

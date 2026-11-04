@@ -67,7 +67,7 @@ const ALL_STEPS: Step[] = [
     title: 'Te damos la bienvenida a Cuéntalo',
     subtitle: 'Tu base de estadísticas vitales',
     text: 'Registra lo que haces, compártelo con tus amigos y disfruta de tus datos.',
-    button: 'Siguiente',
+    button: 'Seguir',
   },
   {
     id: 'intro',
@@ -137,8 +137,7 @@ const ALL_STEPS: Step[] = [
     id: 'done',
     kind: 'finish',
     title: 'Todo listo',
-    text: '',
-    button: 'Empieza a dejar huella de tu vida',
+    text: 'Empieza a dejar huella de tu vida',
   },
 ];
 
