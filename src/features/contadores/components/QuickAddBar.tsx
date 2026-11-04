@@ -149,8 +149,9 @@ const styles = StyleSheet.create({
   large: { flex: 1, height: 60, borderRadius: 16 },
   // Los botones de cantidad van dentro de un envoltorio (TutorialTarget) que es quien estira.
   largeInTarget: { height: 60, borderRadius: 16 },
-  compact: { width: 36, height: 36, borderRadius: 10 },
-  streak: { flexDirection: 'row', height: 36, minWidth: 36, gap: 1, paddingHorizontal: 2 },
+  // En la tarjeta: estrechos para que quepan, pero altos para pulsarlos con comodidad.
+  compact: { width: 36, height: 48, borderRadius: 10 },
+  streak: { flexDirection: 'row', height: 48, minWidth: 36, gap: 1, paddingHorizontal: 2 },
   largeLabel: { fontSize: 19, fontFamily: fonts.title },
   compactLabel: { fontSize: 14, fontFamily: fonts.title },
 });
