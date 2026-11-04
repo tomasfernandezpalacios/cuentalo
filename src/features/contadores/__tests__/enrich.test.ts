@@ -33,7 +33,13 @@ const totals: CounterTotal[] = [
   },
 ];
 
-const myGroup: CounterGroup = { id: 'g1', name: 'Amigos', ownerId: OTHER };
+const myGroup: CounterGroup = {
+  id: 'g1',
+  name: 'Amigos',
+  ownerId: OTHER,
+  emoji: null,
+  photoPath: null,
+};
 const groups = new Map([[myGroup.id, myGroup]]);
 
 describe('enrich', () => {

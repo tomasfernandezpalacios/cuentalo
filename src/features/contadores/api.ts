@@ -8,7 +8,13 @@ export type Entry = Tables<'entries'>;
 export type CounterTotal = Views<'counter_totals'>;
 export type LeaderboardPeriod = 'week' | 'month' | 'year' | 'all';
 
-export type CounterGroup = { id: string; name: string; ownerId: string };
+export type CounterGroup = {
+  id: string;
+  name: string;
+  ownerId: string;
+  emoji: string | null;
+  photoPath: string | null;
+};
 
 export type CounterWithTotal = Counter & {
   /** Lo que veo: en un compartido, la suma de todo el grupo. */
@@ -82,9 +88,17 @@ async function fetchMyActiveGroups(myId: string): Promise<Map<string, CounterGro
   const ids = memberships.data.map((m) => m.group_id);
   if (ids.length === 0) return new Map();
 
-  const groups = await supabase.from('groups').select('id, name, owner_id').in('id', ids);
+  const groups = await supabase
+    .from('groups')
+    .select('id, name, owner_id, emoji, photo_path')
+    .in('id', ids);
   if (groups.error) throw groups.error;
-  return new Map(groups.data.map((g) => [g.id, { id: g.id, name: g.name, ownerId: g.owner_id }]));
+  return new Map(
+    groups.data.map((g) => [
+      g.id,
+      { id: g.id, name: g.name, ownerId: g.owner_id, emoji: g.emoji, photoPath: g.photo_path },
+    ]),
+  );
 }
 
 /** Añade totales, grupo y permisos a un contador (exportada para los tests). */

@@ -3,8 +3,20 @@ import { applyLinks, visibleCounterId } from '../links';
 
 jest.mock('@/lib/supabase', () => ({ supabase: {} }));
 
-const familia: CounterGroup = { id: 'g-fam', name: 'Familia', ownerId: 'x' };
-const amigos: CounterGroup = { id: 'g-ami', name: 'Amigos', ownerId: 'y' };
+const familia: CounterGroup = {
+  id: 'g-fam',
+  name: 'Familia',
+  ownerId: 'x',
+  emoji: null,
+  photoPath: null,
+};
+const amigos: CounterGroup = {
+  id: 'g-ami',
+  name: 'Amigos',
+  ownerId: 'y',
+  emoji: '🍻',
+  photoPath: null,
+};
 
 function counter(id: string, group: CounterGroup | null, my: number, total: number) {
   return {
