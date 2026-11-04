@@ -2,16 +2,35 @@
 
 /** Elementos de la app que el tutorial puede iluminar (ver TutorialTarget). */
 export type TargetId =
-  'nuevo-contador' | 'sumar' | 'restar' | 'tarjeta' | 'racha' | 'tab-estadisticas' | 'tab-social';
+  | 'nuevo-contador'
+  | 'ideas'
+  | 'crear-contador'
+  | 'sumar'
+  | 'restar'
+  | 'tarjeta'
+  | 'racha'
+  | 'tab-estadisticas'
+  | 'tab-social';
 
 /** Acciones reales que hacen avanzar un paso (las avisa el código que ya existe). */
-export type TutorialEvent = 'counter-created' | 'entry-added' | 'entry-removed';
+export type TutorialEvent =
+  'form-opened' | 'idea-chosen' | 'counter-created' | 'entry-added' | 'entry-removed';
 
 export type StepId =
-  'welcome' | 'intro' | 'create' | 'add' | 'remove' | 'tips' | 'stats' | 'social' | 'streak';
+  | 'welcome'
+  | 'intro'
+  | 'create'
+  | 'pick-idea'
+  | 'submit'
+  | 'add'
+  | 'remove'
+  | 'stats'
+  | 'social'
+  | 'streak'
+  | 'done';
 
-/** Pestaña en la que se enseña el paso (el tutorial va a ella al llegar al paso). */
-export type TutorialScreen = '/' | '/estadisticas' | '/social';
+/** Pantalla en la que se enseña el paso (el tutorial va a ella al llegar, salvo `userNavigates`). */
+export type TutorialScreen = '/' | '/contadores/nuevo';
 
 export type Step = {
   id: StepId;
@@ -20,12 +39,20 @@ export type Step = {
   subtitle?: string;
   text: string;
   /**
-   * Cómo se ve: 'welcome' a pantalla completa, 'banner' un aviso sobre la app sin oscurecer
-   * (se pasa solo), 'spotlight' (por defecto) oscurece e ilumina `target`, y 'tour' deja ver la
-   * pestaña entera e ilumina solo su botón.
+   * Cómo se ve: 'welcome' y 'finish' a pantalla completa (al empezar y al acabar), 'banner' un
+   * aviso sobre la app sin oscurecer (se pasa solo) y 'spotlight' (por defecto) oscurece todo
+   * menos `target`.
    */
-  kind?: 'welcome' | 'banner' | 'spotlight' | 'tour';
+  kind?: 'welcome' | 'banner' | 'spotlight' | 'finish';
+  /** Pantalla en la que se enseña. Si no lo dice, la principal. */
   screen?: TutorialScreen;
+  /** Texto del botón de los pasos a pantalla completa. */
+  button?: string;
+  /**
+   * El paso empieza en otra pantalla a la que llega el propio usuario (p. ej. al tocar el +):
+   * el tutorial no navega a `screen`.
+   */
+  userNavigates?: boolean;
   target?: TargetId;
   /** Paso de acción: no hay «Siguiente», se avanza al hacer esto (y solo se toca el hueco). */
   action?: TutorialEvent;
@@ -40,26 +67,42 @@ const ALL_STEPS: Step[] = [
     title: 'Te damos la bienvenida a Cuéntalo',
     subtitle: 'Tu base de estadísticas vitales',
     text: 'Registra lo que haces, compártelo con tus amigos y disfruta de tus datos.',
+    button: 'Siguiente',
   },
   {
     id: 'intro',
     kind: 'banner',
-    screen: '/',
     title: 'Esto es Cuéntalo',
     text: '',
     autoAdvanceMs: 2000,
   },
   {
     id: 'create',
-    screen: '/',
     title: 'Empecemos creando tu primer contador',
     text: 'Toca el + para crearlo.',
     target: 'nuevo-contador',
+    action: 'form-opened',
+  },
+  {
+    id: 'pick-idea',
+    screen: '/contadores/nuevo',
+    userNavigates: true,
+    title: 'Elige qué quieres contar',
+    text: 'Toca una de estas ideas. Luego podrás crear los tuyos como quieras.',
+    target: 'ideas',
+    action: 'idea-chosen',
+  },
+  {
+    id: 'submit',
+    screen: '/contadores/nuevo',
+    userNavigates: true,
+    title: '¡Así de fácil!',
+    text: 'Toca «Crear contador».',
+    target: 'crear-contador',
     action: 'counter-created',
   },
   {
     id: 'add',
-    screen: '/',
     title: 'Suma con un toque',
     text: 'Cada toque se guarda en tu historial. ¡Pruébalo!',
     target: 'sumar',
@@ -67,47 +110,41 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'remove',
-    screen: '/',
     title: '¿Te has pasado? Resta 1',
     text: 'El −1 corrige el último toque. Pruébalo.',
     target: 'restar',
     action: 'entry-removed',
   },
   {
-    id: 'tips',
-    screen: '/',
-    title: 'Tu tarjeta',
-    text: 'Tócala para ver el historial y las gráficas. Mantén pulsado el primer botón para sumar otra cantidad.',
-    target: 'tarjeta',
-  },
-  {
     id: 'stats',
-    kind: 'tour',
-    screen: '/estadisticas',
     title: 'Estadísticas',
-    text: 'Aquí ves tu evolución por semana, mes o año, en líneas o barras.',
+    text: 'En esta pestaña verás tu evolución por semana, mes o año, en líneas o barras.',
     target: 'tab-estadisticas',
   },
   {
     id: 'social',
-    kind: 'tour',
-    screen: '/social',
     title: 'Amigos y grupos',
-    text: 'Añade amigos, crea grupos o únete con un código y competid en la clasificación.',
+    text: 'Aquí añades amigos, creas grupos o te unes con un código y competís en la clasificación.',
     target: 'tab-social',
   },
   {
     id: 'streak',
-    screen: '/',
     title: 'Tus estadísticas son más potentes si registras cada día 🔥',
-    text: 'Tu racha cuenta los días seguidos en los que apuntas algo. Si un día no registras nada, vuelve a 0. Puedes repetir el tutorial en Configuración.',
+    text: 'Tu racha cuenta los días seguidos en los que apuntas algo. Si un día no registras nada, vuelve a 0.',
     target: 'racha',
+  },
+  {
+    id: 'done',
+    kind: 'finish',
+    title: 'Todo listo',
+    text: '',
+    button: 'Empieza a dejar huella de tu vida',
   },
 ];
 
-/** Pasos para este usuario: si ya tiene contadores, no hace falta crear uno. */
-export function buildSteps(hasCounters: boolean): Step[] {
-  return ALL_STEPS.filter((step) => !(hasCounters && step.id === 'create'));
+/** Pasos del tutorial: siempre los mismos (también se crea un contador aunque ya haya). */
+export function buildSteps(): Step[] {
+  return ALL_STEPS;
 }
 
 /** Índice del paso siguiente al pulsar «Siguiente» (null si era el último: se termina). */

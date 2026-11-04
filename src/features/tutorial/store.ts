@@ -36,9 +36,9 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-export function startTutorial(hasCounters: boolean, finish: () => void) {
+export function startTutorial(finish: () => void) {
   onFinish = finish;
-  set({ steps: buildSteps(hasCounters), index: 0, celebrating: false });
+  set({ steps: buildSteps(), index: 0, celebrating: false });
 }
 
 function finishTutorial() {

@@ -361,11 +361,13 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   vez que alguien entra si `profiles.tutorial_done = false` (migración `20261124`; sin la
   columna no sale nunca) y se marca al terminar o saltar. «Ver tutorial» en Configuración →
   Información. Pasos (`steps.ts`, puros con tests; rehechos a petición del usuario):
-  bienvenida a pantalla completa («Tu base de estadísticas vitales»), «Esto es Cuéntalo» 2 s
-  sobre la app (`banner`, se pasa solo), crear contador (solo si no tiene ninguno; el
-  formulario va en modo `simple`: guía, ideas, nombre y emoticono), sumar, restar 1, la
-  tarjeta, Estadísticas y Amigos y grupos (`tour`: va a la pestaña con `step.screen`, sin
-  oscurecer, anillo en su botón) y, de vuelta en inicio, la racha con «Terminar». Los de acción avanzan con `tutorialEvent` desde el código que ya existe
+  bienvenida a pantalla completa (texto a la izquierda), «Esto es Cuéntalo» 2 s sobre la app
+  (`banner`), **siempre** crear un contador sencillo aunque ya haya (+ → en el formulario, modo
+  `simple`, se ilumina una idea y luego «Crear contador»; `screen: '/contadores/nuevo'` con
+  `userNavigates`), sumar, restar 1, la pestaña Estadísticas y la de Amigos y grupos (desde
+  inicio, todo oscurecido menos su botón), la racha y una pantalla final «Todo listo» con una
+  huella dactilar y «Empieza a dejar huella de tu vida». Barra de progreso con una bolita por
+  paso que se rellena animada (`Progress`). Los de acción avanzan con `tutorialEvent` desde el código que ya existe
   (`useCounterActions.add`, `contadores/nuevo`; durante el tutorial crear vuelve a la lista y
   ofrece ideas de un toque) y solo dejan tocar el hueco. `TutorialHost` (montado en
   `app/_layout.tsx`, solo se ve en «Mis contadores»): oscurecido con hueco (SVG evenodd),

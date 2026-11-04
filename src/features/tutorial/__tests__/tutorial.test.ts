@@ -2,45 +2,45 @@ import { dimPath, holeFor, placeBubble, ARROW_SPACE, HOLE_PADDING } from '../lay
 import { advancesOn, buildSteps, nextIndex, stepKind } from '../steps';
 
 describe('pasos', () => {
-  it('sin contadores, primero se crea uno', () => {
-    expect(buildSteps(false).map((s) => s.id)).toEqual([
+  it('siempre se crea un contador sencillo, se aprenden los botones y se acaba en la racha', () => {
+    expect(buildSteps().map((s) => s.id)).toEqual([
       'welcome',
       'intro',
       'create',
+      'pick-idea',
+      'submit',
       'add',
       'remove',
-      'tips',
       'stats',
       'social',
       'streak',
+      'done',
     ]);
   });
 
-  it('con contadores, se salta crear', () => {
-    expect(buildSteps(true).map((s) => s.id)).not.toContain('create');
-  });
-
   it('«Siguiente» avanza y el último termina', () => {
-    const steps = buildSteps(true);
+    const steps = buildSteps();
     expect(nextIndex(steps, 0)).toBe(1);
     expect(nextIndex(steps, steps.length - 1)).toBeNull();
   });
 
   it('solo la acción que pide el paso lo hace avanzar', () => {
-    const [, , create, add, remove] = buildSteps(false);
-    expect(advancesOn(create, 'counter-created')).toBe(true);
-    expect(advancesOn(create, 'entry-added')).toBe(false);
-    expect(advancesOn(add, 'entry-added')).toBe(true);
-    expect(advancesOn(remove, 'entry-removed')).toBe(true);
-    expect(advancesOn(remove, 'entry-added')).toBe(false);
+    const byId = Object.fromEntries(buildSteps().map((s) => [s.id, s]));
+    expect(advancesOn(byId.create, 'form-opened')).toBe(true);
+    expect(advancesOn(byId['pick-idea'], 'idea-chosen')).toBe(true);
+    expect(advancesOn(byId.submit, 'counter-created')).toBe(true);
+    expect(advancesOn(byId.create, 'entry-added')).toBe(false);
+    expect(advancesOn(byId.add, 'entry-added')).toBe(true);
+    expect(advancesOn(byId.remove, 'entry-removed')).toBe(true);
+    expect(advancesOn(byId.remove, 'entry-added')).toBe(false);
     expect(advancesOn(undefined, 'entry-added')).toBe(false);
   });
 
   it('los pasos de acción no tienen «Siguiente» y todos los demás sí', () => {
-    const withAction = buildSteps(false)
+    const withAction = buildSteps()
       .filter((s) => s.action)
       .map((s) => s.id);
-    expect(withAction).toEqual(['create', 'add', 'remove']);
+    expect(withAction).toEqual(['create', 'pick-idea', 'submit', 'add', 'remove']);
   });
 });
 
@@ -94,17 +94,26 @@ describe('foco', () => {
 });
 
 describe('recorrido', () => {
-  it('empieza a pantalla completa, enseña la app unos segundos y termina en la racha', () => {
-    const steps = buildSteps(false);
+  it('empieza y acaba a pantalla completa, y enseña la app unos segundos', () => {
+    const steps = buildSteps();
     expect(stepKind(steps[0]!)).toBe('welcome');
     expect(stepKind(steps[1]!)).toBe('banner');
     expect(steps[1]?.autoAdvanceMs).toBe(2000);
-    expect(steps.at(-1)?.target).toBe('racha');
-    expect(steps.at(-1)?.screen).toBe('/');
+    expect(stepKind(steps.at(-1)!)).toBe('finish');
+    expect(steps.at(-2)?.target).toBe('racha');
   });
 
-  it('va a Estadísticas y luego a Amigos y grupos, enseñando la pestaña entera', () => {
-    const tour = buildSteps(true).filter((s) => stepKind(s) === 'tour');
-    expect(tour.map((s) => s.screen)).toEqual(['/estadisticas', '/social']);
+  it('crear se guía dentro del formulario, al que llega el propio usuario', () => {
+    const inForm = buildSteps().filter((s) => s.screen === '/contadores/nuevo');
+    expect(inForm.map((s) => s.id)).toEqual(['pick-idea', 'submit']);
+    expect(inForm.every((s) => s.userNavigates)).toBe(true);
+  });
+
+  it('Estadísticas y Amigos y grupos se señalan desde la pantalla principal', () => {
+    const tabs = buildSteps().filter((s) => s.id === 'stats' || s.id === 'social');
+    expect(tabs.map((s) => [s.target, s.screen ?? '/', stepKind(s)])).toEqual([
+      ['tab-estadisticas', '/', 'spotlight'],
+      ['tab-social', '/', 'spotlight'],
+    ]);
   });
 });

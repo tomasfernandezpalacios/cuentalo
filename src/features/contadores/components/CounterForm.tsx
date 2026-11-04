@@ -5,6 +5,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@/components/AppButton';
 import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
+import { tutorialEvent } from '@/features/tutorial/store';
+import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 import { LIMITS, validateOptionalText, validateRequiredText } from '@/lib/validation';
@@ -183,7 +185,7 @@ export function CounterForm({
         </View>
       ) : null}
       {simple ? (
-        <View style={styles.visibility}>
+        <TutorialTarget id="ideas" style={styles.visibility}>
           <Text style={[styles.label, { color: colors.text }]}>Ideas para empezar</Text>
           <View style={styles.ideas}>
             {SUGGESTIONS.map((idea) => {
@@ -195,6 +197,7 @@ export function CounterForm({
                     setName(idea.name);
                     setEmoji(idea.emoji);
                     setUnit(idea.unit);
+                    tutorialEvent('idea-chosen');
                   }}
                   accessibilityRole="button"
                   accessibilityLabel={`Usar ${idea.name}`}
@@ -213,7 +216,7 @@ export function CounterForm({
               );
             })}
           </View>
-        </View>
+        </TutorialTarget>
       ) : null}
       <TextField
         label="Nombre"
@@ -222,7 +225,7 @@ export function CounterForm({
         error={errors.name}
         placeholder="ej. Cervezas, Libros leídos, Kilómetros"
         maxLength={LIMITS.counterName}
-        autoFocus={!initial}
+        autoFocus={!initial && !simple}
       />
       <EmojiPicker value={emoji} onChange={setEmoji} />
       {simple ? null : (
@@ -312,7 +315,9 @@ export function CounterForm({
           {getErrorMessage(error)}
         </Text>
       ) : null}
-      <AppButton title={submitTitle} onPress={handleSubmit} loading={saving} />
+      <TutorialTarget id="crear-contador" enabled={simple}>
+        <AppButton title={submitTitle} onPress={handleSubmit} loading={saving} />
+      </TutorialTarget>
       {footer}
     </FormScreen>
   );

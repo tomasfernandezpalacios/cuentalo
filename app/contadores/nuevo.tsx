@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
 
 import { CounterForm } from '@/features/contadores/components/CounterForm';
 import { useCreateCounter } from '@/features/contadores/hooks';
@@ -13,7 +14,13 @@ export default function NewCounterScreen() {
   const activeGroups = (groups.data ?? []).filter((g) => g.status === 'active');
   // Durante el tutorial: contador sencillo guiado y, al crear, de vuelta a la lista («Sumar»).
   const tutorial = useTutorial();
-  const inTutorial = tutorial.step?.id === 'create';
+  const stepId = tutorial.step?.id;
+  const inTutorial = stepId === 'create' || stepId === 'pick-idea' || stepId === 'submit';
+
+  // Paso «Toca el +»: ya estamos en el formulario, el tutorial sigue aquí.
+  useEffect(() => {
+    if (stepId === 'create') tutorialEvent('form-opened');
+  }, [stepId]);
 
   return (
     <CounterForm

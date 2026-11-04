@@ -38,10 +38,11 @@ export function TutorialHost() {
   const { step, index, steps, celebrating } = useTutorial();
   const pathname = usePathname();
   const stepId = step?.id;
-  const screen = step?.screen;
+  // Pantalla del paso: a la que va el tutorial al llegar a él (una sola vez), salvo que llegue
+  // el propio usuario (p. ej. el formulario de crear, al tocar el +).
+  const screen = step && !step.userNavigates ? (step.screen ?? '/') : null;
   const autoAdvanceMs = step?.autoAdvanceMs;
 
-  // Al llegar a un paso, a su pestaña (solo una vez: luego el usuario puede moverse).
   useEffect(() => {
     if (screen) router.navigate(screen);
   }, [stepId, screen]);
@@ -55,7 +56,9 @@ export function TutorialHost() {
 
   if (!step || index === null) return null;
   const kind = stepKind(step);
-  if (kind === 'welcome') return <Welcome step={step} />;
+  if (kind === 'welcome' || kind === 'finish') {
+    return <FullScreen step={step} index={index} total={steps.length} />;
+  }
   if (pathname !== (step.screen ?? '/')) return null;
   if (kind === 'banner') return <Banner step={step} />;
   return (
@@ -69,7 +72,6 @@ export function TutorialHost() {
           celebrating={celebrating}
           origin={origin}
           size={size}
-          dim={kind !== 'tour'}
         />
       )}
     </Layer>
@@ -197,13 +199,20 @@ function useAnnounce(step: Step) {
   }, [step]);
 }
 
-/** Primera pantalla: ocupa todo el dispositivo, con el logo, el saludo y «Siguiente». */
-function Welcome({ step }: { step: Step }) {
+/**
+ * Pasos a pantalla completa: la bienvenida (logo, saludo y «Siguiente») y el final («Todo
+ * listo» con una huella dactilar grande). Todo el texto, alineado a la izquierda.
+ */
+function FullScreen({ step, index, total }: { step: Step; index: number; total: number }) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const opacity = useFadeIn();
   const float = useLoop(1400);
+  const finish = stepKind(step) === 'finish';
   useAnnounce(step);
+  const floating = {
+    transform: [{ translateY: float.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) }],
+  };
   return (
     <Animated.View
       style={[
@@ -218,33 +227,38 @@ function Welcome({ step }: { step: Step }) {
       ]}
       accessibilityViewIsModal
     >
+      <Progress index={index} total={total} />
       <View style={styles.welcomeBody}>
-        <Animated.View
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-          style={[
-            styles.logo,
-            {
-              backgroundColor: colors.primary,
-              transform: [
-                { translateY: float.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
-              ],
-            },
-          ]}
-        >
-          <Text style={[styles.logoText, { color: colors.onPrimary }]}>+1</Text>
-        </Animated.View>
+        {finish ? (
+          <Animated.View
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+            style={floating}
+          >
+            <Ionicons name="finger-print" size={150} color={colors.primary} />
+          </Animated.View>
+        ) : (
+          <Animated.View
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+            style={[styles.logo, { backgroundColor: colors.primary }, floating]}
+          >
+            <Text style={[styles.logoText, { color: colors.onPrimary }]}>+1</Text>
+          </Animated.View>
+        )}
         <Text style={[styles.welcomeTitle, { color: colors.text }]} accessibilityRole="header">
           {step.title}
         </Text>
         {step.subtitle ? (
           <Text style={[styles.welcomeSubtitle, { color: colors.primary }]}>{step.subtitle}</Text>
         ) : null}
-        <Text style={[styles.welcomeText, { color: colors.textMuted }]}>{step.text}</Text>
+        {step.text ? (
+          <Text style={[styles.welcomeText, { color: colors.textMuted }]}>{step.text}</Text>
+        ) : null}
       </View>
       <View style={styles.welcomeButtons}>
-        <AppButton title="Siguiente" onPress={nextStep} />
-        <AppButton title="Saltar" variant="ghost" onPress={skipTutorial} />
+        <AppButton title={step.button ?? 'Siguiente'} onPress={nextStep} />
+        {finish ? null : <AppButton title="Saltar" variant="ghost" onPress={skipTutorial} />}
       </View>
     </Animated.View>
   );
@@ -275,11 +289,9 @@ type SpotlightProps = {
   celebrating: boolean;
   origin: ViewRef | null;
   size: Size | null;
-  /** false en los pasos que enseñan una pestaña entera: no se oscurece, solo el anillo. */
-  dim: boolean;
 };
 
-function Spotlight({ step, index, total, celebrating, origin, size, dim }: SpotlightProps) {
+function Spotlight({ step, index, total, celebrating, origin, size }: SpotlightProps) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const windowSize = useWindowDimensions();
@@ -301,12 +313,12 @@ function Spotlight({ step, index, total, celebrating, origin, size, dim }: Spotl
 
   if (!hole && !missing) {
     // Aún midiendo: solo el oscurecido, sin dejar tocar nada.
-    return <View style={[StyleSheet.absoluteFill, dim && { backgroundColor: DIM }]} />;
+    return <View style={[StyleSheet.absoluteFill, { backgroundColor: DIM }]} />;
   }
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity }]} pointerEvents="box-none">
-      {!dim ? null : hole ? (
+      {hole ? (
         <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
           <Path d={dimPath(width, height, hole)} fill={DIM} fillRule="evenodd" />
         </Svg>
@@ -373,7 +385,7 @@ function Spotlight({ step, index, total, celebrating, origin, size, dim }: Spotl
           <Ionicons
             name={place.placement === 'below' ? 'arrow-up' : 'arrow-down'}
             size={30}
-            color={dim ? '#FFFFFF' : colors.primary}
+            color="#FFFFFF"
           />
         </Animated.View>
       ) : null}
@@ -395,7 +407,7 @@ function Spotlight({ step, index, total, celebrating, origin, size, dim }: Spotl
         </Text>
         <Text style={[styles.text, { color: colors.textMuted }]}>{step.text}</Text>
         <View style={styles.footer}>
-          <Dots index={index} total={total} />
+          <Progress index={index} total={total} style={styles.progressInBubble} />
           <View style={styles.buttons}>
             <Pressable
               onPress={skipTutorial}
@@ -429,17 +441,68 @@ function Blocker({ style }: { style: object }) {
   return <View style={[styles.blocker, style]} onStartShouldSetResponder={() => true} />;
 }
 
-function Dots({ index, total }: { index: number; total: number }) {
+// Último punto de la barra que se ha enseñado: el paso siguiente anima desde ahí.
+let shownProgress = 0;
+const DOT = 12;
+
+/**
+ * Barra de pasos: una línea con una bolita por paso. Al avanzar, la línea se va rellenando
+ * desde el paso anterior y cada bolita se colorea cuando la línea llega a ella.
+ */
+function Progress({ index, total, style }: { index: number; total: number; style?: object }) {
   const colors = useThemeColors();
+  const [width, setWidth] = useState(0);
+  const [progress] = useState(() => new Animated.Value(Math.min(shownProgress, index)));
+  useEffect(() => {
+    shownProgress = index;
+    Animated.timing(progress, {
+      toValue: index,
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+      // Anima ancho y color: no se puede con el driver nativo.
+      useNativeDriver: false,
+    }).start();
+  }, [progress, index]);
+
+  const last = Math.max(total - 1, 1);
+  const track = Math.max(0, width - DOT);
   return (
-    <View style={styles.dots} accessible accessibilityLabel={`Paso ${index + 1} de ${total}`}>
+    <View
+      style={[styles.progress, style]}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      accessible
+      accessibilityLabel={`Paso ${index + 1} de ${total}`}
+    >
+      <View
+        style={[styles.track, { left: DOT / 2, right: DOT / 2, backgroundColor: colors.border }]}
+      />
+      <Animated.View
+        style={[
+          styles.track,
+          {
+            left: DOT / 2,
+            backgroundColor: colors.primary,
+            width: progress.interpolate({ inputRange: [0, last], outputRange: [0, track] }),
+          },
+        ]}
+      />
       {Array.from({ length: total }, (_, i) => (
-        <View
+        <Animated.View
           key={i}
           style={[
-            styles.dot,
-            { backgroundColor: i <= index ? colors.primary : colors.border },
-            i === index && styles.dotCurrent,
+            styles.progressDot,
+            {
+              width: DOT,
+              height: DOT,
+              borderRadius: DOT / 2,
+              left: (i / last) * track,
+              borderColor: colors.border,
+              backgroundColor: progress.interpolate({
+                inputRange: [Math.max(0, i - 0.05), Math.max(0.001, i)],
+                outputRange: [colors.surface, colors.primary],
+                extrapolate: 'clamp',
+              }),
+            },
           ]}
         />
       ))}
@@ -508,7 +571,7 @@ function Confetti({ x, y }: { x: number; y: number }) {
 
 const styles = StyleSheet.create({
   welcome: { paddingHorizontal: 24, zIndex: 1000, elevation: 1000 },
-  welcomeBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  welcomeBody: { flex: 1, alignItems: 'flex-start', justifyContent: 'center', gap: 16 },
   logo: {
     width: 112,
     height: 112,
@@ -518,9 +581,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   logoText: { fontSize: 48, fontFamily: fonts.title },
-  welcomeTitle: { fontSize: 30, fontFamily: fonts.title, textAlign: 'center' },
-  welcomeSubtitle: { fontSize: 19, fontFamily: fonts.title, textAlign: 'center' },
-  welcomeText: { fontSize: 17, fontFamily: fonts.detail, textAlign: 'center', lineHeight: 24 },
+  welcomeTitle: { fontSize: 30, fontFamily: fonts.title, textAlign: 'left' },
+  welcomeSubtitle: { fontSize: 19, fontFamily: fonts.title, textAlign: 'left' },
+  welcomeText: { fontSize: 17, fontFamily: fonts.detail, textAlign: 'left', lineHeight: 24 },
   welcomeButtons: { gap: 8 },
   bannerLayer: { justifyContent: 'center', alignItems: 'center' },
   banner: {
@@ -564,8 +627,9 @@ const styles = StyleSheet.create({
   buttons: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   skip: { minHeight: 44, justifyContent: 'center' },
   skipText: { fontSize: 15, fontFamily: fonts.title },
-  dots: { flexDirection: 'row', gap: 6, alignItems: 'center', flexShrink: 1 },
-  dot: { width: 7, height: 7, borderRadius: 4 },
-  dotCurrent: { width: 18 },
+  progress: { height: 14, justifyContent: 'center', alignSelf: 'stretch' },
+  progressInBubble: { flex: 1 },
+  track: { position: 'absolute', height: 3, borderRadius: 2 },
+  progressDot: { position: 'absolute', borderWidth: 1.5 },
   confetti: { position: 'absolute', fontSize: 24 },
 });
