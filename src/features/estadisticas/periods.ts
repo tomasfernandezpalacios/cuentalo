@@ -14,8 +14,6 @@ export type DailyTotal = {
   entryCount: number;
 };
 
-export type Summary = { total: number; entryCount: number };
-
 const DAY_MS = 86_400_000;
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
@@ -59,36 +57,6 @@ export function bucketKey(day: string, granularity: Granularity): string {
 export function isInPeriod(day: string, today: string, period: Period): boolean {
   if (period === 'all') return true;
   return day <= today && bucketKey(day, period) === bucketKey(today, period);
-}
-
-function emptySummary(): Record<Period, Summary> {
-  return {
-    week: { total: 0, entryCount: 0 },
-    month: { total: 0, entryCount: 0 },
-    year: { total: 0, entryCount: 0 },
-    all: { total: 0, entryCount: 0 },
-  };
-}
-
-const PERIODS: Period[] = ['week', 'month', 'year', 'all'];
-
-/** Total y número de registros de cada contador en cada periodo. */
-export function summarizeByCounter(
-  days: DailyTotal[],
-  today: string,
-): Map<string, Record<Period, Summary>> {
-  const result = new Map<string, Record<Period, Summary>>();
-  for (const row of days) {
-    const summary = result.get(row.counterId) ?? emptySummary();
-    for (const period of PERIODS) {
-      if (isInPeriod(row.day, today, period)) {
-        summary[period].total += row.total;
-        summary[period].entryCount += row.entryCount;
-      }
-    }
-    result.set(row.counterId, summary);
-  }
-  return result;
 }
 
 function labelFor(key: string, granularity: Granularity): string {

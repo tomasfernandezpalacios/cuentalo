@@ -1,30 +1,25 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 
-import { Section } from '@/components/Section';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { useCounterList, useMyLastCounterId } from '@/features/contadores/hooks';
 import { useMyDailyTotals } from '@/features/estadisticas/api';
-import { buildCounterStats, mostUsed } from '@/features/estadisticas/buildStats';
 import { CounterChipsBar } from '@/features/estadisticas/components/CounterChipsBar';
 import { ChartTotals } from '@/features/estadisticas/components/ChartTotals';
-import { CounterStatRow } from '@/features/estadisticas/components/CounterStatRow';
-import { StatTile } from '@/features/estadisticas/components/StatTile';
 import { StatsChart, type ChartType } from '@/features/estadisticas/components/StatsChart';
 import {
   chartBuckets,
   chartValues,
-  summarizeByCounter,
   todayInMadrid,
   type Period,
 } from '@/features/estadisticas/periods';
 import { toggleVisible, useStatsSelection } from '@/features/estadisticas/selection';
 import { visibleCounterId } from '@/features/contadores/links';
 import { chartColor } from '@/lib/chartColors';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { useThemeColors } from '@/lib/theme';
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: 'week', label: 'Semana' },
@@ -47,7 +42,6 @@ export default function StatsScreen() {
     const resolve = visibleCounterId(counters.data ?? []);
     return (daily.data ?? []).map((d) => ({ ...d, counterId: resolve(d.counterId) }));
   }, [daily.data, counters.data]);
-  const summaries = useMemo(() => summarizeByCounter(days, today), [days, today]);
 
   // Contadores de la barra: los del filtro o, sin filtro, todos los míos (alfabético). Los de
   // grupos que dejé siguen si tengo registros en ellos.
@@ -126,11 +120,6 @@ export default function StatsScreen() {
     };
   });
 
-  const stats = buildCounterStats(counters.data, summaries, period);
-  const top = mostUsed(stats);
-  const entryCount = stats.reduce((sum, s) => sum + s.entryCount, 0);
-  const activeCount = stats.filter((s) => s.entryCount > 0).length;
-
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
@@ -165,49 +154,10 @@ export default function StatsScreen() {
       />
 
       <ChartTotals totals={totals} />
-
-      <View style={styles.tiles}>
-        <StatTile label="Registros" value={entryCount} />
-        <StatTile label="Contadores con actividad" value={activeCount} />
-      </View>
-
-      <Section title="Más usados">
-        {top.length > 0 ? (
-          top.map((s, index) => (
-            <CounterStatRow
-              key={s.id}
-              rank={index + 1}
-              name={s.name}
-              emoji={s.emoji}
-              unit={s.unit}
-              total={s.total}
-              entryCount={s.entryCount}
-            />
-          ))
-        ) : (
-          <Text style={{ color: colors.textMuted, fontFamily: fonts.detail }}>
-            Nada registrado en este periodo.
-          </Text>
-        )}
-      </Section>
-
-      <Section title="Por contador">
-        {stats.map((s) => (
-          <CounterStatRow
-            key={s.id}
-            name={s.name}
-            emoji={s.emoji}
-            unit={s.unit}
-            total={s.total}
-            entryCount={s.entryCount}
-          />
-        ))}
-      </Section>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 20 },
-  tiles: { flexDirection: 'row', gap: 12 },
 });

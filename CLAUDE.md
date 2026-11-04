@@ -182,7 +182,8 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   agrupadas. Eje X por periodo (`chartBuckets`): semana = días lunes→hoy, mes = días 1→hoy,
   año = meses enero→actual, histórico = meses desde el primer registro (años si son > 24).
   Justo debajo, `ChartTotals`: el total por escrito de cada contador dibujado (mismo filtro y
-  periodo). Después siguen los resúmenes (registros, más usados, por contador).
+  periodo). Debajo no hay nada más (el usuario pidió quitar los resúmenes de registros, más
+  usados y por contador).
 - **Fusionar contadores** (petición del usuario; botón junto a los filtros, pantalla completa
   `app/contadores/fusionar.tsx`, RPC `merge_counters`, SECURITY INVOKER). Solo individuales:
   todo pasa al primero elegido y los demás se borran. Individual(es) + uno de grupo: queda el de

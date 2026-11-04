@@ -4,7 +4,6 @@ import {
   chartValues,
   isInPeriod,
   startOfIsoWeek,
-  summarizeByCounter,
   todayInMadrid,
   type DailyTotal,
 } from '../periods';
@@ -66,24 +65,6 @@ const rows: DailyTotal[] = [
   { counterId: 'a', day: '2025-12-31', total: 10, entryCount: 3 },
   { counterId: 'b', day: '2026-11-04', total: 42, entryCount: 1 },
 ];
-
-describe('summarizeByCounter', () => {
-  const summary = summarizeByCounter(rows, '2026-11-04');
-
-  it('suma cada periodo por separado', () => {
-    expect(summary.get('a')).toEqual({
-      week: { total: 2, entryCount: 2 },
-      month: { total: 7, entryCount: 3 },
-      year: { total: 8.5, entryCount: 4 },
-      all: { total: 18.5, entryCount: 7 },
-    });
-  });
-
-  it('no mezcla contadores', () => {
-    expect(summary.get('b')?.all).toEqual({ total: 42, entryCount: 1 });
-    expect(summary.has('c')).toBe(false);
-  });
-});
 
 describe('chartBuckets', () => {
   it('semana: de lunes a hoy, con iniciales', () => {
