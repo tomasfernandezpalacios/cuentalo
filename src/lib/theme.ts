@@ -1,16 +1,16 @@
 import { useColorScheme } from 'react-native';
 
 // Paleta cálida (petición del usuario): que la app transmita calma y hogar, no obligación.
-// Fondo de cada página crema #FFEDA1, tarjetas en un crema más claro, texto marrón #2E190B y
+// Fondo de cada página crema #FFEDA1, tarjetas en un tostado #E6D38E, texto marrón #2E190B y
 // verde #009146 como color principal. De momento es igual en modo claro y oscuro.
 // Diseños anteriores en Git: etiqueta `diseno-morado`, commits 71f637e (crema, texto #3D1813)
 // y 05ed122 (fondo marrón).
 const warm = {
   background: '#FFEDA1',
-  surface: '#FFF7D6',
+  surface: '#E6D38E',
   text: '#2E190B',
   textMuted: '#6B4A31',
-  border: '#E9D48C',
+  border: '#CDB565',
   primary: '#009146',
   primarySoft: '#DDEFC4',
   flame: '#E8650F',

@@ -29,7 +29,7 @@ convenciones y decisiones; anota aquí cualquier decisión menor nueva.
 - Alias de importación `@/` → `src/`.
 - Colores siempre desde `useThemeColors()` (`src/lib/theme.ts`), con modo claro y oscuro.
 - Paleta cálida (petición del usuario, «calma y hogar»): fondo de página crema `#FFEDA1`,
-  tarjetas crema claro `#FFF7D6`, texto marrón `#2E190B`, principal verde `#009146`; igual en
+  tarjetas tostado `#E6D38E`, texto marrón `#2E190B`, principal verde `#009146`; igual en
   claro y oscuro de momento. Versiones anteriores: etiqueta `diseno-morado`, commits `71f637e`
   (crema con texto `#3D1813`) y `05ed122` (fondo marrón).
 - Tipografías (petición del usuario): **Ubuntu Bold** (`fonts.title`) para títulos, nombres,
