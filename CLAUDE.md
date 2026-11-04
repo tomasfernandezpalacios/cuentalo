@@ -28,6 +28,9 @@ convenciones y decisiones; anota aquí cualquier decisión menor nueva.
   `src/features` y rutas en español como pide la especificación.
 - Alias de importación `@/` → `src/`.
 - Colores siempre desde `useThemeColors()` (`src/lib/theme.ts`), con modo claro y oscuro.
+- Paleta cálida (petición del usuario, «calma y hogar»): fondo `#FFEDA1`, texto `#3D1813`,
+  principal verde `#009146` (en oscuro, marrones con texto crema y verde `#3DBE7A`). El diseño
+  morado anterior está en la etiqueta de Git `diseno-morado` (`git checkout diseno-morado`).
 - Tipografías (petición del usuario): **Ubuntu Bold** (`fonts.title`) para títulos, nombres,
   cifras, botones, cabeceras y pestañas; **Redaction** (`fonts.detail`) para detalles y textos
   secundarios (fechas, notas, unidades, etiquetas, descripciones, errores). Los campos de texto

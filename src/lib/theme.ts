@@ -1,29 +1,33 @@
 import { useColorScheme } from 'react-native';
 
+// Paleta cálida (petición del usuario): que la app transmita calma y hogar, no obligación.
+// Claro: fondo crema, texto marrón y verde como color principal. Oscuro: la misma idea en
+// marrones oscuros, con el crema como texto y un verde más claro para que contraste.
+// El diseño anterior (morado) está guardado en la etiqueta de Git `diseno-morado`.
 const palette = {
   light: {
-    background: '#F7F7FA',
-    surface: '#FFFFFF',
-    text: '#14141A',
-    textMuted: '#6B6B78',
-    border: '#E4E4EC',
-    primary: '#5B4BDB',
-    primarySoft: '#ECE9FC',
-    flame: '#F2711C',
+    background: '#FFEDA1',
+    surface: '#FFF7D6',
+    text: '#3D1813',
+    textMuted: '#73503E',
+    border: '#E9D48C',
+    primary: '#009146',
+    primarySoft: '#DDEFC4',
+    flame: '#E8650F',
     onPrimary: '#FFFFFF',
-    danger: '#D93A3A',
+    danger: '#C62828',
   },
   dark: {
-    background: '#0E0E12',
-    surface: '#1A1A21',
-    text: '#F2F2F5',
-    textMuted: '#9A9AA8',
-    border: '#2A2A33',
-    primary: '#8B7DFF',
-    primarySoft: '#262240',
+    background: '#1F1611',
+    surface: '#2C201A',
+    text: '#FFEDA1',
+    textMuted: '#D1BB9C',
+    border: '#3F2F26',
+    primary: '#3DBE7A',
+    primarySoft: '#1D3A2A',
     flame: '#FF8A3D',
-    onPrimary: '#0E0E12',
-    danger: '#FF6B6B',
+    onPrimary: '#1F1611',
+    danger: '#FF7B6B',
   },
 };
 
