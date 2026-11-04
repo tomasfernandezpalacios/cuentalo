@@ -231,9 +231,19 @@ export default function GroupScreen() {
         }}
       />
 
-      <View style={styles.hero}>
-        <GroupAvatar emoji={group.data.emoji} photoPath={group.data.photo_path} size={88} />
-        <Text style={[styles.heroName, { color: colors.text }]}>{name}</Text>
+      {/* Imagen y nombre a la izquierda; el código para unirse (solo el admin) a la derecha. */}
+      <View style={styles.top}>
+        <View style={styles.hero}>
+          <GroupAvatar emoji={group.data.emoji} photoPath={group.data.photo_path} size={88} />
+          <Text style={[styles.heroName, { color: colors.text }]} numberOfLines={3}>
+            {name}
+          </Text>
+        </View>
+        {isOwner ? (
+          <View style={styles.flex}>
+            <InviteCodeCard groupId={id} groupName={name} compact />
+          </View>
+        ) : null}
       </View>
 
       <Section title="Clasificación">
@@ -245,14 +255,11 @@ export default function GroupScreen() {
       </Section>
 
       {isOwner ? (
-        <>
-          <InviteCodeCard groupId={id} groupName={name} />
-          <AppButton
-            title="Invitar a amigos de la app"
-            variant="secondary"
-            onPress={() => router.push({ pathname: '/grupos/[id]/invitar', params: { id } })}
-          />
-        </>
+        <AppButton
+          title="Invitar a amigos de la app"
+          variant="secondary"
+          onPress={() => router.push({ pathname: '/grupos/[id]/invitar', params: { id } })}
+        />
       ) : null}
 
       <Section title={`Miembros (${active.length})`}>
@@ -312,8 +319,10 @@ export default function GroupScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { alignItems: 'center', gap: 8 },
-  heroName: { fontSize: 22, fontFamily: fonts.title, textAlign: 'center' },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  hero: { alignItems: 'center', gap: 8, width: 112 },
+  flex: { flex: 1 },
+  heroName: { fontSize: 18, fontFamily: fonts.title, textAlign: 'center' },
   content: { padding: 16, gap: 24 },
   danger: { marginTop: 8, gap: 10 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },

@@ -11,10 +11,15 @@ import { fonts, useThemeColors } from '@/lib/theme';
 import { buildInviteLink, formatInviteCode } from '../api';
 import { useInviteCode, useRegenerateInviteCode } from '../hooks';
 
-type Props = { groupId: string; groupName: string };
+type Props = {
+  groupId: string;
+  groupName: string;
+  /** Versión estrecha (junto a la imagen del grupo): código más pequeño y botones apilados. */
+  compact?: boolean;
+};
 
 /** Solo para el owner: código del grupo, compartir enlace y generar uno nuevo. */
-export function InviteCodeCard({ groupId, groupName }: Props) {
+export function InviteCodeCard({ groupId, groupName, compact = false }: Props) {
   const colors = useThemeColors();
   const code = useInviteCode(groupId, true);
   const regenerate = useRegenerateInviteCode(groupId);
@@ -60,7 +65,9 @@ export function InviteCodeCard({ groupId, groupName }: Props) {
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.primarySoft }]}>
+    <View
+      style={[styles.card, compact && styles.compactCard, { backgroundColor: colors.primarySoft }]}
+    >
       <Text style={[styles.label, { color: colors.text }]}>Código para unirse</Text>
       {code.isPending ? (
         <ActivityIndicator color={colors.primary} />
@@ -70,7 +77,9 @@ export function InviteCodeCard({ groupId, groupName }: Props) {
         <>
           <View style={styles.codeRow}>
             <Text
-              style={[styles.code, { color: colors.primary }]}
+              style={[styles.code, compact && styles.compactCode, { color: colors.primary }]}
+              adjustsFontSizeToFit
+              numberOfLines={1}
               selectable
               accessibilityLabel={`Código: ${code.data.split('').join(' ')}`}
             >
@@ -85,23 +94,25 @@ export function InviteCodeCard({ groupId, groupName }: Props) {
             >
               <Ionicons
                 name={copied ? 'checkmark' : 'copy-outline'}
-                size={26}
+                size={compact ? 22 : 26}
                 color={colors.primary}
               />
             </Pressable>
           </View>
-          <View style={styles.actions}>
+          <View style={compact ? styles.compactActions : styles.actions}>
             <AppButton
+              small={compact}
               title="Compartir enlace"
               onPress={() => share(code.data)}
-              style={styles.flex}
+              style={compact ? undefined : styles.flex}
             />
             <AppButton
+              small={compact}
               title="Nuevo código"
               variant="secondary"
               onPress={confirmRegenerate}
               loading={regenerate.isPending}
-              style={styles.flex}
+              style={compact ? undefined : styles.flex}
             />
           </View>
         </>
@@ -116,6 +127,9 @@ const styles = StyleSheet.create({
   code: { fontSize: 34, fontFamily: fonts.title, letterSpacing: 3 },
   codeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   copyButton: { padding: 4 },
+  compactCard: { padding: 12, gap: 8 },
+  compactCode: { fontSize: 20, letterSpacing: 1.5, flexShrink: 1 },
+  compactActions: { gap: 8, alignSelf: 'stretch' },
   actions: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
   flex: { flex: 1 },
 });
