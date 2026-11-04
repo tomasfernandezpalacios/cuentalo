@@ -7,7 +7,13 @@ import { normalizeUsername } from '@/lib/validation';
 
 export type PublicProfile = Pick<
   Tables<'profiles'>,
-  'id' | 'username' | 'display_name' | 'avatar_url'
+  | 'id'
+  | 'username'
+  | 'display_name'
+  | 'avatar_url'
+  | 'hide_streak'
+  | 'hide_counters_from_friends'
+  | 'group_invites'
 >;
 export type Group = Tables<'groups'>;
 export type GroupMember = Tables<'group_members'>;
@@ -25,7 +31,10 @@ export type MyGroup = Group & { role: GroupMember['role']; status: GroupMember['
 export type MemberWithProfile = GroupMember & { profile: PublicProfile };
 export type GroupDetail = Group & { members: MemberWithProfile[] };
 
-const PROFILE_COLUMNS = 'id, username, display_name, avatar_url';
+// Las tres últimas son opciones de privacidad (Configuración) que la app necesita para explicar
+// por qué no se ve algo.
+const PROFILE_COLUMNS =
+  'id, username, display_name, avatar_url, hide_streak, hide_counters_from_friends, group_invites';
 // Columnas legibles de groups (invite_code solo se obtiene con get_group_invite_code).
 const GROUP_COLUMNS = 'id, name, owner_id, created_at, emoji, photo_path';
 const PHOTO_BUCKET = 'group-photos';

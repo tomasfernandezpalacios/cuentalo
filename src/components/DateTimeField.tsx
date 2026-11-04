@@ -2,7 +2,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatDateTime } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, useColorMode, useThemeColors } from '@/lib/theme';
 
 type Props = {
   label: string;
@@ -13,6 +13,7 @@ type Props = {
 /** Selector de fecha y hora. No permite fechas futuras. */
 export function DateTimeField({ label, value, onChange }: Props) {
   const colors = useThemeColors();
+  const mode = useColorMode();
   const now = new Date();
 
   // En Android el selector es un diálogo nativo: primero la fecha y después la hora.
@@ -42,6 +43,7 @@ export function DateTimeField({ label, value, onChange }: Props) {
           display="compact"
           maximumDate={now}
           locale="es-ES"
+          themeVariant={mode}
           onValueChange={(_event, date) => onChange(date)}
           style={styles.iosPicker}
         />

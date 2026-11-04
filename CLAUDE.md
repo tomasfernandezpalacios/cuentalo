@@ -27,7 +27,8 @@ convenciones y decisiones; anota aquí cualquier decisión menor nueva.
 - Interfaz en español. Nombres de código (variables, funciones, tipos) en inglés; carpetas de
   `src/features` y rutas en español como pide la especificación.
 - Alias de importación `@/` → `src/`.
-- Colores siempre desde `useThemeColors()` (`src/lib/theme.ts`), con modo claro y oscuro.
+- Colores siempre desde `useThemeColors()` (`src/lib/theme.ts`), con modo claro y oscuro; el
+  modo (`useColorMode()`) y el color de acento salen de Configuración.
 - Se probaron paletas cálidas (crema, marrón y verde; commits `71f637e`, `05ed122`, `5b3b42b`,
   `4253ffc`) y el usuario decidió volver a la morada original (etiqueta `diseno-morado`).
 - Tipografías (petición del usuario): **Ubuntu Bold** (`fonts.title`) para títulos, nombres,
@@ -250,6 +251,23 @@ Clasificación vía RPC `get_leaderboard(counter_id, period)` con semana ISO y m
   visibles para amigos salvo `counters.hidden_from_friends` (casilla «Ocultar a mis amigos»,
   desmarcada por defecto, editable). Los de grupo los ven los miembros del grupo; al fusionar
   con uno de grupo se avisa de que pasa a ser visible para sus miembros.
+
+- **Configuración** (petición del usuario; rueda arriba a la derecha en «Mi perfil»,
+  `app/configuracion/`). Ajustes **del móvil** en `src/features/configuracion/settings.ts`
+  (SecureStore, leídos de forma síncrona al arrancar, `useSettings`/`updateSettings`): tema
+  automático/claro/oscuro, color de acento (`accents` en `theme.ts`: morado de serie, azul,
+  verde, naranja, rosa; AA con el texto de los botones), botones rápidos (1–3 cantidades; las
+  mismas en la tarjeta y el detalle, el primero se mantiene pulsado para «otra»), confirmar
+  −1, vibración (`expo-haptics`), contador inicial de Estadísticas y recordatorio de la racha.
+  Ajustes **de privacidad** en `profiles` (migración `20261118`): `hide_streak` (fuera de
+  `get_friends_streaks`), `hide_counters_from_friends` (en `get_user_counters` solo quedan
+  los en común) y `group_invites` ('friends'/'nobody', comprobado en la política de invitar).
+- Recordatorio con notificaciones **locales** (`expo-notifications`, funcionan en Expo Go; las
+  push necesitarían build propia): se programan las de los próximos 14 días una a una para
+  poder saltarse la de hoy si ya registraste (`reminder.ts`, `reminderDates.ts` con tests).
+- «Cerrar sesión», «Eliminar cuenta» y «Exportar mis datos» (CSV con `Share`) están en
+  Configuración → Cuenta; el perfil se queda con «Editar perfil» y los grupos. «Privacidad y
+  datos» es un resumen; la política completa va en la Fase 6.
 
 ## Cambios estéticos pendientes
 

@@ -5,6 +5,7 @@ import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import { useUserId } from '@/features/auth/AuthProvider';
+import { useSettings } from '@/features/configuracion/settings';
 import { useCounterList, useMyLastCounterId } from '@/features/contadores/hooks';
 import { useMyDailyTotals } from '@/features/estadisticas/api';
 import { CounterChipsBar } from '@/features/estadisticas/components/CounterChipsBar';
@@ -57,6 +58,7 @@ export default function StatsScreen() {
 
   // Por defecto se dibuja el último contador en el que registraste algo.
   const lastUsed = useMyLastCounterId(pool.map((c) => c.id));
+  const { statsDefault } = useSettings();
 
   if (counters.isPending || daily.isPending) return <LoadingView />;
   if (counters.isError || daily.isError) {
@@ -83,7 +85,10 @@ export default function StatsScreen() {
   }
 
   const lastUsedId = lastUsed.data ? visibleCounterId(counters.data)(lastUsed.data) : null;
-  const visibleIds = selection.visible ?? (lastUsedId ? [lastUsedId] : pool[0] ? [pool[0].id] : []);
+  // El contador fijo elegido en Configuración, si sigue en la barra; si no, el último usado.
+  const fixedId = pool.some((c) => c.id === statsDefault) ? statsDefault : null;
+  const defaultId = fixedId ?? lastUsedId ?? pool[0]?.id;
+  const visibleIds = selection.visible ?? (defaultId ? [defaultId] : []);
   const chips = pool.map((c, i) => ({
     id: c.id,
     name: c.name,

@@ -1,18 +1,14 @@
-import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
-import { signOut } from '@/features/auth/api';
 import { useAuth, useUserId } from '@/features/auth/AuthProvider';
 import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
-import { useDeleteAccount, useProfile } from '@/features/perfil/api';
+import { useProfile } from '@/features/perfil/api';
 import { GroupRow } from '@/features/social/components/GroupsPanel';
 import { useMyGroups } from '@/features/social/hooks';
-import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 export default function ProfileScreen() {
@@ -20,49 +16,11 @@ export default function ProfileScreen() {
   const { session } = useAuth();
   const profile = useProfile(useUserId());
   const groups = useMyGroups();
-  const logout = useMutation({
-    mutationFn: signOut,
-    onError: (error) => appAlert('Error', getErrorMessage(error)),
-  });
-  const deleteAccount = useDeleteAccount();
 
   if (profile.isPending) return <LoadingView />;
   if (profile.isError) return <ErrorView error={profile.error} onRetry={profile.refetch} />;
 
   const myGroups = (groups.data ?? []).filter((g) => g.status === 'active');
-  const ownedGroups = myGroups.filter((g) => g.role === 'owner').length;
-
-  function confirmDelete() {
-    appAlert(
-      'Eliminar cuenta',
-      'Se borrarán para siempre tu perfil, tus contadores privados, todos tus registros y tus ' +
-        'amistades. ' +
-        (ownedGroups > 0
-          ? 'Los grupos que administras pasarán a otro miembro (o se borrarán si estás solo). '
-          : '') +
-        'Esta acción no se puede deshacer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Continuar',
-          style: 'destructive',
-          // Segunda confirmación: es irreversible.
-          onPress: () =>
-            appAlert('¿Seguro?', 'Tu cuenta se eliminará ahora mismo.', [
-              { text: 'No, mantenerla', style: 'cancel' },
-              {
-                text: 'Eliminar mi cuenta',
-                style: 'destructive',
-                onPress: () =>
-                  deleteAccount.mutate(undefined, {
-                    onError: (error) => appAlert('Error', getErrorMessage(error)),
-                  }),
-              },
-            ]),
-        },
-      ],
-    );
-  }
 
   return (
     <ScrollView
@@ -103,22 +61,6 @@ export default function ProfileScreen() {
         ) : (
           myGroups.map((group) => <GroupRow key={group.id} group={group} />)
         )}
-      </Section>
-
-      <Section title="Cuenta">
-        <AppButton
-          title="Cerrar sesión"
-          variant="secondary"
-          onPress={() => logout.mutate()}
-          loading={logout.isPending}
-        />
-        <AppButton
-          title="Eliminar cuenta"
-          variant="ghost"
-          onPress={confirmDelete}
-          loading={deleteAccount.isPending}
-          accessibilityLabel="Eliminar cuenta y todos mis datos"
-        />
       </Section>
     </ScrollView>
   );

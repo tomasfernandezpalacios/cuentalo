@@ -14,7 +14,7 @@ type Props = {
   onPress: () => void;
   onAdd: (amount: number) => void;
   onRemoveOne: () => void;
-  /** Mantener pulsado +1 abre la cantidad personalizada. */
+  /** Mantener pulsado el primer botón (+1) abre la cantidad personalizada. */
   onCustomAdd: () => void;
   /** Mantener pulsada la tarjeta (en la lista de inicio: entra en modo selección). */
   onLongPress?: () => void;

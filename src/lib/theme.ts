@@ -1,5 +1,7 @@
 import { useColorScheme } from 'react-native';
 
+import { type AccentName, useSettings } from '@/features/configuracion/settings';
+
 const palette = {
   light: {
     background: '#F7F7FA',
@@ -40,6 +42,53 @@ export const fonts = {
 
 export type ThemeColors = typeof palette.light;
 
+type AccentColors = Pick<ThemeColors, 'primary' | 'primarySoft'>;
+
+/**
+ * Colores de acento que se pueden elegir en Configuración (el morado es el de serie). Todos
+ * tienen un contraste de al menos 4,5:1 con el texto de los botones (AA) en su modo.
+ */
+export const accents: Record<
+  AccentName,
+  { label: string; light: AccentColors; dark: AccentColors }
+> = {
+  morado: {
+    label: 'Morado',
+    light: { primary: '#5B4BDB', primarySoft: '#ECE9FC' },
+    dark: { primary: '#8B7DFF', primarySoft: '#262240' },
+  },
+  azul: {
+    label: 'Azul',
+    light: { primary: '#1F6FD1', primarySoft: '#E3EEFC' },
+    dark: { primary: '#6EA8FF', primarySoft: '#1B2840' },
+  },
+  verde: {
+    label: 'Verde',
+    light: { primary: '#13804B', primarySoft: '#E1F3E9' },
+    dark: { primary: '#4CC38A', primarySoft: '#17301F' },
+  },
+  naranja: {
+    label: 'Naranja',
+    light: { primary: '#B8500A', primarySoft: '#FCEADB' },
+    dark: { primary: '#FF9A4D', primarySoft: '#3A2414' },
+  },
+  rosa: {
+    label: 'Rosa',
+    light: { primary: '#C2185B', primarySoft: '#FBE3EC' },
+    dark: { primary: '#FF7AA8', primarySoft: '#3A1A28' },
+  },
+};
+
+/** 'light' o 'dark' según el ajuste de tema (o el del sistema si es automático). */
+export function useColorMode(): 'light' | 'dark' {
+  const system = useColorScheme();
+  const { theme } = useSettings();
+  if (theme !== 'system') return theme;
+  return system === 'dark' ? 'dark' : 'light';
+}
+
 export function useThemeColors(): ThemeColors {
-  return useColorScheme() === 'dark' ? palette.dark : palette.light;
+  const mode = useColorMode();
+  const { accent } = useSettings();
+  return { ...palette[mode], ...(accents[accent] ?? accents.morado)[mode] };
 }

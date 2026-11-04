@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
-import type { ColorValue } from 'react-native';
+import { type ColorValue, Pressable } from 'react-native';
 
 import { useInboxCount } from '@/features/social/hooks';
 import { fonts, useThemeColors } from '@/lib/theme';
@@ -58,7 +58,21 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="perfil"
-        options={{ title: 'Mi perfil', tabBarIcon: tabIcon('person-circle-outline') }}
+        options={{
+          title: 'Mi perfil',
+          tabBarIcon: tabIcon('person-circle-outline'),
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push('/configuracion')}
+              accessibilityRole="button"
+              accessibilityLabel="Configuración"
+              hitSlop={10}
+              style={({ pressed }) => ({ marginRight: 16, opacity: pressed ? 0.6 : 1 })}
+            >
+              <Ionicons name="settings-outline" size={24} color={colors.text} />
+            </Pressable>
+          ),
+        }}
       />
     </Tabs>
   );

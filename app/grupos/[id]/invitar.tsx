@@ -55,6 +55,9 @@ export default function InviteScreen() {
                   <Text style={[styles.hint, { color: colors.textMuted }]}>
                     {status === 'active' ? 'Ya es miembro' : 'Invitado'}
                   </Text>
+                ) : item.group_invites === 'nobody' ? (
+                  // Ha desactivado las invitaciones en Configuración: solo entra con el código.
+                  <Text style={[styles.hint, { color: colors.textMuted }]}>Solo con código</Text>
                 ) : (
                   <AppButton
                     small

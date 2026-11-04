@@ -8,9 +8,10 @@ import { useEffect } from 'react';
 import { DialogHost } from '@/components/AppDialog';
 import { BackButton } from '@/components/BackButton';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
+import { useReminderSync } from '@/features/configuracion/reminder';
 import { usePendingInvite } from '@/features/social/pendingInvite';
 import { queryClient } from '@/lib/queryClient';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, useColorMode, useThemeColors } from '@/lib/theme';
 
 // La pantalla de carga (icono sobre fondo liso, ver app.json) se mantiene hasta tener las
 // fuentes y saber si hay sesión, para no enseñar un parpadeo de pantallas a medio cargar.
@@ -22,6 +23,7 @@ function RootNavigator() {
   const colors = useThemeColors();
   const isSignedIn = session !== null;
   usePendingInvite(isSignedIn);
+  useReminderSync(isSignedIn);
 
   useEffect(() => {
     if (!isLoading) SplashScreen.hideAsync();
@@ -73,6 +75,12 @@ function RootNavigator() {
         <Stack.Screen name="contadores/fusionar" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="carpetas/nueva" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="carpetas/[id]" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="configuracion/index" options={{ title: 'Configuración' }} />
+        <Stack.Screen
+          name="configuracion/estadisticas"
+          options={{ title: 'Gráfica de Estadísticas' }}
+        />
+        <Stack.Screen name="configuracion/privacidad" options={{ title: 'Privacidad y datos' }} />
         <Stack.Screen
           name="perfil/editar"
           options={{ title: 'Editar perfil', presentation: 'modal' }}
@@ -89,6 +97,11 @@ function RootNavigator() {
   );
 }
 
+/** Iconos de la barra de estado oscuros o claros según el tema elegido en Configuración. */
+function ThemedStatusBar() {
+  return <StatusBar style={useColorMode() === 'dark' ? 'light' : 'dark'} />;
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     [fonts.title]: require('../assets/fonts/Ubuntu-Bold.ttf'),
@@ -103,7 +116,7 @@ export default function RootLayout() {
       <AuthProvider>
         <RootNavigator />
         <DialogHost />
-        <StatusBar style="auto" />
+        <ThemedStatusBar />
       </AuthProvider>
     </QueryClientProvider>
   );

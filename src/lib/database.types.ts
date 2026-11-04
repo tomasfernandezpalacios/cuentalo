@@ -11,12 +11,18 @@ export type Database = {
           display_name: string;
           avatar_url: string | null;
           created_at: string;
+          hide_streak: boolean;
+          hide_counters_from_friends: boolean;
+          group_invites: 'friends' | 'nobody';
         };
         Insert: never;
         Update: {
           username?: string;
           display_name?: string;
           avatar_url?: string | null;
+          hide_streak?: boolean;
+          hide_counters_from_friends?: boolean;
+          group_invites?: 'friends' | 'nobody';
         };
         Relationships: [];
       };

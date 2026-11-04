@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { UsernameTakenError } from '@/features/auth/api';
 import type { Tables } from '@/lib/database.types';
+import { toCsv } from '@/lib/csv';
 import { supabase } from '@/lib/supabase';
 import { normalizeUsername } from '@/lib/validation';
 
@@ -73,4 +74,75 @@ export function useUpdateProfile(current: Profile | undefined) {
 
 export function useDeleteAccount() {
   return useMutation({ mutationFn: deleteMyAccount });
+}
+
+export type PrivacySettings = Pick<
+  Profile,
+  'hide_streak' | 'hide_counters_from_friends' | 'group_invites'
+>;
+
+/** Cambia una opción de privacidad de mi perfil (Configuración → Privacidad). */
+export function useUpdatePrivacy() {
+  const userId = useUserId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch: Partial<PrivacySettings>) => {
+      const { error } = await supabase.from('profiles').update(patch).eq('id', userId);
+      if (error) throw error;
+    },
+    // Se ve el cambio al momento; si falla, se vuelve a leer el perfil.
+    onMutate: (patch) => {
+      queryClient.setQueryData<Profile>(profileKeys.detail(userId), (old) =>
+        old ? { ...old, ...patch } : old,
+      );
+    },
+    onError: () => queryClient.invalidateQueries({ queryKey: profileKeys.detail(userId) }),
+  });
+}
+
+const EXPORT_PAGE = 1000;
+
+/**
+ * Todos mis registros en CSV: fecha, contador, cantidad, unidad y nota. Solo los míos (la RLS
+ * ya lo garantiza al filtrar por user_id) y sin las copias internas de contadores enlazados.
+ */
+export async function exportMyEntriesCsv(userId: string): Promise<string> {
+  const entries: Pick<Tables<'entries'>, 'logged_at' | 'amount' | 'note' | 'counter_id'>[] = [];
+  for (let from = 0; ; from += EXPORT_PAGE) {
+    const { data, error } = await supabase
+      .from('entries')
+      .select('logged_at, amount, note, counter_id')
+      .eq('user_id', userId)
+      .eq('group_only', false)
+      .order('logged_at', { ascending: true })
+      .range(from, from + EXPORT_PAGE - 1);
+    if (error) throw error;
+    entries.push(...data);
+    if (data.length < EXPORT_PAGE) break;
+  }
+
+  // Nombre y unidad de cada contador (veo todos aquellos en los que tengo registros).
+  const ids = [...new Set(entries.map((e) => e.counter_id))];
+  const counters = new Map<string, { name: string; unit: string | null }>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data, error } = await supabase
+      .from('counters')
+      .select('id, name, unit')
+      .in('id', ids.slice(i, i + 100));
+    if (error) throw error;
+    data.forEach((c) => counters.set(c.id, c));
+  }
+
+  const rows = [['fecha', 'contador', 'cantidad', 'unidad', 'nota']];
+  for (const e of entries) {
+    const counter = counters.get(e.counter_id);
+    rows.push([
+      e.logged_at,
+      counter?.name ?? '',
+      String(e.amount),
+      counter?.unit ?? '',
+      e.note ?? '',
+    ]);
+  }
+  return toCsv(rows);
 }

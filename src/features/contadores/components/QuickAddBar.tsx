@@ -1,11 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useSettings } from '@/features/configuracion/settings';
 import { formatWithUnit } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
 
-// La tarjeta de la lista es compacta y solo lleva +1 y +5; el detalle añade +10.
-const QUICK_AMOUNTS = [1, 5, 10] as const;
-const COMPACT_AMOUNTS = [1, 5] as const;
+// Las cantidades de los botones se eligen en Configuración (por defecto +1 y +5).
 
 type Props = {
   unit: string | null;
@@ -15,12 +14,12 @@ type Props = {
   canRemove: boolean;
   /** Botón "Otra" para escribir la cantidad (solo en la versión grande). */
   onCustom?: () => void;
-  /** Mantener pulsado +1 abre la cantidad personalizada (útil en la versión compacta). */
+  /** Mantener pulsado el primer botón abre la cantidad personalizada (versión compacta). */
   onLongPressAdd?: () => void;
   compact?: boolean;
 };
 
-/** Botones +1 +5 (+10) −1 y, opcionalmente, "Otra". */
+/** Botones rápidos (+1 +5 por defecto), −1 y, opcionalmente, "Otra". */
 export function QuickAddBar({
   unit,
   onAdd,
@@ -31,20 +30,21 @@ export function QuickAddBar({
   compact = false,
 }: Props) {
   const colors = useThemeColors();
+  const { quickAmounts } = useSettings();
   const size = compact ? styles.compact : styles.large;
   const label = compact ? styles.compactLabel : styles.largeLabel;
 
   return (
     <View style={[styles.row, compact && styles.compactRow]}>
-      {(compact ? COMPACT_AMOUNTS : QUICK_AMOUNTS).map((amount) => (
+      {quickAmounts.map((amount, index) => (
         <Pressable
           key={amount}
           onPress={() => onAdd(amount)}
-          onLongPress={amount === 1 ? onLongPressAdd : undefined}
+          onLongPress={index === 0 ? onLongPressAdd : undefined}
           accessibilityRole="button"
           accessibilityLabel={`Añadir ${formatWithUnit(amount, unit)}`}
           accessibilityHint={
-            amount === 1 && onLongPressAdd ? 'Mantén pulsado para añadir otra cantidad' : undefined
+            index === 0 && onLongPressAdd ? 'Mantén pulsado para añadir otra cantidad' : undefined
           }
           hitSlop={compact ? 4 : 0}
           style={({ pressed }) => [
