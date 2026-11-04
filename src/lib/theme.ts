@@ -1,27 +1,30 @@
 import { useColorScheme } from 'react-native';
 
-// Paleta cálida (petición del usuario): que la app transmita calma y hogar, no obligación.
-// Ahora en versión invertida: fondo marrón oscuro #2E190B, texto crema #FFEDA1 y verde
-// #009146 como color principal. De momento es igual en modo claro y oscuro.
-// Diseños anteriores en Git: etiqueta `diseno-morado` (morado) y commit 71f637e (crema).
-const warm = {
-  background: '#2E190B',
-  surface: '#3E2414',
-  text: '#FFEDA1',
-  textMuted: '#D8C38B',
-  border: '#5A3A22',
-  primary: '#009146',
-  primarySoft: '#1F3B26',
-  flame: '#FF8A3D',
-  onPrimary: '#FFFFFF',
-  danger: '#FF7B6B',
-  /** Iconos de la barra de estado (hora, batería): claros sobre fondo oscuro. */
-  statusBar: 'light' as 'light' | 'dark',
-};
-
 const palette = {
-  light: warm,
-  dark: warm,
+  light: {
+    background: '#F7F7FA',
+    surface: '#FFFFFF',
+    text: '#14141A',
+    textMuted: '#6B6B78',
+    border: '#E4E4EC',
+    primary: '#5B4BDB',
+    primarySoft: '#ECE9FC',
+    flame: '#F2711C',
+    onPrimary: '#FFFFFF',
+    danger: '#D93A3A',
+  },
+  dark: {
+    background: '#0E0E12',
+    surface: '#1A1A21',
+    text: '#F2F2F5',
+    textMuted: '#9A9AA8',
+    border: '#2A2A33',
+    primary: '#8B7DFF',
+    primarySoft: '#262240',
+    flame: '#FF8A3D',
+    onPrimary: '#0E0E12',
+    danger: '#FF6B6B',
+  },
 };
 
 /**
