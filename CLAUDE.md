@@ -409,7 +409,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   cual los `raise exception` escritos en español (código P0001); nunca un código interno.
 - «Exportar mis datos»: fechas en la hora del móvil (`localDateTime`).
 
-- **Deshacer** (petición del usuario): tras +N o −1 sale abajo «+1 en «Cafés» · Deshacer»
+- **Deshacer** (petición del usuario): tras un −1 sale abajo «−1 en «Cafés» · Deshacer» (tras +N
+  ya no: el usuario lo quitó porque para eso está el −1)
   (`UndoToast`, montado en `app/_layout.tsx`, 4,5 s). La RPC `undo_last_entry` (migración
   `20261128`) borra mi último registro de hace ≤ 2 min con sus copias (`batch_id`) o, en un
   común que administro, la última tanda sumada a todos.

@@ -88,7 +88,6 @@ export function useCounterActions() {
         onSuccess: () => {
           // Hoy ya hay registro: el recordatorio de la racha de hoy sobra.
           markActiveToday();
-          offerUndo(counter, `+${formatAmount(input.amount)}`);
           onSuccess?.();
         },
         onError: showError,
