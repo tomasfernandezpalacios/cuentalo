@@ -1,10 +1,11 @@
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
-import { updateSettings, useSettings } from '@/features/configuracion/settings';
+import { BirthDatePicker } from '@/components/BirthDatePicker';
+import { ErrorView, LoadingView } from '@/components/StateViews';
 import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { useCounterList } from '@/features/contadores/hooks';
 import {
@@ -13,26 +14,26 @@ import {
   isValidBirthDate,
   totalsLived,
 } from '@/features/estadisticas/age';
+import { useBirthDate, useSetBirthDate } from '@/features/perfil/birthDate';
+import { getErrorMessage } from '@/lib/errors';
 import { formatAmount, formatWithUnit } from '@/lib/format';
-import { fonts, useColorMode, useThemeColors } from '@/lib/theme';
+import { fonts, useThemeColors } from '@/lib/theme';
 
 /**
- * Resumen («Tu vida en Cuéntalo», botón del libro en Estadísticas). La primera vez pide la fecha
- * de nacimiento (se guarda solo en el móvil). Después: la edad exacta en tiempo real, los días,
- * horas y minutos vividos y todos los contadores de mayor a menor.
+ * «Resumen vital» (botón del libro en Estadísticas). La primera vez pide la fecha de nacimiento
+ * (se guarda en tu cuenta, privada: profile_private). Después: la edad exacta en tiempo real,
+ * los días, horas y minutos vividos y todos los contadores de mayor a menor.
  */
 export default function SummaryScreen() {
-  const { birthDate } = useSettings();
+  const birth = useBirthDate();
   const [editing, setEditing] = useState(false);
+  if (birth.isPending) return <LoadingView />;
+  if (birth.isError) return <ErrorView error={birth.error} onRetry={birth.refetch} />;
+  const birthDate = birth.data;
   if (!birthDate || editing) {
     return <BirthDateForm initial={birthDate} onDone={() => setEditing(false)} />;
   }
   return <Summary birthDate={birthDate} onChangeDate={() => setEditing(true)} />;
-}
-
-function toKey(date: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
 }
 
 const LONG_DATE = new Intl.DateTimeFormat('es-ES', {
@@ -43,20 +44,9 @@ const LONG_DATE = new Intl.DateTimeFormat('es-ES', {
 
 function BirthDateForm({ initial, onDone }: { initial: string | null; onDone: () => void }) {
   const colors = useThemeColors();
-  const mode = useColorMode();
-  const [date, setDate] = useState(() => (initial ? birthStart(initial) : new Date(2000, 0, 1)));
-  const today = new Date();
-  const valid = isValidBirthDate(toKey(date), today);
-
-  function openAndroidPicker() {
-    DateTimePickerAndroid.open({
-      value: date,
-      mode: 'date',
-      maximumDate: today,
-      minimumDate: new Date(today.getFullYear() - 120, 0, 1),
-      onValueChange: (_event, picked) => setDate(picked),
-    });
-  }
+  const save = useSetBirthDate();
+  const [date, setDate] = useState(initial ?? '2000-01-01');
+  const valid = isValidBirthDate(date);
 
   return (
     <ScrollView
@@ -68,40 +58,24 @@ function BirthDateForm({ initial, onDone }: { initial: string | null; onDone: ()
         ¿Cuándo naciste?
       </Text>
       <Text style={[styles.detail, { color: colors.textMuted }]}>
-        Con tu fecha de nacimiento calculamos todo lo que llevas vivido. Se guarda solo en este
-        móvil.
+        Con tu fecha de nacimiento calculamos todo lo que llevas vivido. Se guarda en tu cuenta y
+        solo la ves tú.
       </Text>
-      {Platform.OS === 'ios' ? (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="spinner"
-          maximumDate={today}
-          locale="es-ES"
-          themeVariant={mode}
-          onValueChange={(_event, picked) => setDate(picked)}
-        />
-      ) : (
-        <Pressable
-          onPress={openAndroidPicker}
-          accessibilityRole="button"
-          accessibilityLabel={`Fecha de nacimiento: ${LONG_DATE.format(date)}. Cambiar`}
-          style={[
-            styles.dateField,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
-          <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-          <Text style={[styles.dateText, { color: colors.text }]}>{LONG_DATE.format(date)}</Text>
-        </Pressable>
-      )}
+      <Text style={[styles.dateText, { color: colors.text }]}>
+        {LONG_DATE.format(birthStart(date))}
+      </Text>
+      {/* Calendario de la app: año → mes → día (la primera vez empieza por el año). */}
+      <BirthDatePicker value={date} onChange={setDate} initialView={initial ? 'day' : 'year'} />
       <AppButton
-        title="Generar resumen"
+        title="Generar resumen vital"
         disabled={!valid}
-        onPress={() => {
-          updateSettings({ birthDate: toKey(date) });
-          onDone();
-        }}
+        loading={save.isPending}
+        onPress={() =>
+          save.mutate(date, {
+            onSuccess: onDone,
+            onError: (error) => appAlert('Error', getErrorMessage(error)),
+          })
+        }
       />
     </ScrollView>
   );
@@ -165,10 +139,7 @@ function Summary({ birthDate, onChangeDate }: { birthDate: string; onChangeDate:
         <Line label="Horas vividas" value={formatAmount(lived.hours)} />
         <Line label="Minutos vividos" value={formatAmount(lived.minutes)} />
       </View>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
-        Tus contadores
-      </Text>
+      {/* Sin título: un pequeño hueco separa lo vivido de los contadores. */}
       {mine.length === 0 ? (
         <Text style={[styles.detail, { color: colors.textMuted }]}>Aún no tienes contadores.</Text>
       ) : (
@@ -226,15 +197,6 @@ const styles = StyleSheet.create({
   formContent: { padding: 24, gap: 18, alignItems: 'stretch' },
   formTitle: { fontSize: 26, fontFamily: fonts.title },
   detail: { fontSize: 15, fontFamily: fonts.detail, lineHeight: 21 },
-  dateField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    minHeight: 52,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-  },
   dateText: { fontSize: 17, fontFamily: fonts.title },
   content: { padding: 16, gap: 18 },
   ageBlock: { borderRadius: 20, padding: 16, gap: 12 },
@@ -260,7 +222,6 @@ const styles = StyleSheet.create({
   },
   lineLabel: { flex: 1, fontSize: 16, fontFamily: fonts.detail },
   lineValue: { fontSize: 16, fontFamily: fonts.title, fontVariant: ['tabular-nums'] },
-  sectionTitle: { fontSize: 18, fontFamily: fonts.title },
   change: { alignSelf: 'center', paddingVertical: 8 },
   changeText: { fontSize: 14, fontFamily: fonts.detail },
 });

@@ -235,12 +235,15 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   «🔥 N días de racha» en una línea, debajo «Mejor racha: N días» alineada con el número y la
   semana actual (lunes → domingo, `weekProgress`) con una barra por día: color de la llama si
   se mantuvo, gris si no, más clara si no ha llegado y borde en hoy.
-- **Resumen** (petición del usuario): botón en la cabecera de Estadísticas (`SummaryButton`,
-  «Generar resumen» + libro hasta el primer uso; después solo el libro) → `app/resumen.tsx`
-  (pantalla completa). Pide la fecha de nacimiento (ajuste local `birthDate`, no va a Supabase) y
-  enseña la edad en tiempo real (años, meses, semanas, días, horas, minutos y segundos; cálculo
+- **Resumen vital** (petición del usuario): botón en la cabecera de Estadísticas
+  (`SummaryButton`, «Resumen vital» + libro hasta el primer uso; después solo el libro) →
+  `app/resumen.tsx` (pantalla completa). Pide la fecha de nacimiento con el calendario de la
+  app (`BirthDatePicker`: año → mes → día) y la guarda en la cuenta, en la tabla privada
+  `profile_private` (migración `20261209`; los perfiles los lee cualquiera, por eso no va en
+  profiles; `useBirthDate` sube una vez la antigua guardada en el móvil). Enseña la edad en
+  tiempo real (años, meses, semanas, días, horas, minutos y segundos; cálculo
   de calendario en `age.ts`, con tests, inmune al cambio de hora), días/horas/minutos vividos y
-  todos mis contadores de mayor a menor (`myTotal`).
+  todos mis contadores de mayor a menor (`myTotal`), sin título, separados por un hueco.
 - Gráfica (`StatsChart`): líneas por defecto, una por contador con color de `chartColors.ts`
   (por posición en la barra); botón cuadrado abajo a la derecha para cambiar a barras
   agrupadas. Eje X por periodo (`chartBuckets`): semana = días lunes→hoy, mes = días 1→hoy,

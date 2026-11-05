@@ -1,6 +1,6 @@
 -- Esquema completo de Cuéntalo (Supabase / Postgres 17).
 --
--- Es el estado final de todas las migraciones (de 20261103 a 20261208) en un solo archivo y
+-- Es el estado final de todas las migraciones (de 20261103 a 20261209) en un solo archivo y
 -- ordenado: sirve para crear la base de datos desde cero (p. ej. un proyecto nuevo en la
 -- Fase 6). Se generó a partir de la base de datos real y se comprobó que cada función coincide
 -- con la que hay en producción. La base de datos actual YA tiene todo esto: no hay que
@@ -1885,6 +1885,13 @@ create table public.profiles (
   hide_counter_totals boolean default false not null
 );
 
+-- Datos privados de la cuenta (solo los ve su dueño): la fecha de nacimiento del Resumen vital.
+create table public.profile_private (
+  user_id uuid default auth.uid() not null,
+  birth_date date,
+  updated_at timestamp with time zone default now() not null
+);
+
 create table public.user_activity_days (
   user_id uuid not null,
   day date not null
@@ -1948,6 +1955,9 @@ alter table public.profiles add constraint profiles_group_invites_check CHECK ((
 alter table public.profiles add constraint profiles_photo_path_check CHECK (((photo_path IS NULL) OR (char_length(photo_path) <= 200)));
 alter table public.profiles add constraint profiles_username_check CHECK ((username ~ '^[a-z0-9_]{3,20}$'::text));
 
+alter table public.profile_private add constraint profile_private_pkey PRIMARY KEY (user_id);
+alter table public.profile_private add constraint profile_private_birth_date_check CHECK (((birth_date IS NULL) OR ((birth_date <= CURRENT_DATE) AND (birth_date >= '1900-01-01'::date))));
+
 alter table public.user_activity_days add constraint user_activity_days_pkey PRIMARY KEY (user_id, day);
 
 -- Claves foráneas.
@@ -1980,6 +1990,7 @@ alter table public.notifications add constraint notifications_counter_id_fkey FO
 alter table public.notifications add constraint notifications_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
 alter table public.notifications add constraint notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 alter table public.profiles add constraint profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+alter table public.profile_private add constraint profile_private_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 alter table public.user_activity_days add constraint user_activity_days_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 -- Índices.
@@ -2028,6 +2039,7 @@ alter table public.hidden_counters enable row level security;
 alter table public.home_removed_counters enable row level security;
 alter table public.notifications enable row level security;
 alter table public.profiles enable row level security;
+alter table public.profile_private enable row level security;
 alter table public.user_activity_days enable row level security;
 
 
@@ -2350,6 +2362,12 @@ create policy "notifications: cada uno marca las suyas como leídas"
   using (user_id = (select auth.uid()) and visible_from <= now())
   with check (user_id = (select auth.uid()));
 
+create policy "profile_private: cada uno la suya"
+  on public.profile_private for all
+  to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
 -- Solo yo edito mi perfil. No hay política de insert ni delete: lo hacen el trigger y el borrado
 -- en cascada desde auth.users.
 create policy "profiles: cada uno edita el suyo"
@@ -2510,6 +2528,7 @@ grant select, insert, delete on public.folder_counters to authenticated;
 grant select, insert, update, delete on public.counter_aliases to authenticated;
 grant select, insert, delete on public.counter_links to authenticated;
 grant select on public.user_activity_days to authenticated;
+grant select, insert, update on public.profile_private to authenticated;
 grant select on public.notifications to authenticated;
 grant update (read_at) on public.notifications to authenticated;
 grant select, insert on public.counter_requests to authenticated;

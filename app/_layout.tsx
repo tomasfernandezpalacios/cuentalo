@@ -80,7 +80,7 @@ function RootNavigator() {
         <Stack.Screen name="racha" options={{ title: 'Tu racha' }} />
         <Stack.Screen
           name="resumen"
-          options={{ title: 'Tu resumen', presentation: 'fullScreenModal' }}
+          options={{ title: 'Resumen vital', presentation: 'fullScreenModal' }}
         />
         <Stack.Screen name="estadisticas/filtros" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="contadores/fusionar" options={{ presentation: 'fullScreenModal' }} />

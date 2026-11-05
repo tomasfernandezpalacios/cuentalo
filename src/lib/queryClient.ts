@@ -11,7 +11,8 @@ export function refreshAll(client: QueryClient = queryClient) {
   return client.invalidateQueries({
     predicate: (query) => {
       const [first, second] = query.queryKey;
-      if (first === 'profile-photo' || first === 'avatar') return false;
+      if (first === 'profile-photo' || first === 'avatar' || first === 'profile-private')
+        return false;
       if (first === 'social' && (second === 'photo' || second === 'invite-code')) return false;
       return true;
     },

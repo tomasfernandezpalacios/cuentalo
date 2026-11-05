@@ -29,8 +29,8 @@ export type Settings = {
    */
   reminder: { enabled: boolean; counters: boolean; hour: number; minute: number };
   /**
-   * Fecha de nacimiento ('AAAA-MM-DD') para el resumen de Estadísticas. Solo en este móvil (no va
-   * a Supabase). null = aún no se ha generado ningún resumen.
+   * Antiguo: la fecha de nacimiento se guardaba aquí (solo en el móvil). Ahora va en la cuenta
+   * (profile_private); si queda una aquí, useBirthDate la sube una vez y la borra.
    */
   birthDate: string | null;
 };
