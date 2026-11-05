@@ -223,8 +223,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   (`useMyLastCounterId`); al aplicar un filtro se dibujan todos los elegidos. La selección vive
   en memoria (`selection.ts`, `useSyncExternalStore`) y se reinicia al abrir la app.
 - Gráficas interactivas (petición del usuario): al tocar `StatsChart` (Estadísticas y grupo)
-  se abre `ChartViewer` a pantalla completa (Modal): zoom **solo pellizcando** (PanResponder
-  con dos dedos, sin librería de gestos; sin botones, petición del usuario), deslizar por el eje
+  se abre `ChartViewer` a pantalla completa (Modal): zoom **con botones** + / − / «ver entera»
+  (el usuario probó el pellizco y prefiere botones), deslizar con el dedo por el eje
   X y **tocar un punto o barra** para ver su dato en un recuadro, que la app coloca siempre
   dentro de la gráfica (`bubbleAt`; también en barras, con `onPress` de la barra). Líneas: el toque se calcula a
   mano (`onTouchStart/End` + `measure` + desplazamiento de `onScroll`), porque las franjas de

@@ -1,15 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type ComponentProps, useEffect, useState } from 'react';
-import {
-  type GestureResponderEvent,
-  Modal,
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { type ComponentProps, useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatAmount } from '@/lib/format';
@@ -32,58 +23,6 @@ const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 
 const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
-
-/** Distancia entre los dos dedos de un pellizco (0 si no hay dos). */
-function touchDistance(event: GestureResponderEvent): number {
-  const [a, b] = event.nativeEvent.touches;
-  if (!a || !b) return 0;
-  return Math.hypot(a.pageX - b.pageX, a.pageY - b.pageY);
-}
-
-/**
- * Pellizco con dos dedos sobre la gráfica (sin librerías de gestos): cambia el zoom según cuánto
- * se separan los dedos. Con un dedo no hace nada y la gráfica se desliza como siempre.
- */
-function createPinch(onZoom: (zoom: number) => void) {
-  let zoom = 1;
-  let startDistance = 0;
-  let startZoom = 1;
-  const twoFingers = (e: GestureResponderEvent) => e.nativeEvent.touches.length >= 2;
-  const responder = PanResponder.create({
-    onStartShouldSetPanResponderCapture: twoFingers,
-    onMoveShouldSetPanResponderCapture: twoFingers,
-    onPanResponderGrant: (e) => {
-      startDistance = touchDistance(e);
-      startZoom = zoom;
-    },
-    onPanResponderMove: (e) => {
-      const distance = touchDistance(e);
-      if (distance === 0) return;
-      if (startDistance === 0) {
-        startDistance = distance;
-        startZoom = zoom;
-        return;
-      }
-      // Redondeado a 0,1 para no repintar la gráfica con cada píxel.
-      const next = clampZoom(Math.round(((startZoom * distance) / startDistance) * 10) / 10);
-      if (next !== zoom) {
-        zoom = next;
-        onZoom(next);
-      }
-    },
-    onPanResponderRelease: () => {
-      startDistance = 0;
-    },
-    onPanResponderTerminationRequest: () => false,
-  });
-  return {
-    panHandlers: responder.panHandlers,
-    /** Mantiene el zoom al día cuando cambia con los botones. */
-    sync: (value: number) => {
-      zoom = value;
-    },
-  };
-}
 
 function RoundButton({
   icon,
@@ -116,8 +55,8 @@ function RoundButton({
 }
 
 /**
- * Gráfica a pantalla completa: más alta, con zoom pellizcando con dos dedos, deslizando para
- * moverse por el eje X y tocando un punto (o barra) para ver su dato en un recuadro.
+ * Gráfica a pantalla completa: más alta, con zoom con los botones + y −, deslizando con el dedo
+ * para moverse por el eje X y tocando un punto (o barra) para ver su dato en un recuadro.
  */
 export function ChartViewer({ title, labels, titles, series, type, onChangeType, onClose }: Props) {
   const colors = useThemeColors();
@@ -125,9 +64,9 @@ export function ChartViewer({ title, labels, titles, series, type, onChangeType,
   const { width, height } = useWindowDimensions();
   const [zoom, setZoom] = useState(1);
 
-  // El gesto guarda su propio estado (fuera de React) y avisa con setZoom.
-  const [pinch] = useState(() => createPinch(setZoom));
-  useEffect(() => pinch.sync(zoom), [pinch, zoom]);
+  // Zoom con botones (petición del usuario): cada toque, ×1,5 más o menos.
+  const changeZoom = (factor: number) =>
+    setZoom((z) => clampZoom(Math.round(z * factor * 10) / 10));
 
   const plotWidth = width - 32 - 24 - Y_AXIS_WIDTH;
   const chartHeight = Math.max(220, Math.min(height * 0.5, 420));
@@ -167,7 +106,6 @@ export function ChartViewer({ title, labels, titles, series, type, onChangeType,
 
         <View
           style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          {...pinch.panHandlers}
         >
           <ChartPlot
             labels={labels}
@@ -179,9 +117,32 @@ export function ChartViewer({ title, labels, titles, series, type, onChangeType,
           />
         </View>
 
+        <View style={styles.controls}>
+          <RoundButton
+            icon="remove"
+            label="Reducir"
+            onPress={() => changeZoom(1 / 1.5)}
+            disabled={zoom <= MIN_ZOOM}
+          />
+          <Text style={[styles.zoom, { color: colors.textMuted }]}>
+            {zoom === 1 ? 'Sin zoom' : `×${formatAmount(zoom)}`}
+          </Text>
+          <RoundButton
+            icon="add"
+            label="Ampliar"
+            onPress={() => changeZoom(1.5)}
+            disabled={zoom >= MAX_ZOOM}
+          />
+          <RoundButton
+            icon="scan-outline"
+            label="Ver entera"
+            onPress={() => setZoom(1)}
+            disabled={zoom === 1}
+          />
+        </View>
+
         <Text style={[styles.hint, { color: colors.textMuted }]}>
-          Pellizca con dos dedos para ampliar o reducir, desliza para moverte y toca un punto para
-          ver su dato.
+          Amplía o reduce con los botones, desliza para moverte y toca un punto para ver su dato.
         </Text>
 
         <View style={styles.legend}>
@@ -215,6 +176,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  zoom: { minWidth: 64, textAlign: 'center', fontSize: 14, fontFamily: fonts.detail },
   hint: { fontSize: 13, fontFamily: fonts.detail, textAlign: 'center' },
   legend: { gap: 6 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
