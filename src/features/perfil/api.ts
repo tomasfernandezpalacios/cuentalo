@@ -158,7 +158,10 @@ export function useAvatarOf(userId: string) {
   });
 }
 
-export type PrivacySettings = Pick<Profile, 'hide_streak' | 'group_invites'>;
+export type PrivacySettings = Pick<
+  Profile,
+  'hide_streak' | 'hide_counter_totals' | 'group_invites'
+>;
 
 /** Cambia una opción de privacidad de mi perfil (Configuración → Privacidad). */
 export function useUpdatePrivacy() {

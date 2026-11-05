@@ -309,7 +309,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   Datos por la RPC `get_user_counters` (SECURITY DEFINER, solo totales). Los individuales son
   visibles para amigos salvo `counters.hidden_from_friends`. En «¿Quién lo ve?» son dos
   opciones (petición del usuario): «Privado» (hidden_from_friends = true) y «Privado y
-  amigos» (false, la marcada por defecto), entre ellas y los grupos; editables al editar. Los de grupo los ven los miembros del grupo; al fusionar
+  amigos» (false, la marcada por defecto), entre ellas y los grupos; editables al editar.
+  **Ocultar mis números a mis amigos** (Configuración → Privacidad, `profiles.hide_counter_totals`,
+  migración `20261206`): `get_user_counters` devuelve `their_total = null` en sus contadores
+  (`kind = 'public'`), nunca en los en común; el perfil enseña un candado en su lugar. Los de grupo los ven los miembros del grupo; al fusionar
   con uno de grupo se avisa de que pasa a ser visible para sus miembros.
 
 - **Configuración** (petición del usuario; rueda arriba a la derecha en «Mi perfil»,

@@ -8,7 +8,14 @@ import type { PickedPhoto } from '@/lib/photos';
 
 export type PublicProfile = Pick<
   Tables<'profiles'>,
-  'id' | 'username' | 'display_name' | 'hide_streak' | 'group_invites' | 'emoji' | 'photo_path'
+  | 'id'
+  | 'username'
+  | 'display_name'
+  | 'hide_streak'
+  | 'hide_counter_totals'
+  | 'group_invites'
+  | 'emoji'
+  | 'photo_path'
 >;
 export type Group = Tables<'groups'>;
 export type GroupMember = Tables<'group_members'>;
@@ -29,7 +36,8 @@ export type GroupDetail = Group & { members: MemberWithProfile[] };
 // Columnas públicas del perfil, en un solo literal para que supabase-js deduzca el tipo.
 // hide_*/group_invites son opciones de privacidad (Configuración) que la app necesita para
 // explicar por qué no se ve algo; emoji/photo_path, la imagen de perfil.
-const PROFILE_COLUMNS = 'id, username, display_name, hide_streak, group_invites, emoji, photo_path';
+const PROFILE_COLUMNS =
+  'id, username, display_name, hide_streak, hide_counter_totals, group_invites, emoji, photo_path';
 // Columnas legibles de groups (invite_code solo se obtiene con get_group_invite_code).
 const GROUP_COLUMNS = 'id, name, owner_id, created_at, emoji, photo_path';
 const PHOTO_BUCKET = 'group-photos';
@@ -402,7 +410,8 @@ export type UserCounter = {
   groupName: string | null;
   /** 'public': suyo, visible por ser su amigo. 'common': de un grupo en el que estamos los dos. */
   kind: 'public' | 'common';
-  theirTotal: number;
+  /** null si oculta sus números a sus amigos (nunca en los contadores en común). */
+  theirTotal: number | null;
   myTotal: number | null;
 };
 

@@ -30,6 +30,7 @@ export type Database = {
           display_name: string;
           created_at: string;
           hide_streak: boolean;
+          hide_counter_totals: boolean;
           group_invites: 'friends' | 'nobody';
           emoji: string | null;
           photo_path: string | null;
@@ -41,6 +42,7 @@ export type Database = {
           username?: string;
           display_name?: string;
           hide_streak?: boolean;
+          hide_counter_totals?: boolean;
           group_invites?: 'friends' | 'nobody';
           emoji?: string | null;
           photo_path?: string | null;
@@ -398,7 +400,7 @@ export type Database = {
           unit: string | null;
           group_name: string | null;
           kind: 'public' | 'common';
-          their_total: number;
+          their_total: number | null;
           my_total: number | null;
         }[];
       };

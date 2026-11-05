@@ -1,6 +1,6 @@
 -- Esquema completo de Cuéntalo (Supabase / Postgres 17).
 --
--- Es el estado final de todas las migraciones (de 20261103 a 20261205) en un solo archivo y
+-- Es el estado final de todas las migraciones (de 20261103 a 20261206) en un solo archivo y
 -- ordenado: sirve para crear la base de datos desde cero (p. ej. un proyecto nuevo en la
 -- Fase 6). Se generó a partir de la base de datos real y se comprobó que cada función coincide
 -- con la que hay en producción. La base de datos actual YA tiene todo esto: no hay que
@@ -722,11 +722,16 @@ as $$
     v.unit,
     g.name,
     v.kind,
-    coalesce((
-      select sum(e.amount) from public.entries e
-       where e.counter_id = v.id and e.user_id = p_user_id
-         and case when v.group_id is null then not e.group_only else not e.personal_only end
-    ), 0),
+    -- Si oculta sus números a sus amigos, en sus contadores (no en los en común) va null.
+    case when v.kind = 'public'
+              and (select pr.hide_counter_totals from public.profiles pr where pr.id = p_user_id)
+         then null
+         else coalesce((
+           select sum(e.amount) from public.entries e
+            where e.counter_id = v.id and e.user_id = p_user_id
+              and case when v.group_id is null then not e.group_only else not e.personal_only end
+         ), 0)
+    end,
     case when v.kind = 'common' then coalesce((
       select sum(e.amount) from public.entries e, me
        where e.counter_id = v.id and e.user_id = me.id and not e.personal_only
@@ -1789,7 +1794,8 @@ create table public.profiles (
   emoji text,
   photo_path text,
   tutorial_done boolean default false not null,
-  time_zone text default 'Europe/Madrid'::text not null
+  time_zone text default 'Europe/Madrid'::text not null,
+  hide_counter_totals boolean default false not null
 );
 
 create table public.user_activity_days (
@@ -2381,8 +2387,8 @@ revoke all on all tables in schema public from anon, authenticated;
 revoke all on all functions in schema public from public, anon, authenticated;
 
 grant select on public.profiles to authenticated;
-grant update (display_name, emoji, group_invites, hide_streak, photo_path, tutorial_done,
-  username) on public.profiles to authenticated;
+grant update (display_name, emoji, group_invites, hide_counter_totals, hide_streak, photo_path,
+  tutorial_done, username) on public.profiles to authenticated;
 
 grant select, insert, delete on public.counters to authenticated;
 grant update (emoji, hidden_from_friends, name, streak_enabled, unit)

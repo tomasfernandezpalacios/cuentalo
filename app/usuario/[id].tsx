@@ -220,7 +220,16 @@ export default function UserProfileScreen() {
               No tiene contadores visibles para sus amigos.
             </Text>
           ) : (
-            publicCounters.map((c) => <CounterRow key={c.id} counter={c} />)
+            <>
+              {person.hide_counter_totals ? (
+                <Text style={[styles.detail, { color: colors.textMuted }]}>
+                  {person.display_name} prefiere no enseñar cuánto lleva.
+                </Text>
+              ) : null}
+              {publicCounters.map((c) => (
+                <CounterRow key={c.id} counter={c} />
+              ))}
+            </>
           )}
         </Section>
       ) : null}
@@ -249,9 +258,19 @@ function CounterRow({ counter, theirName }: { counter: UserCounter; theirName?: 
         </Text>
       </View>
       <View style={styles.total}>
-        <Text style={[styles.totalNumber, { color: colors.primary }]} numberOfLines={1}>
-          {formatWithUnit(counter.theirTotal, counter.unit)}
-        </Text>
+        {counter.theirTotal === null ? (
+          // Oculta sus números a sus amigos: se ve el contador, pero no cuánto lleva.
+          <Ionicons
+            name="lock-closed"
+            size={18}
+            color={colors.textMuted}
+            accessibilityLabel="Número oculto"
+          />
+        ) : (
+          <Text style={[styles.totalNumber, { color: colors.primary }]} numberOfLines={1}>
+            {formatWithUnit(counter.theirTotal, counter.unit)}
+          </Text>
+        )}
         {theirName ? (
           <Text style={[styles.detail, { color: colors.textMuted }]} numberOfLines={1}>
             {theirName}
