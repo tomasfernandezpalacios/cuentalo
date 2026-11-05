@@ -7,6 +7,7 @@ import { appAlert } from '@/components/AppDialog';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import type { Entry, EntryInput } from '@/features/contadores/api';
 import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
+import { CounterChart } from '@/features/contadores/components/CounterChart';
 import { EntryDialog } from '@/features/contadores/components/EntryDialog';
 import { EntryRow } from '@/features/contadores/components/EntryRow';
 import { Leaderboard } from '@/features/contadores/components/Leaderboard';
@@ -191,6 +192,11 @@ export default function CounterDetailScreen() {
           <Leaderboard counterId={board.counterId} unit={unit} streak={streak !== null} />
         </>
       ) : null}
+      {/* Tu evolución en este contador (solo lo tuyo), justo encima del historial. */}
+      <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
+        {linkedGroups.length > 0 ? 'Tu evolución' : 'Evolución'}
+      </Text>
+      <CounterChart counterIds={counter.data.linkedCounterIds} name={name} unit={unit} />
       <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
         {linkedGroups.length > 0 ? 'Tu historial' : 'Historial'}
       </Text>

@@ -383,6 +383,9 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   en color solo si **hoy** ya se ha mantenido; si no, en gris (`todayDone`, `activeToday` de
   `get_friends_streaks`). La racha de uso junto a «Mis contadores» va en un rectángulo, más
   grande.
+- **Gráfica del contador** (petición del usuario): en el detalle de cualquier contador, encima
+  del historial, «Evolución» (`CounterChart`): solo lo mío en ese contador (y sus enlazados),
+  con periodo y el formato de siempre, sin filtros. Sale de `useMyDailyTotals` (ya en caché).
 - **Gráfica del grupo** (petición del usuario): bajo la clasificación, «Evolución» del mismo
   contador y periodo (el periodo vive en `GroupLeaderboard`; en formato racha se elige encima
   de la gráfica). Una serie por miembro activo (`GroupMembersChart`, reutiliza
