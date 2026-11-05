@@ -1,6 +1,6 @@
 -- Esquema completo de Cuéntalo (Supabase / Postgres 17).
 --
--- Es el estado final de todas las migraciones (de 20261103 a 20261207) en un solo archivo y
+-- Es el estado final de todas las migraciones (de 20261103 a 20261208) en un solo archivo y
 -- ordenado: sirve para crear la base de datos desde cero (p. ej. un proyecto nuevo en la
 -- Fase 6). Se generó a partir de la base de datos real y se comprobó que cada función coincide
 -- con la que hay en producción. La base de datos actual YA tiene todo esto: no hay que
@@ -742,7 +742,9 @@ as $$
   order by v.kind, v.name;
 $$;
 
--- Suma p_amount al aviso pendiente de cada miembro (o lo crea) y lo retrasa 20 s.
+-- El aviso de actividad en grupo también le llega a quien hace los cambios (petición del
+-- usuario): «Has sumado +6 en «Cafés» (Gimnasio)». Igual que a los demás: el neto, 20 s después
+-- del último cambio. Solo cambia que entre los destinatarios ya no se excluye a quien registra.
 create or replace function public.group_activity_bump(
   p_counter_id uuid,
   p_actor uuid,
@@ -778,7 +780,6 @@ begin
   select g.name into v_group_name from public.groups g where g.id = v_group;
   select p.display_name into v_actor_name from public.profiles p where p.id = p_actor;
 
-  -- Los que ya tienen uno pendiente: se acumula y se retrasa.
   update public.notifications n
      set amount = n.amount + p_amount, visible_from = v_until, created_at = now()
    where n.kind = 'group_activity'
@@ -786,7 +787,6 @@ begin
      and n.actor_id = p_actor
      and n.visible_from > now();
 
-  -- El resto de miembros activos: uno nuevo.
   insert into public.notifications
     (user_id, kind, actor_id, actor_name, counter_id, counter_name, group_name, amount, visible_from)
   select m.user_id, 'group_activity', p_actor, v_actor_name, p_counter_id, v_counter_name,
@@ -794,7 +794,6 @@ begin
     from public.group_members m
    where m.group_id = v_group
      and m.status = 'active'
-     and m.user_id <> p_actor
      and not exists (
        select 1 from public.notifications n
         where n.user_id = m.user_id

@@ -59,11 +59,20 @@ function noticeText(n: Notice): string {
       return `Eres el nuevo líder del grupo${n.group_name ? ` «${n.group_name}»` : ''}.`;
     case 'group_admin':
       return `${who} te ha hecho líder del grupo${n.group_name ? ` «${n.group_name}»` : ''}.`;
-    case 'group_activity':
-      // Lo que ha hecho en total en los últimos toques (p. ej. +1 +1 +5 −1 → +6).
-      return (n.amount ?? 0) >= 0
-        ? `${who} ha sumado ${change(n.amount)} en ${counter}${group}.`
-        : `${who} ha restado ${change(n.amount)} en ${counter}${group}.`;
+    case 'group_activity': {
+      // Lo que ha hecho en total en los últimos toques (p. ej. +1 +1 +5 −1 → +6). También le
+      // llega a quien lo ha hecho, en primera persona.
+      const mine = n.actor_id === n.user_id;
+      const verb =
+        (n.amount ?? 0) >= 0
+          ? mine
+            ? 'Has sumado'
+            : 'ha sumado'
+          : mine
+            ? 'Has restado'
+            : 'ha restado';
+      return `${mine ? verb : `${who} ${verb}`} ${change(n.amount)} en ${counter}${group}.`;
+    }
   }
 }
 
