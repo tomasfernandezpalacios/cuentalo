@@ -292,6 +292,13 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   los avisos se marcan como leídos al abrir el buzón. Un rechazo de amistad no se avisa. Al
   aceptar una amistad avisan a los dos (migración `20261205`): `friend_accepted` a quien la
   envió y `friend_you_accepted` a quien la acepta.
+- **Avisos de actividad en grupo** (petición del usuario; migración `20261207`): al sumar o
+  restar en un contador de grupo (no común; sin `personal_only`), los demás miembros activos
+  reciben UN aviso con el neto («Ana ha sumado +6 en «Cafés» (Gimnasio)»). Trigger
+  `on_entry_group_activity` → `group_activity_bump`: acumula en un aviso pendiente por
+  miembro y lo retrasa (`notifications.visible_from` = ahora + 20 s); la RLS no enseña ni deja
+  marcar como leídos los pendientes ni los que quedan en 0. Solo si quien registra es miembro
+  activo (sin avisos al borrar cuentas o dejar grupos).
 - **Modo selección** en «Mis contadores»: mantener pulsado un contador. La barra de carpetas
   pasa a seleccionar en masa (petición del usuario): «Todos» y cada carpeta añaden sus
   contadores a la selección o los quitan si ya estaban todos (`toggleMany`); sin «Nueva

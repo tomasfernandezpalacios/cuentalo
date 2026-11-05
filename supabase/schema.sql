@@ -1,6 +1,6 @@
 -- Esquema completo de Cuéntalo (Supabase / Postgres 17).
 --
--- Es el estado final de todas las migraciones (de 20261103 a 20261206) en un solo archivo y
+-- Es el estado final de todas las migraciones (de 20261103 a 20261207) en un solo archivo y
 -- ordenado: sirve para crear la base de datos desde cero (p. ej. un proyecto nuevo en la
 -- Fase 6). Se generó a partir de la base de datos real y se comprobó que cada función coincide
 -- con la que hay en producción. La base de datos actual YA tiene todo esto: no hay que
@@ -742,6 +742,70 @@ as $$
   order by v.kind, v.name;
 $$;
 
+-- Suma p_amount al aviso pendiente de cada miembro (o lo crea) y lo retrasa 20 s.
+create or replace function public.group_activity_bump(
+  p_counter_id uuid,
+  p_actor uuid,
+  p_amount numeric
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_group uuid;
+  v_common boolean;
+  v_counter_name text;
+  v_group_name text;
+  v_actor_name text;
+  v_until timestamptz := now() + interval '20 seconds';
+begin
+  if p_amount = 0 then
+    return;
+  end if;
+  select c.group_id, c.is_common, c.name into v_group, v_common, v_counter_name
+    from public.counters c where c.id = p_counter_id;
+  if v_group is null or v_common then
+    return;
+  end if;
+  if not exists (
+    select 1 from public.group_members m
+     where m.group_id = v_group and m.user_id = p_actor and m.status = 'active'
+  ) then
+    return;
+  end if;
+  select g.name into v_group_name from public.groups g where g.id = v_group;
+  select p.display_name into v_actor_name from public.profiles p where p.id = p_actor;
+
+  -- Los que ya tienen uno pendiente: se acumula y se retrasa.
+  update public.notifications n
+     set amount = n.amount + p_amount, visible_from = v_until, created_at = now()
+   where n.kind = 'group_activity'
+     and n.counter_id = p_counter_id
+     and n.actor_id = p_actor
+     and n.visible_from > now();
+
+  -- El resto de miembros activos: uno nuevo.
+  insert into public.notifications
+    (user_id, kind, actor_id, actor_name, counter_id, counter_name, group_name, amount, visible_from)
+  select m.user_id, 'group_activity', p_actor, v_actor_name, p_counter_id, v_counter_name,
+         v_group_name, p_amount, v_until
+    from public.group_members m
+   where m.group_id = v_group
+     and m.status = 'active'
+     and m.user_id <> p_actor
+     and not exists (
+       select 1 from public.notifications n
+        where n.user_id = m.user_id
+          and n.kind = 'group_activity'
+          and n.counter_id = p_counter_id
+          and n.actor_id = p_actor
+          and n.visible_from > now()
+     );
+end;
+$$;
+
 -- Id del grupo a partir de la ruta '<group_id>/...'; null si la ruta no tiene esa forma (así
 -- las políticas nunca fallan al convertir a uuid).
 create or replace function public.group_id_from_path(p_name text)
@@ -1326,6 +1390,28 @@ begin
 end;
 $$;
 
+create or replace function public.on_entry_group_activity()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    if not new.personal_only then
+      perform public.group_activity_bump(new.counter_id, new.user_id, new.amount);
+    end if;
+  elsif tg_op = 'DELETE' then
+    if not old.personal_only then
+      perform public.group_activity_bump(old.counter_id, old.user_id, -old.amount);
+    end if;
+  elsif new.counter_id = old.counter_id and not new.personal_only and new.amount <> old.amount then
+    perform public.group_activity_bump(new.counter_id, new.user_id, new.amount - old.amount);
+  end if;
+  return null;
+end;
+$$;
+
 -- Vista previa antes de unirse: nombre del grupo y número de miembros.
 create or replace function public.preview_group_by_code(p_code text)
 returns table (group_id uuid, name text, member_count int, is_member boolean)
@@ -1781,7 +1867,9 @@ create table public.notifications (
   amount numeric,
   created_at timestamp with time zone default now() not null,
   read_at timestamp with time zone,
-  actor_name text
+  actor_name text,
+  counter_id uuid,
+  visible_from timestamp with time zone default now() not null
 );
 
 create table public.profiles (
@@ -1851,7 +1939,7 @@ alter table public.hidden_counters add constraint hidden_counters_pkey PRIMARY K
 alter table public.home_removed_counters add constraint home_removed_counters_pkey PRIMARY KEY (user_id, counter_id);
 
 alter table public.notifications add constraint notifications_pkey PRIMARY KEY (id);
-alter table public.notifications add constraint notifications_kind_check CHECK ((kind = ANY (ARRAY['friend_accepted'::text, 'friend_you_accepted'::text, 'request_approved'::text, 'request_rejected'::text, 'counter_deleted'::text, 'group_deleted'::text, 'group_admin'::text, 'member_left'::text, 'new_leader'::text, 'you_are_leader'::text, 'kicked'::text])));
+alter table public.notifications add constraint notifications_kind_check CHECK ((kind = ANY (ARRAY['friend_accepted'::text, 'friend_you_accepted'::text, 'request_approved'::text, 'request_rejected'::text, 'counter_deleted'::text, 'group_deleted'::text, 'group_admin'::text, 'member_left'::text, 'new_leader'::text, 'you_are_leader'::text, 'kicked'::text, 'group_activity'::text])));
 
 alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
 alter table public.profiles add constraint profiles_username_key UNIQUE (username);
@@ -1889,6 +1977,7 @@ alter table public.hidden_counters add constraint hidden_counters_counter_id_fke
 alter table public.hidden_counters add constraint hidden_counters_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 alter table public.home_removed_counters add constraint home_removed_counters_counter_id_fkey FOREIGN KEY (counter_id) REFERENCES public.counters(id) ON DELETE CASCADE;
 alter table public.home_removed_counters add constraint home_removed_counters_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+alter table public.notifications add constraint notifications_counter_id_fkey FOREIGN KEY (counter_id) REFERENCES public.counters(id) ON DELETE CASCADE;
 alter table public.notifications add constraint notifications_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
 alter table public.notifications add constraint notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 alter table public.profiles add constraint profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
@@ -1919,6 +2008,8 @@ CREATE INDEX groups_owner_idx ON public.groups USING btree (owner_id);
 CREATE INDEX hidden_counters_counter_idx ON public.hidden_counters USING btree (counter_id);
 CREATE INDEX home_removed_counters_counter_idx ON public.home_removed_counters USING btree (counter_id);
 CREATE INDEX notifications_actor_idx ON public.notifications USING btree (actor_id);
+CREATE INDEX notifications_counter_idx ON public.notifications USING btree (counter_id);
+CREATE INDEX notifications_pending_idx ON public.notifications USING btree (counter_id, actor_id, visible_from) WHERE (kind = 'group_activity'::text);
 CREATE INDEX notifications_user_idx ON public.notifications USING btree (user_id, created_at DESC);
 
 -- RLS activada en todas las tablas.
@@ -2248,12 +2339,16 @@ create policy "home_removed_counters: cada uno los suyos"
 create policy "notifications: cada uno las suyas"
   on public.notifications for select
   to authenticated
-  using (user_id = (select auth.uid()));
+  using (
+    user_id = (select auth.uid())
+    and visible_from <= now()
+    and not (kind = 'group_activity' and amount = 0)
+  );
 
 create policy "notifications: cada uno marca las suyas como leídas"
   on public.notifications for update
   to authenticated
-  using (user_id = (select auth.uid()))
+  using (user_id = (select auth.uid()) and visible_from <= now())
   with check (user_id = (select auth.uid()));
 
 -- Solo yo edito mi perfil. No hay política de insert ni delete: lo hacen el trigger y el borrado
@@ -2345,6 +2440,10 @@ create policy "profile-photos: las ven los usuarios con sesión"
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+create trigger on_entry_group_activity
+  after insert or update or delete on public.entries
+  for each row execute function public.on_entry_group_activity();
 
 -- Una vez por sentencia y usuario bastaría, pero por fila es más simple y el insert es idempotente.
 create trigger on_entry_track_activity

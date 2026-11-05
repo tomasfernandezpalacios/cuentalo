@@ -195,13 +195,18 @@ export type Database = {
             | 'member_left'
             | 'new_leader'
             | 'you_are_leader'
-            | 'kicked';
+            | 'kicked'
+            | 'group_activity';
           actor_id: string | null;
           /** Nombre de quien hizo la acción (sigue ahí aunque elimine su cuenta). */
           actor_name: string | null;
           counter_name: string | null;
           group_name: string | null;
           amount: number | null;
+          /** group_activity: el contador de grupo en el que ha sumado o restado. */
+          counter_id: string | null;
+          /** Hasta entonces no se ve (group_activity: 20 s después del último cambio). */
+          visible_from: string;
           created_at: string;
           read_at: string | null;
         };
