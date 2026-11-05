@@ -22,7 +22,6 @@ function counter(overrides: Partial<Counter>): Counter {
     is_common: false,
     hidden_from_friends: false,
     streak_enabled: false,
-    archived: false,
     created_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
@@ -133,14 +132,12 @@ describe('enrich: formato racha', () => {
   });
 });
 
-describe('enrich: archivados de antes', () => {
-  it('para quien lo administra cuenta como oculto', () => {
-    expect(enrich(counter({ archived: true }), totals, groups, ME).hidden).toBe(true);
-  });
-
-  it('para otro miembro del grupo es un contador normal', () => {
-    const archivedByOther = counter({ archived: true, group_id: 'g1', owner_id: OTHER });
-    expect(enrich(archivedByOther, totals, groups, ME).hidden).toBe(false);
+describe('enrich: ocultos', () => {
+  it('solo cuenta como oculto si está en mis ocultos', () => {
+    expect(
+      enrich(counter({}), totals, groups, ME, new Map(), new Map(), new Set(['c1'])).hidden,
+    ).toBe(true);
+    expect(enrich(counter({}), totals, groups, ME).hidden).toBe(false);
   });
 });
 

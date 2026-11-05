@@ -12,17 +12,60 @@ type Props = {
   onSelect: (folderId: string | null) => void;
   onLongPressFolder: (folder: Folder) => void;
   onNewFolder: () => void;
+  /**
+   * Modo selección (al mantener pulsado un contador): la barra sirve para seleccionar en masa.
+   * «Todos» y cada carpeta añaden sus contadores a la selección (o los quitan si ya estaban
+   * todos); no hay «Nueva carpeta». `allIds`: los contadores de la lista.
+   */
+  selection?: { selectedIds: string[]; allIds: string[]; onToggle: (ids: string[]) => void };
 };
 
-/** Barra fina bajo la cabecera: «Todos», las carpetas y «Nueva carpeta». Se desliza de lado. */
+/**
+ * Barra fina bajo la cabecera: «Todos», las carpetas y «Nueva carpeta». Se desliza de lado. En el
+ * modo selección, «Todos» y las carpetas seleccionan sus contadores.
+ */
 export function FolderBar({
   folders,
   selectedId,
   onSelect,
   onLongPressFolder,
   onNewFolder,
+  selection,
 }: Props) {
   const colors = useThemeColors();
+
+  if (selection) {
+    const isAllSelected = (ids: string[]) =>
+      ids.length > 0 && ids.every((id) => selection.selectedIds.includes(id));
+    const groupChip = (key: string, label: string, ids: string[]) => {
+      const on = isAllSelected(ids);
+      return chip(key, label, on, () => selection.onToggle(ids), undefined, {
+        role: 'checkbox',
+        hint: on ? 'Quita sus contadores de la selección' : 'Selecciona sus contadores',
+        disabled: ids.length === 0,
+      });
+    };
+    return (
+      <View
+        style={[styles.bar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+        >
+          {groupChip('all', 'Todos', selection.allIds)}
+          {folders.map((folder) =>
+            groupChip(
+              folder.id,
+              folder.name,
+              folder.counterIds.filter((id) => selection.allIds.includes(id)),
+            ),
+          )}
+        </ScrollView>
+      </View>
+    );
+  }
 
   function chip(
     key: string,
@@ -30,22 +73,27 @@ export function FolderBar({
     selected: boolean,
     onPress: () => void,
     onLongPress?: () => void,
+    options: { role?: 'tab' | 'checkbox'; hint?: string; disabled?: boolean } = {},
   ) {
+    const role = options.role ?? 'tab';
     return (
       <Pressable
         key={key}
         onPress={onPress}
         onLongPress={onLongPress}
-        accessibilityRole="tab"
-        accessibilityState={{ selected }}
+        disabled={options.disabled}
+        accessibilityRole={role}
+        accessibilityState={role === 'tab' ? { selected } : { checked: selected }}
         accessibilityHint={
-          onLongPress ? 'Mantén pulsado para editar o borrar la carpeta' : undefined
+          options.hint ??
+          (onLongPress ? 'Mantén pulsado para editar o borrar la carpeta' : undefined)
         }
         style={[
           styles.chip,
           {
             backgroundColor: selected ? colors.primary : colors.background,
             borderColor: selected ? colors.primary : colors.border,
+            opacity: options.disabled ? 0.4 : 1,
           },
         ]}
       >

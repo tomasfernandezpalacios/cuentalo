@@ -7,6 +7,7 @@ import { base64ToBytes } from '@/lib/base64';
 import { localDateTime, toCsv } from '@/lib/csv';
 import { supabase } from '@/lib/supabase';
 import { normalizeUsername } from '@/lib/validation';
+import type { PickedPhoto } from '@/lib/photos';
 
 export type Profile = Tables<'profiles'>;
 
@@ -21,7 +22,8 @@ export async function fetchProfile(userId: string): Promise<Profile> {
 }
 
 /** Foto elegida en el selector, lista para subir. */
-export type PickedPhoto = { uri: string; base64: string; mimeType: string };
+// La foto elegida (galería, cámara o editor): un solo tipo para toda la app.
+export type { PickedPhoto };
 
 /**
  * Datos del formulario de perfil. `photo`: una foto nueva, 'keep' para dejar la que hay o

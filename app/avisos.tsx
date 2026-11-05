@@ -38,7 +38,9 @@ function noticeText(n: Notice): string {
   const group = n.group_name ? ` (${n.group_name})` : '';
   switch (n.kind) {
     case 'friend_accepted':
-      return `${who} ha aceptado tu solicitud de amistad.`;
+      return `${who} ha aceptado tu solicitud de amistad. Ahora sois amigos.`;
+    case 'friend_you_accepted':
+      return `Has aceptado la solicitud de amistad de ${who}. Ahora sois amigos.`;
     case 'request_approved':
       return `${who} ha aceptado tu solicitud: ${change(n.amount)} en ${counter}${group}.`;
     case 'request_rejected':

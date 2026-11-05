@@ -1,6 +1,6 @@
 -- Esquema completo de Cuéntalo (Supabase / Postgres 17).
 --
--- Es el estado final de todas las migraciones (de 20261103 a 20261203) en un solo archivo y
+-- Es el estado final de todas las migraciones (de 20261103 a 20261205) en un solo archivo y
 -- ordenado: sirve para crear la base de datos desde cero (p. ej. un proyecto nuevo en la
 -- Fase 6). Se generó a partir de la base de datos real y se comprobó que cada función coincide
 -- con la que hay en producción. La base de datos actual YA tiene todo esto: no hay que
@@ -661,6 +661,8 @@ begin
 end;
 $$;
 
+-- Perfil de otra persona: los contadores en común (de grupos de los dos) y, si somos
+-- amigos, sus individuales que no son privados y los de sus grupos (solo totales).
 create or replace function public.get_user_counters(p_user_id uuid)
 returns table (
   counter_id uuid,
@@ -707,8 +709,6 @@ as $$
     select c.*, 'public'::text
       from public.counters c, friends
      where friends.yes
-       -- «Ocultar mis contadores a mis amigos» en Configuración: solo quedan los en común.
-       and not (select pr.hide_counters_from_friends from public.profiles pr where pr.id = p_user_id)
        and (
          (c.group_id is null and c.owner_id = p_user_id and not c.hidden_from_friends)
          or (c.group_id in (select group_id from their_groups)
@@ -733,8 +733,7 @@ as $$
     ), 0) end
   from visible v
   left join public.groups g on g.id = v.group_id
-  where not v.archived
-    and p_user_id <> (select id from me)
+  where p_user_id <> (select id from me)
   order by v.kind, v.name;
 $$;
 
@@ -1256,7 +1255,6 @@ as $$
    where p_user_id is distinct from (select auth.uid());
 $$;
 
--- Al aceptar una solicitud de amistad, se avisa a quien la envió. (Un rechazo no se avisa.)
 create or replace function public.notify_friend_accepted()
 returns trigger
 language plpgsql
@@ -1266,6 +1264,10 @@ as $$
 begin
   if new.status = 'accepted' and old.status <> 'accepted' then
     perform public.notify(new.requester_id, 'friend_accepted');
+    insert into public.notifications (user_id, kind, actor_id, actor_name)
+    select new.addressee_id, 'friend_you_accepted', p.id, p.display_name
+      from public.profiles p
+     where p.id = new.requester_id;
   end if;
   return new;
 end;
@@ -1696,7 +1698,6 @@ create table public.counters (
   name text not null,
   unit text,
   streak_enabled boolean default false not null,
-  archived boolean default false not null,
   created_at timestamp with time zone default now() not null,
   emoji text,
   group_id uuid,
@@ -1782,10 +1783,8 @@ create table public.profiles (
   id uuid not null,
   username text not null,
   display_name text not null,
-  avatar_url text,
   created_at timestamp with time zone default now() not null,
   hide_streak boolean default false not null,
-  hide_counters_from_friends boolean default false not null,
   group_invites text default 'friends'::text not null,
   emoji text,
   photo_path text,
@@ -1846,7 +1845,7 @@ alter table public.hidden_counters add constraint hidden_counters_pkey PRIMARY K
 alter table public.home_removed_counters add constraint home_removed_counters_pkey PRIMARY KEY (user_id, counter_id);
 
 alter table public.notifications add constraint notifications_pkey PRIMARY KEY (id);
-alter table public.notifications add constraint notifications_kind_check CHECK ((kind = ANY (ARRAY['friend_accepted'::text, 'request_approved'::text, 'request_rejected'::text, 'counter_deleted'::text, 'group_deleted'::text, 'group_admin'::text, 'member_left'::text, 'new_leader'::text, 'you_are_leader'::text, 'kicked'::text])));
+alter table public.notifications add constraint notifications_kind_check CHECK ((kind = ANY (ARRAY['friend_accepted'::text, 'friend_you_accepted'::text, 'request_approved'::text, 'request_rejected'::text, 'counter_deleted'::text, 'group_deleted'::text, 'group_admin'::text, 'member_left'::text, 'new_leader'::text, 'you_are_leader'::text, 'kicked'::text])));
 
 alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
 alter table public.profiles add constraint profiles_username_key UNIQUE (username);
@@ -2382,11 +2381,11 @@ revoke all on all tables in schema public from anon, authenticated;
 revoke all on all functions in schema public from public, anon, authenticated;
 
 grant select on public.profiles to authenticated;
-grant update (avatar_url, display_name, emoji, group_invites, hide_streak, photo_path,
-  tutorial_done, username) on public.profiles to authenticated;
+grant update (display_name, emoji, group_invites, hide_streak, photo_path, tutorial_done,
+  username) on public.profiles to authenticated;
 
 grant select, insert, delete on public.counters to authenticated;
-grant update (archived, emoji, hidden_from_friends, name, streak_enabled, unit)
+grant update (emoji, hidden_from_friends, name, streak_enabled, unit)
   on public.counters to authenticated;
 grant select, insert, update, delete on public.entries to authenticated;
 

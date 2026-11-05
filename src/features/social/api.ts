@@ -4,17 +4,11 @@ import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import { base64ToBytes } from '@/lib/base64';
 import { normalizeUsername } from '@/lib/validation';
+import type { PickedPhoto } from '@/lib/photos';
 
 export type PublicProfile = Pick<
   Tables<'profiles'>,
-  | 'id'
-  | 'username'
-  | 'display_name'
-  | 'avatar_url'
-  | 'hide_streak'
-  | 'group_invites'
-  | 'emoji'
-  | 'photo_path'
+  'id' | 'username' | 'display_name' | 'hide_streak' | 'group_invites' | 'emoji' | 'photo_path'
 >;
 export type Group = Tables<'groups'>;
 export type GroupMember = Tables<'group_members'>;
@@ -35,8 +29,7 @@ export type GroupDetail = Group & { members: MemberWithProfile[] };
 // Columnas públicas del perfil, en un solo literal para que supabase-js deduzca el tipo.
 // hide_*/group_invites son opciones de privacidad (Configuración) que la app necesita para
 // explicar por qué no se ve algo; emoji/photo_path, la imagen de perfil.
-const PROFILE_COLUMNS =
-  'id, username, display_name, avatar_url, hide_streak, group_invites, emoji, photo_path';
+const PROFILE_COLUMNS = 'id, username, display_name, hide_streak, group_invites, emoji, photo_path';
 // Columnas legibles de groups (invite_code solo se obtiene con get_group_invite_code).
 const GROUP_COLUMNS = 'id, name, owner_id, created_at, emoji, photo_path';
 const PHOTO_BUCKET = 'group-photos';
@@ -150,7 +143,8 @@ export async function fetchGroup(groupId: string): Promise<GroupDetail> {
 }
 
 /** Foto elegida en el selector, lista para subir. */
-export type PickedPhoto = { uri: string; base64: string; mimeType: string };
+// La foto elegida (galería, cámara o editor): un solo tipo para toda la app.
+export type { PickedPhoto };
 
 /**
  * Datos del formulario de grupo. `photo`: una foto nueva, 'keep' para dejar la que hay o

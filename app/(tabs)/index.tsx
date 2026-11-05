@@ -127,6 +127,18 @@ export default function CountersScreen() {
     setSelectedIds([]);
   }
 
+  /**
+   * «Todos» o una carpeta en el modo selección: si ya estaban todos sus contadores
+   * seleccionados, se quitan; si no, se añaden los que falten.
+   */
+  function toggleMany(ids: string[]) {
+    setSelectedIds((current) =>
+      ids.every((id) => current.includes(id))
+        ? current.filter((id) => !ids.includes(id))
+        : [...current, ...ids.filter((id) => !current.includes(id))],
+    );
+  }
+
   // --- Acciones del modo selección ---------------------------------------------------------
 
   function deleteSelected() {
@@ -398,6 +410,15 @@ export default function CountersScreen() {
         onSelect={(folderId) => setFilters({ ...filters, folderId })}
         onLongPressFolder={folderOptions}
         onNewFolder={() => router.push('/carpetas/nueva')}
+        selection={
+          selecting
+            ? {
+                selectedIds,
+                allIds: filtered.map((c) => c.id),
+                onToggle: toggleMany,
+              }
+            : undefined
+        }
       />
       <FlatList
         data={shown}

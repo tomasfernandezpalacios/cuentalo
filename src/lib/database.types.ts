@@ -28,10 +28,8 @@ export type Database = {
           id: string;
           username: string;
           display_name: string;
-          avatar_url: string | null;
           created_at: string;
           hide_streak: boolean;
-          hide_counters_from_friends: boolean;
           group_invites: 'friends' | 'nobody';
           emoji: string | null;
           photo_path: string | null;
@@ -42,9 +40,7 @@ export type Database = {
         Update: {
           username?: string;
           display_name?: string;
-          avatar_url?: string | null;
           hide_streak?: boolean;
-          hide_counters_from_friends?: boolean;
           group_invites?: 'friends' | 'nobody';
           emoji?: string | null;
           photo_path?: string | null;
@@ -63,7 +59,6 @@ export type Database = {
           is_common: boolean;
           hidden_from_friends: boolean;
           streak_enabled: boolean;
-          archived: boolean;
           created_at: string;
         };
         Insert: {
@@ -76,7 +71,6 @@ export type Database = {
           is_common?: boolean;
           hidden_from_friends?: boolean;
           streak_enabled?: boolean;
-          archived?: boolean;
           created_at?: string;
         };
         Update: {
@@ -84,7 +78,6 @@ export type Database = {
           unit?: string | null;
           emoji?: string | null;
           streak_enabled?: boolean;
-          archived?: boolean;
           hidden_from_friends?: boolean;
         };
         Relationships: [];
@@ -191,6 +184,7 @@ export type Database = {
           user_id: string;
           kind:
             | 'friend_accepted'
+            | 'friend_you_accepted'
             | 'request_approved'
             | 'request_rejected'
             | 'counter_deleted'

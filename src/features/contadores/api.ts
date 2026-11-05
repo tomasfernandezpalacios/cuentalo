@@ -178,9 +178,7 @@ export function enrich(
     canManage,
     participantIds,
     lastLoggedAt: t?.last_logged_at ?? null,
-    // Un archivado de antes solo cuenta como oculto para quien lo administra (el único que puede
-    // desarchivarlo al mostrarlo); para los demás miembros del grupo es un contador normal.
-    hidden: hidden.has(counter.id) || (counter.archived && canManage),
+    hidden: hidden.has(counter.id),
     removedFromHome: removedFromHome.has(counter.id),
     streak,
     linkedCounterIds: [counter.id],
@@ -191,18 +189,6 @@ export function enrich(
         ? (t?.total ?? 0) / participantIds.length
         : (t?.my_total ?? 0),
   };
-}
-
-async function fetchHidden(): Promise<Set<string>> {
-  const { data, error } = await supabase.from('hidden_counters').select('counter_id');
-  if (error) throw error;
-  return new Set(data.map((h) => h.counter_id));
-}
-
-async function fetchStreaks(): Promise<Map<string, CounterStreak>> {
-  const { data, error } = await supabase.from('my_counter_streaks').select('*');
-  if (error) throw error;
-  return streaksFromRows(data);
 }
 
 function streaksFromRows(rows: HomeBundle['streaks']): Map<string, CounterStreak> {
@@ -217,20 +203,6 @@ function streaksFromRows(rows: HomeBundle['streaks']): Map<string, CounterStreak
       },
     ]),
   );
-}
-
-async function fetchRemovedFromHome(): Promise<Set<string>> {
-  const { data, error } = await supabase.from('home_removed_counters').select('counter_id');
-  if (error) throw error;
-  return new Set(data.map((h) => h.counter_id));
-}
-
-async function fetchLinks(): Promise<CounterLink[]> {
-  const { data, error } = await supabase
-    .from('counter_links')
-    .select('counter_id, link_id, is_primary');
-  if (error) throw error;
-  return data.map((l) => ({ counterId: l.counter_id, linkId: l.link_id, isPrimary: l.is_primary }));
 }
 
 /** Mis alias (nombre e icono personales) por contador. */
@@ -257,14 +229,12 @@ async function fetchParticipants(counterIds?: string[]): Promise<Map<string, str
 
 /**
  * La lista de contadores con todo lo que necesita (totales, grupos, alias, enlaces, ocultos,
- * rachas…) en UNA petición (get_my_home). Si la base de datos aún no tiene esa función (falta
- * la migración de rendimiento), se hace como antes, con varias consultas.
+ * rachas…) en UNA petición (get_my_home).
  */
 export async function fetchCounters(myId: string): Promise<CounterWithTotal[]> {
   const { data, error } = await supabase.rpc('get_my_home');
-  if (!error && data) return countersFromBundle(data, myId);
-  if (error && error.code !== 'PGRST202') throw error;
-  return fetchCountersSeparately(myId);
+  if (error) throw error;
+  return countersFromBundle(data, myId);
 }
 
 /** Monta la lista a partir de lo que devuelve get_my_home (exportada para los tests). */
@@ -292,28 +262,6 @@ export function countersFromBundle(bundle: HomeBundle, myId: string): CounterWit
   const streaks = streaksFromRows(bundle.streaks);
   const enriched = bundle.counters.map((counter) =>
     enrich(counter, bundle.totals, groups, myId, participants, aliases, hidden, removed, streaks),
-  );
-  return applyLinks(enriched, links);
-}
-
-/** Como antes de get_my_home: nueve consultas en paralelo. */
-async function fetchCountersSeparately(myId: string): Promise<CounterWithTotal[]> {
-  const [counters, totals, groups, participants, aliases, links, hidden, removed, streaks] =
-    await Promise.all([
-      supabase.from('counters').select('*').order('created_at', { ascending: true }),
-      supabase.from('counter_totals').select('*'),
-      fetchMyActiveGroups(myId),
-      fetchParticipants(),
-      fetchAliases(),
-      fetchLinks(),
-      fetchHidden(),
-      fetchRemovedFromHome(),
-      fetchStreaks(),
-    ]);
-  if (counters.error) throw counters.error;
-  if (totals.error) throw totals.error;
-  const enriched = counters.data.map((counter) =>
-    enrich(counter, totals.data, groups, myId, participants, aliases, hidden, removed, streaks),
   );
   return applyLinks(enriched, links);
 }
@@ -380,17 +328,13 @@ export async function setParticipants(counterId: string, userIds: string[]): Pro
   if (error) throw error;
 }
 
-export async function updateCounter(
-  id: string,
-  patch: Partial<CounterInput> & { archived?: boolean },
-): Promise<void> {
+export async function updateCounter(id: string, patch: Partial<CounterInput>): Promise<void> {
   const { error } = await supabase
     .from('counters')
     .update({
       name: patch.name?.trim(),
       unit: patch.unit === undefined ? undefined : emptyToNull(patch.unit),
       emoji: patch.emoji === undefined ? undefined : emptyToNull(patch.emoji),
-      archived: patch.archived,
       hidden_from_friends: patch.hiddenFromFriends,
       streak_enabled: patch.streakEnabled,
     })
@@ -427,10 +371,7 @@ export async function deleteCounter(counter: Pick<Counter, 'id' | 'group_id'>): 
   if (error) throw error;
 }
 
-/**
- * Oculta o vuelve a mostrar contadores en mi lista. Al mostrar, también se desarchivan los que
- * se archivaron antes (la RLS solo deja tocar los que administro; los demás no cambian).
- */
+/** Oculta o vuelve a mostrar contadores en mi lista (personal: solo lo veo yo). */
 export async function setHidden(counterIds: string[], hidden: boolean): Promise<void> {
   const { error } = hidden
     ? await supabase.from('hidden_counters').upsert(
@@ -439,14 +380,6 @@ export async function setHidden(counterIds: string[], hidden: boolean): Promise<
       )
     : await supabase.from('hidden_counters').delete().in('counter_id', counterIds);
   if (error) throw error;
-  if (!hidden) {
-    const { error: archiveError } = await supabase
-      .from('counters')
-      .update({ archived: false })
-      .in('id', counterIds)
-      .eq('archived', true);
-    if (archiveError) throw archiveError;
-  }
 }
 
 /** Quita contadores de mi pantalla principal o los vuelve a poner. */
