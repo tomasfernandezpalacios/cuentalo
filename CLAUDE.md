@@ -68,8 +68,14 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   la variable se sigue llamando `EXPO_PUBLIC_SUPABASE_ANON_KEY` como pide la especificación.
 - La confirmación de email está desactivada en Supabase durante el desarrollo. **Reactivarla en
   la Fase 6** (Authentication → Sign In / Providers → Confirm email).
-- Migraciones: se aplican pegándolas en el SQL Editor (no hay Docker ni CLI enlazada). Si se
-  cambia una migración ya aplicada, crear una nueva en vez de editarla.
+- **Base de datos** (reordenada el 2026-11-05): `supabase/schema.sql` es el esquema completo
+  (estado final de las 33 migraciones antiguas, generado desde la base de datos real y
+  comprobado). Las antiguas están en `supabase/historial_migraciones/` solo como referencia.
+  Los cambios nuevos van en `supabase/migrations/` (ver su README) y se aplican con el conector
+  de Supabase (`apply_migration`, proyecto `uucmxpwevggzvdgnoxbh`) o en el SQL Editor; después
+  se actualiza `schema.sql`. Nunca editar una migración ya aplicada. Ojo: varias migraciones
+  se vaciaron al abrirlas para copiar; mejor copiarlas desde GitHub o aplicarlas con el
+  conector.
 - Fase 1: sesión en `expo-secure-store` troceada en bloques de 1800 bytes
   (`src/lib/secureStorage.ts`) porque SecureStore en Android limita los valores a ~2 KB. Evita
   depender de AsyncStorage + cifrado AES como en la guía oficial.
@@ -128,7 +134,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   mismo bloque grande de la cabecera del grupo (`GroupHeaderCard` con `onPress`), con el código.
 - En la pantalla del grupo, el + morado de la cabecera (como en inicio) crea un contador
   compartido; el botón «Nuevo contador compartido» de la lista solo sale si no hay ninguno.
-- **Rendimiento** (migración `20261201`): la lista de contadores llega en **una** petición
+- **Rendimiento** (migración `20261201`, más `20261202` y `20261203`: permisos de funciones de
+  trigger y de la vista de rachas e índices de claves foráneas, según los asesores de Supabase): la lista de contadores llega en **una** petición
   (`get_my_home`: contadores, totales, grupos, participantes, alias, enlaces, ocultos, quitados
   y rachas) en vez de nueve. `my_visible_counter_ids()` y `my_counter_totals()` aplican las
   mismas reglas que la RLS con joins e índices (antes la RLS recorría todos los registros y
