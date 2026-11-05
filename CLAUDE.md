@@ -244,6 +244,14 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   tiempo real (años, meses, semanas, días, horas, minutos y segundos; cálculo
   de calendario en `age.ts`, con tests, inmune al cambio de hora), días/horas/minutos vividos y
   todos mis contadores de mayor a menor (`myTotal`), sin título, separados por un hueco.
+- **Reordenar arrastrando** (petición del usuario; `useDragReorder` en `src/lib`, sin librerías
+  de gestos, con `dropIndex`/`moveItem`/`applyOrder` en `reorder.ts` con tests): mantener
+  pulsado levanta el elemento y al mover el dedo la capa de la lista se queda con el gesto; los
+  demás se apartan animados. En **Estadísticas** los bloques ('chart', 'streak' y 'age', el
+  bloque «Tienes» que se añade con el + del Resumen vital) y en **Mis contadores** las tarjetas
+  visibles (mantener pulsado sigue entrando en el modo selección; si se arrastra, la selección
+  vuelve a como estaba). Los órdenes van en `profile_private` (`stats_blocks`,
+  `counter_order`, migración `20261210`). El botón «Resumen vital» va relleno del color de la app.
 - Gráfica (`StatsChart`): líneas por defecto, una por contador con color de `chartColors.ts`
   (por posición en la barra); botón cuadrado abajo a la derecha para cambiar a barras
   agrupadas. Eje X por periodo (`chartBuckets`): semana = días lunes→hoy, mes = días 1→hoy,

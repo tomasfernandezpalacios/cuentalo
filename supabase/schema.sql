@@ -1,6 +1,6 @@
 -- Esquema completo de Cuéntalo (Supabase / Postgres 17).
 --
--- Es el estado final de todas las migraciones (de 20261103 a 20261209) en un solo archivo y
+-- Es el estado final de todas las migraciones (de 20261103 a 20261210) en un solo archivo y
 -- ordenado: sirve para crear la base de datos desde cero (p. ej. un proyecto nuevo en la
 -- Fase 6). Se generó a partir de la base de datos real y se comprobó que cada función coincide
 -- con la que hay en producción. La base de datos actual YA tiene todo esto: no hay que
@@ -1885,11 +1885,14 @@ create table public.profiles (
   hide_counter_totals boolean default false not null
 );
 
--- Datos privados de la cuenta (solo los ve su dueño): la fecha de nacimiento del Resumen vital.
+-- Datos privados de la cuenta (solo los ve su dueño): fecha de nacimiento (Resumen vital) y el
+-- orden de los bloques de Estadísticas y de «Mis contadores».
 create table public.profile_private (
   user_id uuid default auth.uid() not null,
   birth_date date,
-  updated_at timestamp with time zone default now() not null
+  updated_at timestamp with time zone default now() not null,
+  stats_blocks text[],
+  counter_order uuid[]
 );
 
 create table public.user_activity_days (

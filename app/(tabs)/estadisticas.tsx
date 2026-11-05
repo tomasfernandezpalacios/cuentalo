@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { Animated, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
@@ -10,6 +10,7 @@ import { useCounterList, useMyLastCounterId } from '@/features/contadores/hooks'
 import { useMyDailyTotals } from '@/features/estadisticas/api';
 import { CounterChipsBar } from '@/features/estadisticas/components/CounterChipsBar';
 import { ChartTotals } from '@/features/estadisticas/components/ChartTotals';
+import { AgeBlock } from '@/features/estadisticas/components/AgeBlock';
 import { StreakCard } from '@/features/estadisticas/components/StreakCard';
 import { StatsChart, type ChartType } from '@/features/estadisticas/components/StatsChart';
 import {
@@ -22,7 +23,14 @@ import {
 import { sortByRecentUse } from '@/features/estadisticas/recentUse';
 import { toggleVisible, useStatsSelection } from '@/features/estadisticas/selection';
 import { visibleCounterId } from '@/features/contadores/links';
+import {
+  type StatsBlock,
+  useBirthDate,
+  useSetStatsBlocks,
+  useStatsBlocks,
+} from '@/features/perfil/birthDate';
 import { chartColor } from '@/lib/chartColors';
+import { useDragReorder } from '@/lib/useDragReorder';
 import { useThemeColors } from '@/lib/theme';
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
@@ -39,6 +47,17 @@ export default function StatsScreen() {
   const selection = useStatsSelection();
   const [period, setPeriod] = useState<Period>('week');
   const [chartType, setChartType] = useState<ChartType>('line');
+  // Bloques de la pantalla (gráfica, racha y, si se añadió, la edad) en el orden del usuario.
+  const blocks = useStatsBlocks();
+  const setBlocks = useSetStatsBlocks();
+  const birthDate = useBirthDate().data ?? null;
+  const visibleBlocks = blocks.filter((b) => b !== 'age' || birthDate !== null);
+  const drag = useDragReorder({
+    keys: visibleBlocks,
+    gap: BLOCK_GAP,
+    onReorder: (keys) =>
+      setBlocks.mutate([...(keys as StatsBlock[]), ...blocks.filter((b) => !keys.includes(b))]),
+  });
 
   const today = localToday();
   // Lo de los contadores enlazados (fusión de varios grupos) cuenta en el que se ve.
@@ -134,6 +153,7 @@ export default function StatsScreen() {
     <ScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
+      scrollEnabled={!drag.dragging}
       refreshControl={
         <RefreshControl
           tintColor={colors.primary}
@@ -146,31 +166,60 @@ export default function StatsScreen() {
         />
       }
     >
-      <SegmentedControl options={PERIOD_OPTIONS} value={period} onChange={setPeriod} />
-
-      <CounterChipsBar
-        counters={chips}
-        visibleIds={visibleIds}
-        onToggle={(id) => toggleVisible(id, visibleIds)}
-        onOpenFilters={() => router.push('/estadisticas/filtros')}
-        filtered={selection.pool !== null}
-      />
-
-      <StatsChart
-        labels={buckets.map((b) => b.label)}
-        titles={buckets.map((b) => bucketTitle(b.key))}
-        series={series}
-        type={chartType}
-        onChangeType={setChartType}
-      />
-
-      <ChartTotals totals={totals} />
-
-      <StreakCard onPress={() => router.push('/racha')} />
+      {/* Bloques en el orden del usuario: mantener pulsado uno y arrastrarlo lo cambia de sitio. */}
+      <View {...drag.containerProps} style={styles.blocks}>
+        {visibleBlocks.map((block) => {
+          const item = drag.itemProps(block);
+          const press = { onLongPress: item.onLongPress, onPressOut: item.onPressOut };
+          return (
+            <Animated.View key={block} onLayout={item.onLayout} style={item.style}>
+              <Pressable {...press} delayLongPress={350} style={styles.block}>
+                {block === 'chart' ? (
+                  <>
+                    <SegmentedControl
+                      options={PERIOD_OPTIONS}
+                      value={period}
+                      onChange={setPeriod}
+                    />
+                    <CounterChipsBar
+                      counters={chips}
+                      visibleIds={visibleIds}
+                      onToggle={(id) => toggleVisible(id, visibleIds)}
+                      onOpenFilters={() => router.push('/estadisticas/filtros')}
+                      filtered={selection.pool !== null}
+                    />
+                    <StatsChart
+                      labels={buckets.map((b) => b.label)}
+                      titles={buckets.map((b) => bucketTitle(b.key))}
+                      series={series}
+                      type={chartType}
+                      onChangeType={setChartType}
+                      {...press}
+                    />
+                    <ChartTotals totals={totals} />
+                  </>
+                ) : block === 'streak' ? (
+                  <StreakCard onPress={() => router.push('/racha')} {...press} />
+                ) : birthDate ? (
+                  <AgeBlock
+                    birthDate={birthDate}
+                    onPress={() => router.push('/resumen')}
+                    {...press}
+                  />
+                ) : null}
+              </Pressable>
+            </Animated.View>
+          );
+        })}
+      </View>
     </ScrollView>
   );
 }
 
+const BLOCK_GAP = 20;
+
 const styles = StyleSheet.create({
-  content: { padding: 16, gap: 20 },
+  content: { padding: 16 },
+  blocks: { gap: BLOCK_GAP },
+  block: { gap: BLOCK_GAP },
 });

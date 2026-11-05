@@ -1,8 +1,17 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { useCallback, useState, type ComponentProps } from 'react';
 import {
+  createContext,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+  type ComponentProps,
+} from 'react';
+import {
+  Animated,
   BackHandler,
+  type ViewProps,
   FlatList,
   Pressable,
   RefreshControl,
@@ -41,9 +50,12 @@ import {
 } from '@/features/contadores/hooks';
 import { useCounterActions } from '@/features/contadores/useCounterActions';
 import { StreakBadge } from '@/features/estadisticas/components/StreakBadge';
+import { useCounterOrder, useSetCounterOrder } from '@/features/perfil/birthDate';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
+import { applyOrder } from '@/lib/reorder';
 import { matchesSearch } from '@/lib/search';
+import { useDragReorder } from '@/lib/useDragReorder';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 function openNewCounter() {
@@ -92,18 +104,40 @@ export default function CountersScreen() {
     }, [selecting]),
   );
 
+  // La lista (va antes de las pantallas de carga: el arrastre la necesita siempre).
+  const folderList = folders.data ?? [];
+  // Solo los míos y los de grupos donde sigo; los de grupos que dejé quedan para estadísticas.
+  // Los quitados de la pantalla principal tampoco (siguen dentro de su grupo).
+  const active = (data ?? []).filter((c) => c.isActive && !c.linkedInto && !c.removedFromHome);
+  // Orden del usuario (manteniendo pulsado y arrastrando); los nuevos van al final.
+  const counterOrder = useCounterOrder();
+  const setCounterOrder = useSetCounterOrder();
+  const ordered = applyOrder(active, counterOrder, (c) => c.id);
+  const filtered = filterCounters(ordered, filters, folderList).filter((c) =>
+    matchesSearch(c.name, query),
+  );
+  const shown = filtered.filter((c) => !c.hidden);
+
+  // Mantener pulsado una tarjeta entra en el modo selección; si además se arrastra, la cambia
+  // de sitio (y la selección vuelve a como estaba).
+  const longPress = useRef<{ id: string; before: string[] } | null>(null);
+  const drag = useDragReorder({
+    keys: shown.map((c) => c.id),
+    gap: CARD_GAP,
+    onDragStart: () => {
+      if (longPress.current) setSelectedIds(longPress.current.before);
+    },
+    onReorder: (keys) =>
+      setCounterOrder.mutate([
+        ...keys,
+        ...ordered.map((c) => c.id).filter((id) => !keys.includes(id)),
+      ]),
+  });
+
   if (isPending) return <LoadingView />;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
 
-  const folderList = folders.data ?? [];
   const filterCount = activeFilterCount(filters);
-
-  // Solo los míos y los de grupos donde sigo; los de grupos que dejé quedan para estadísticas.
-  // Los quitados de la pantalla principal tampoco (siguen dentro de su grupo).
-  const active = data.filter((c) => c.isActive && !c.linkedInto && !c.removedFromHome);
-  const filtered = filterCounters(active, filters, folderList).filter((c) =>
-    matchesSearch(c.name, query),
-  );
   const showSearch = active.length >= SEARCH_FROM || query !== '';
   // Grupos con algún contador en mi lista, por orden alfabético (filtro «De grupo» → grupo).
   const listGroups = [
@@ -111,7 +145,6 @@ export default function CountersScreen() {
       active.flatMap((c) => c.linkedGroups.map((g) => [g.group.id, g.group] as const)),
     ).values(),
   ].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-  const shown = filtered.filter((c) => !c.hidden);
   // Tarjeta que ilumina el tutorial: la primera en la que se puede sumar directamente (en un
   // común de otro, el +1 abre una solicitud y el paso «Suma con un toque» no avanzaría).
   const tutorialCardId = shown.find((c) => !(c.is_common && !c.canManage))?.id;
@@ -241,15 +274,22 @@ export default function CountersScreen() {
 
   // --- Vista ------------------------------------------------------------------------------
 
-  function renderCard(item: CounterWithTotal, isFirst = false) {
-    return (
+  function renderCard(item: CounterWithTotal, isFirst = false, draggable = false) {
+    const dragProps = draggable ? drag.itemProps(item.id) : null;
+    const card = (
       <CounterCard
         key={item.id}
         counter={item}
         tutorialTarget={isFirst}
         selectionMode={selecting}
         selected={selectedIds.includes(item.id)}
-        onLongPress={() => toggleSelected(item.id)}
+        onLongPress={(e) => {
+          // Entra en el modo selección (como siempre) y, si se arrastra, la cambia de sitio.
+          longPress.current = { id: item.id, before: selectedIds };
+          toggleSelected(item.id);
+          dragProps?.onLongPress(e);
+        }}
+        onPressOut={dragProps?.onPressOut}
         onPress={() =>
           selecting
             ? toggleSelected(item.id)
@@ -259,6 +299,12 @@ export default function CountersScreen() {
         onRemoveOne={() => actions.subtractOne(item)}
         onCustomAdd={() => setCustomFor(item)}
       />
+    );
+    if (!dragProps) return card;
+    return (
+      <Animated.View key={item.id} onLayout={dragProps.onLayout} style={dragProps.style}>
+        {card}
+      </Animated.View>
     );
   }
 
@@ -420,91 +466,98 @@ export default function CountersScreen() {
             : undefined
         }
       />
-      <FlatList
-        data={shown}
-        keyExtractor={(counter) => counter.id}
-        renderItem={({ item }) => renderCard(item, item.id === tutorialCardId)}
-        keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={
-          showSearch ? (
-            <View
-              style={[
-                styles.search,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <Ionicons name="search" size={18} color={colors.textMuted} />
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Buscar contador"
-                placeholderTextColor={colors.textMuted}
-                accessibilityLabel="Buscar contador"
-                autoCorrect={false}
-                returnKeyType="search"
-                style={[styles.searchInput, { color: colors.text }]}
-              />
-              {query ? (
-                <Pressable
-                  onPress={() => setQuery('')}
-                  accessibilityRole="button"
-                  accessibilityLabel="Borrar búsqueda"
-                  hitSlop={10}
-                >
-                  <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-                </Pressable>
-              ) : null}
-            </View>
-          ) : undefined
-        }
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-            refreshing={isRefetching}
-            onRefresh={() => {
-              refetch();
-              folders.refetch();
-            }}
-          />
-        }
-        ListEmptyComponent={emptyView}
-        ListFooterComponent={
-          <View style={styles.footer}>
-            {hidden.length > 0 ? (
-              <View style={styles.hidden}>
-                {/* Desplegable cerrado por defecto: los ocultos no estorban en la lista. */}
-                <Pressable
-                  onPress={() => setShowHidden((v) => !v)}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: showHidden }}
-                  accessibilityLabel={`Ocultos, ${hidden.length}`}
-                  style={({ pressed }) => [
-                    styles.hiddenToggle,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      opacity: pressed ? 0.7 : 1,
-                    },
+      <DraggingKey.Provider value={drag.draggingKey}>
+        <View {...drag.containerProps} style={styles.flex}>
+          <FlatList
+            data={shown}
+            keyExtractor={(counter) => counter.id}
+            renderItem={({ item }) => renderCard(item, item.id === tutorialCardId, true)}
+            scrollEnabled={!drag.dragging}
+            // La tarjeta que se arrastra va por encima de las demás.
+            CellRendererComponent={DragCell}
+            keyboardShouldPersistTaps="handled"
+            ListHeaderComponent={
+              showSearch ? (
+                <View
+                  style={[
+                    styles.search,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
                   ]}
                 >
-                  <Ionicons name="eye-off-outline" size={20} color={colors.textMuted} />
-                  <Text style={[styles.hiddenTitle, { color: colors.text }]}>
-                    Ocultos ({hidden.length})
-                  </Text>
-                  <Ionicons
-                    name={showHidden ? 'chevron-up' : 'chevron-down'}
-                    size={20}
-                    color={colors.textMuted}
+                  <Ionicons name="search" size={18} color={colors.textMuted} />
+                  <TextInput
+                    value={query}
+                    onChangeText={setQuery}
+                    placeholder="Buscar contador"
+                    placeholderTextColor={colors.textMuted}
+                    accessibilityLabel="Buscar contador"
+                    autoCorrect={false}
+                    returnKeyType="search"
+                    style={[styles.searchInput, { color: colors.text }]}
                   />
-                </Pressable>
-                {showHidden ? hidden.map((item) => renderCard(item)) : null}
+                  {query ? (
+                    <Pressable
+                      onPress={() => setQuery('')}
+                      accessibilityRole="button"
+                      accessibilityLabel="Borrar búsqueda"
+                      hitSlop={10}
+                    >
+                      <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : undefined
+            }
+            contentContainerStyle={styles.list}
+            refreshControl={
+              <RefreshControl
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+                refreshing={isRefetching}
+                onRefresh={() => {
+                  refetch();
+                  folders.refetch();
+                }}
+              />
+            }
+            ListEmptyComponent={emptyView}
+            ListFooterComponent={
+              <View style={styles.footer}>
+                {hidden.length > 0 ? (
+                  <View style={styles.hidden}>
+                    {/* Desplegable cerrado por defecto: los ocultos no estorban en la lista. */}
+                    <Pressable
+                      onPress={() => setShowHidden((v) => !v)}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: showHidden }}
+                      accessibilityLabel={`Ocultos, ${hidden.length}`}
+                      style={({ pressed }) => [
+                        styles.hiddenToggle,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: colors.border,
+                          opacity: pressed ? 0.7 : 1,
+                        },
+                      ]}
+                    >
+                      <Ionicons name="eye-off-outline" size={20} color={colors.textMuted} />
+                      <Text style={[styles.hiddenTitle, { color: colors.text }]}>
+                        Ocultos ({hidden.length})
+                      </Text>
+                      <Ionicons
+                        name={showHidden ? 'chevron-up' : 'chevron-down'}
+                        size={20}
+                        color={colors.textMuted}
+                      />
+                    </Pressable>
+                    {showHidden ? hidden.map((item) => renderCard(item)) : null}
+                  </View>
+                ) : null}
               </View>
-            ) : null}
-          </View>
-        }
-      />
+            }
+          />
+        </View>
+      </DraggingKey.Provider>
       <FilterMenu
         visible={filtersOpen}
         filters={filters}
@@ -535,6 +588,17 @@ export default function CountersScreen() {
 /** A partir de cuántos contadores sale el buscador. */
 const SEARCH_FROM = 6;
 
+const CARD_GAP = 10;
+
+/** Qué tarjeta se está arrastrando (para la celda de la lista, que es un componente fijo). */
+const DraggingKey = createContext<string | null>(null);
+
+/** Celda de la lista: la tarjeta que se arrastra va por encima de las demás. */
+function DragCell({ item, style, ...rest }: ViewProps & { item: CounterWithTotal }) {
+  const dragging = useContext(DraggingKey);
+  return <View {...rest} style={[style, item.id === dragging && styles.draggingCell]} />;
+}
+
 const styles = StyleSheet.create({
   search: {
     flexDirection: 'row',
@@ -550,7 +614,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   title: { flexDirection: 'row', alignItems: 'center', gap: 24 },
   titleText: { fontSize: 18, fontFamily: fonts.title },
-  list: { padding: 12, gap: 10, flexGrow: 1 },
+  list: { padding: 12, gap: CARD_GAP, flexGrow: 1 },
+  draggingCell: { zIndex: 10, elevation: 10 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18, marginRight: 14 },
   selectionActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginRight: 14 },
   close: { marginHorizontal: 12 },

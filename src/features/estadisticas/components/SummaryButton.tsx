@@ -22,12 +22,13 @@ export function SummaryButton() {
       hitSlop={10}
       style={({ pressed }) => [
         styles.button,
-        first && { backgroundColor: colors.primarySoft },
-        { opacity: pressed ? 0.6 : 1 },
+        // Relleno del color de la app (llamativo); sin texto, un círculo con el libro.
+        { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 },
+        !first && styles.round,
       ]}
     >
-      {first ? <Text style={[styles.text, { color: colors.primary }]}>Resumen vital</Text> : null}
-      <Ionicons name="book-outline" size={22} color={colors.primary} />
+      {first ? <Text style={[styles.text, { color: colors.onPrimary }]}>Resumen vital</Text> : null}
+      <Ionicons name="book" size={first ? 18 : 20} color={colors.onPrimary} />
     </Pressable>
   );
 }
@@ -37,10 +38,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    minHeight: 36,
-    paddingHorizontal: 10,
+    height: 36,
+    paddingHorizontal: 14,
     borderRadius: 18,
-    marginRight: 6,
+    marginRight: 8,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
+  round: { width: 36, paddingHorizontal: 0, justifyContent: 'center' },
   text: { fontSize: 14, fontFamily: fonts.title },
 });

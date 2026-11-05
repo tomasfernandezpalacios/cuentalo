@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { fonts, useThemeColors } from '@/lib/theme';
 
@@ -10,13 +10,16 @@ import { weekProgress } from '../streaks';
 type Props = {
   /** Si se pasa, la tarjeta se puede pulsar (en Estadísticas y el perfil lleva a la racha). */
   onPress?: () => void;
+  /** Mantener pulsada (en Estadísticas: para reordenar los bloques). */
+  onLongPress?: (e: GestureResponderEvent) => void;
+  onPressOut?: () => void;
 };
 
 /**
  * Rectángulo de la racha (Estadísticas, perfil y pantalla de racha): «🔥 N días de racha» en
  * una línea, debajo la mejor racha alineada con el número y, abajo, la semana actual.
  */
-export function StreakCard({ onPress }: Props) {
+export function StreakCard({ onPress, onLongPress, onPressOut }: Props) {
   const colors = useThemeColors();
   const streak = useStreak();
   const current = streak.data?.current ?? 0;
@@ -27,7 +30,9 @@ export function StreakCard({ onPress }: Props) {
   return (
     <Pressable
       onPress={onPress}
-      disabled={!onPress}
+      onLongPress={onLongPress}
+      onPressOut={onPressOut}
+      disabled={!onPress && !onLongPress}
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={`Racha de ${current} ${current === 1 ? 'día' : 'días'}. Mejor racha: ${best}`}
       accessibilityHint={onPress ? 'Abre el calendario de tu racha' : undefined}

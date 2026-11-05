@@ -1,20 +1,22 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { BirthDatePicker } from '@/components/BirthDatePicker';
 import { ErrorView, LoadingView } from '@/components/StateViews';
+import { showUndoToast } from '@/components/UndoToast';
+import { AgeBlock, useNow } from '@/features/estadisticas/components/AgeBlock';
 import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { useCounterList } from '@/features/contadores/hooks';
+import { birthStart, isValidBirthDate, totalsLived } from '@/features/estadisticas/age';
 import {
-  ageBreakdown,
-  birthStart,
-  isValidBirthDate,
-  totalsLived,
-} from '@/features/estadisticas/age';
-import { useBirthDate, useSetBirthDate } from '@/features/perfil/birthDate';
+  useBirthDate,
+  useSetBirthDate,
+  useSetStatsBlocks,
+  useStatsBlocks,
+} from '@/features/perfil/birthDate';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount, formatWithUnit } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
@@ -29,7 +31,7 @@ export default function SummaryScreen() {
   const [editing, setEditing] = useState(false);
   if (birth.isPending) return <LoadingView />;
   if (birth.isError) return <ErrorView error={birth.error} onRetry={birth.refetch} />;
-  const birthDate = birth.data;
+  const birthDate = birth.data ?? null;
   if (!birthDate || editing) {
     return <BirthDateForm initial={birthDate} onDone={() => setEditing(false)} />;
   }
@@ -84,25 +86,11 @@ function BirthDateForm({ initial, onDone }: { initial: string | null; onDone: ()
 function Summary({ birthDate, onChangeDate }: { birthDate: string; onChangeDate: () => void }) {
   const colors = useThemeColors();
   const counters = useCounterList();
-  // Se actualiza cada segundo: la edad va en tiempo real.
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  // Se actualiza cada segundo: lo vivido va en tiempo real.
+  const now = useNow();
 
   const birth = birthStart(birthDate);
-  const age = ageBreakdown(birth, now);
   const lived = totalsLived(birth, now);
-  const parts: { value: number; label: [string, string] }[] = [
-    { value: age.years, label: ['año', 'años'] },
-    { value: age.months, label: ['mes', 'meses'] },
-    { value: age.weeks, label: ['semana', 'semanas'] },
-    { value: age.days, label: ['día', 'días'] },
-    { value: age.hours, label: ['hora', 'horas'] },
-    { value: age.minutes, label: ['minuto', 'minutos'] },
-    { value: age.seconds, label: ['segundo', 'segundos'] },
-  ];
 
   // Mis contadores (con lo mío), de mayor a menor. Los fusionados cuentan en su principal.
   const mine = (counters.data ?? [])
@@ -114,25 +102,7 @@ function Summary({ birthDate, onChangeDate }: { birthDate: string; onChangeDate:
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
     >
-      <View
-        style={[styles.ageBlock, { backgroundColor: colors.primarySoft }]}
-        accessible
-        accessibilityLabel={`Tienes ${parts.map((p) => `${p.value} ${p.label[p.value === 1 ? 0 : 1]}`).join(', ')}`}
-      >
-        <Text style={[styles.ageTitle, { color: colors.text }]}>Tienes</Text>
-        <View style={styles.grid}>
-          {parts.map((p) => (
-            <View key={p.label[1]} style={[styles.tile, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.tileValue, { color: colors.primary }]} allowFontScaling={false}>
-                {p.value}
-              </Text>
-              <Text style={[styles.tileLabel, { color: colors.textMuted }]}>
-                {p.label[p.value === 1 ? 0 : 1]}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </View>
+      <AgeBlock birthDate={birthDate} action={<AddToStatsButton />} />
 
       <View style={styles.lines}>
         <Line label="Días vividos" value={formatAmount(lived.days)} />
@@ -169,6 +139,46 @@ function Summary({ birthDate, onChangeDate }: { birthDate: string; onChangeDate:
   );
 }
 
+/**
+ * El + del bloque «Tienes»: lo añade a Estadísticas (al final de sus bloques). Si ya está, un ✓
+ * que lo quita.
+ */
+function AddToStatsButton() {
+  const colors = useThemeColors();
+  const blocks = useStatsBlocks();
+  const setBlocks = useSetStatsBlocks();
+  const added = blocks.includes('age');
+  return (
+    <Pressable
+      onPress={() =>
+        setBlocks.mutate(added ? blocks.filter((b) => b !== 'age') : [...blocks, 'age'], {
+          onSuccess: () =>
+            showUndoToast(added ? 'Quitado de Estadísticas' : 'Añadido a Estadísticas', () =>
+              setBlocks.mutate(blocks),
+            ),
+        })
+      }
+      accessibilityRole="button"
+      accessibilityLabel={added ? 'Quitar de Estadísticas' : 'Añadir a Estadísticas'}
+      hitSlop={8}
+      style={({ pressed }) => [
+        styles.addButton,
+        {
+          backgroundColor: added ? colors.surface : colors.primary,
+          borderColor: colors.primary,
+          opacity: pressed ? 0.7 : 1,
+        },
+      ]}
+    >
+      <Ionicons
+        name={added ? 'checkmark' : 'add'}
+        size={22}
+        color={added ? colors.primary : colors.onPrimary}
+      />
+    </Pressable>
+  );
+}
+
 /** Una línea del resumen: texto a la izquierda y número a la derecha. */
 function Line({
   label,
@@ -194,24 +204,19 @@ function Line({
 }
 
 const styles = StyleSheet.create({
+  addButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   formContent: { padding: 24, gap: 18, alignItems: 'stretch' },
   formTitle: { fontSize: 26, fontFamily: fonts.title },
   detail: { fontSize: 15, fontFamily: fonts.detail, lineHeight: 21 },
   dateText: { fontSize: 17, fontFamily: fonts.title },
   content: { padding: 16, gap: 18 },
-  ageBlock: { borderRadius: 20, padding: 16, gap: 12 },
-  ageTitle: { fontSize: 22, fontFamily: fonts.title },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tile: {
-    flexGrow: 1,
-    flexBasis: '22%',
-    minWidth: 72,
-    borderRadius: 14,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  tileValue: { fontSize: 28, fontFamily: fonts.title, fontVariant: ['tabular-nums'] },
-  tileLabel: { fontSize: 13, fontFamily: fonts.detail },
   lines: { gap: 0 },
   line: {
     flexDirection: 'row',

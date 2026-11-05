@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatAmount, formatWithUnit } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
@@ -18,8 +18,12 @@ type Props = {
   onRemoveOne: () => void;
   /** Mantener pulsado el primer botón (+1) abre la cantidad personalizada. */
   onCustomAdd: () => void;
-  /** Mantener pulsada la tarjeta (en la lista de inicio: entra en modo selección). */
-  onLongPress?: () => void;
+  /**
+   * Mantener pulsada la tarjeta (en la lista de inicio: entra en modo selección y, si después se
+   * arrastra, la cambia de sitio).
+   */
+  onLongPress?: (e: GestureResponderEvent) => void;
+  onPressOut?: () => void;
   /** Modo selección: en vez de los botones rápidos se ve si está elegida. */
   selectionMode?: boolean;
   selected?: boolean;
@@ -35,6 +39,7 @@ export function CounterCard({
   onRemoveOne,
   onCustomAdd,
   onLongPress,
+  onPressOut,
   selectionMode = false,
   selected = false,
   tutorialTarget = false,
@@ -45,6 +50,7 @@ export function CounterCard({
       <Pressable
         onPress={onPress}
         onLongPress={onLongPress}
+        onPressOut={onPressOut}
         accessibilityRole={selectionMode ? 'checkbox' : 'button'}
         accessibilityState={selectionMode ? { checked: selected } : undefined}
         accessibilityLabel={`${counter.name}${counter.group ? `, del grupo ${counter.group.name}` : ''}: ${formatWithUnit(counter.displayTotal, counter.unit)}`}

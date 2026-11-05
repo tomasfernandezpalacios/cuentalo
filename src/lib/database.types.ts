@@ -229,9 +229,26 @@ export type Database = {
         Relationships: [];
       };
       profile_private: {
-        Row: { user_id: string; birth_date: string | null; updated_at: string };
-        Insert: { birth_date: string | null; user_id?: string; updated_at?: string };
-        Update: { birth_date?: string | null; updated_at?: string };
+        Row: {
+          user_id: string;
+          birth_date: string | null;
+          stats_blocks: string[] | null;
+          counter_order: string[] | null;
+          updated_at: string;
+        };
+        Insert: {
+          birth_date?: string | null;
+          stats_blocks?: string[] | null;
+          counter_order?: string[] | null;
+          user_id?: string;
+          updated_at?: string;
+        };
+        Update: {
+          birth_date?: string | null;
+          stats_blocks?: string[] | null;
+          counter_order?: string[] | null;
+          updated_at?: string;
+        };
         Relationships: [];
       };
       hidden_counters: {

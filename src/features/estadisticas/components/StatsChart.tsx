@@ -1,6 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  type GestureResponderEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { formatAmount } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
@@ -21,6 +28,9 @@ type Props = {
   title?: string;
   /** Nombre completo de cada punto del eje X («mié 4 nov 2026»); si no, la etiqueta corta. */
   titles?: string[];
+  /** Mantener pulsada la gráfica (en Estadísticas: para reordenar los bloques). */
+  onLongPress?: (e: GestureResponderEvent) => void;
+  onPressOut?: () => void;
 };
 
 const CHART_HEIGHT = 200;
@@ -38,6 +48,8 @@ export function StatsChart({
   emptyText = 'Toca un contador para verlo en la gráfica',
   title = 'Evolución',
   titles = labels,
+  onLongPress,
+  onPressOut,
 }: Props) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
@@ -80,6 +92,8 @@ export function StatsChart({
         {/* Capa transparente encima: el toque abre la vista ampliada. */}
         <Pressable
           onPress={() => setExpanded(true)}
+          onLongPress={onLongPress}
+          onPressOut={onPressOut}
           accessibilityRole="button"
           accessibilityLabel={`Gráfica. ${description}. Toca para ampliarla`}
           style={StyleSheet.absoluteFill}
