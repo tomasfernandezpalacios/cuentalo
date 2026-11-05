@@ -166,7 +166,7 @@ export function useSetParticipants(counterId: string) {
 export function useUpdateCounter(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: Partial<CounterInput> & { archived?: boolean }) => updateCounter(id, patch),
+    mutationFn: (patch: Partial<CounterInput>) => updateCounter(id, patch),
     onSuccess: () => invalidateCounters(queryClient),
   });
 }
@@ -292,19 +292,51 @@ function rollback(queryClient: QueryClient, context: OptimisticContext | undefin
   queryClient.setQueryData(context.listKey, context.previousList);
 }
 
+// --- Refresco tras +N / −1 ---------------------------------------------------
+//
+// Antes cada toque refrescaba todo al terminar. Con varios toques seguidos eso lanzaba muchas
+// consultas y, peor, la respuesta de un refresco podía llegar con el total *antiguo* mientras otro
+// toque aún no estaba guardado: el número bajaba un momento y volvía a subir. Ahora:
+//  - todos los +N/−1 comparten `entryMutationKey`, así sabemos si queda alguno en vuelo;
+//  - solo el último en terminar programa el refresco, y con un pequeño retraso que se reinicia
+//    con cada toque nuevo (varios toques rápidos → un solo refresco al final).
+
+const entryMutationKey = ['entry-change'] as const;
+const REFRESH_DELAY_MS = 700;
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelScheduledRefresh() {
+  if (refreshTimer) clearTimeout(refreshTimer);
+  refreshTimer = null;
+}
+
+/** Llamar en `onSettled`: la mutación que termina aún cuenta como en vuelo. */
+function scheduleRefreshAfterEntry(queryClient: QueryClient) {
+  if (queryClient.isMutating({ mutationKey: entryMutationKey }) > 1) return;
+  cancelScheduledRefresh();
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null;
+    if (queryClient.isMutating({ mutationKey: entryMutationKey }) > 0) return;
+    void invalidateCounters(queryClient);
+  }, REFRESH_DELAY_MS);
+}
+
 /** +N. En un contador común se suma a todos sus participantes. */
 export function useAddEntry() {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
+    mutationKey: entryMutationKey,
     mutationFn: ({ counterId, input }: { counterId: string; input: EntryInput }) =>
       cachedCounter(queryClient, counterId)?.is_common
         ? addToCommonCounter(counterId, input)
         : createEntry(counterId, input),
-    onMutate: ({ counterId, input }) =>
-      applyOptimistic(queryClient, counterId, (c) => applyAmount(c, input.amount, userId)),
+    onMutate: ({ counterId, input }) => {
+      cancelScheduledRefresh();
+      return applyOptimistic(queryClient, counterId, (c) => applyAmount(c, input.amount, userId));
+    },
     onError: (_error, _variables, context) => rollback(queryClient, context),
-    onSettled: () => invalidateCounters(queryClient),
+    onSettled: () => scheduleRefreshAfterEntry(queryClient),
   });
 }
 
@@ -316,6 +348,7 @@ export function useRemoveOne() {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
+    mutationKey: entryMutationKey,
     mutationFn: async (counterId: string) => {
       if (cachedCounter(queryClient, counterId)?.is_common) {
         await removeOneFromCommonCounter(counterId);
@@ -323,16 +356,18 @@ export function useRemoveOne() {
         await removeOne(counterId);
       }
     },
-    onMutate: (counterId) =>
-      applyOptimistic(queryClient, counterId, (c) =>
+    onMutate: (counterId) => {
+      cancelScheduledRefresh();
+      return applyOptimistic(queryClient, counterId, (c) =>
         c.is_common
           ? applyAmount(c, -1, userId)
           : c.myGroupTotal < 1
             ? c
             : applyAmount(c, -1, userId),
-      ),
+      );
+    },
     onError: (_error, _counterId, context) => rollback(queryClient, context),
-    onSettled: () => invalidateCounters(queryClient),
+    onSettled: () => scheduleRefreshAfterEntry(queryClient),
   });
 }
 

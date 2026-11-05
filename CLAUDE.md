@@ -154,7 +154,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   consulta. `refreshAll` refresca todo menos enlaces de fotos, avatares y códigos de grupo.
 - **Cambios al instante** (petición del usuario): toda mutación (contadores, social, carpetas,
   perfil) refresca **todas** las consultas (`refreshAll`; solo se vuelven a
-  pedir las que están en pantalla). `ChartPlot` lleva `key` con series, valores y etiquetas:
+  pedir las que están en pantalla). Excepción: tras +N/−1 el refresco se agrupa
+  (`entryMutationKey` en `hooks.ts`): solo lo programa el último toque en vuelo, 700 ms después,
+  para que varios toques rápidos no pidan todo cada vez ni un refresco pise el número optimista.
+  `ChartPlot` lleva `key` con series, valores y etiquetas:
   gifted-charts no redibujaba al cambiar de contador (solo al cambiar de tipo).
 - Fase 3: los datos se refrescan al volver a la app (`focusManager` + `AppState`) y con
   "tirar para refrescar".
@@ -285,8 +288,13 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   contador, de amistad e invitaciones), avisos (`notifications`: amistad aceptada, solicitud
   aceptada/rechazada, contador o grupo borrado) e historial de solicitudes de amistad. Punto
   rojo en el icono y en la pestaña mientras haya algo pendiente o sin leer (`useInboxCount`);
-  los avisos se marcan como leídos al abrir el buzón. Un rechazo de amistad no se avisa.
-- **Modo selección** en «Mis contadores»: mantener pulsado un contador. Cabecera «N
+  los avisos se marcan como leídos al abrir el buzón. Un rechazo de amistad no se avisa. Al
+  aceptar una amistad avisan a los dos (migración `20261205`): `friend_accepted` a quien la
+  envió y `friend_you_accepted` a quien la acepta.
+- **Modo selección** en «Mis contadores»: mantener pulsado un contador. La barra de carpetas
+  pasa a seleccionar en masa (petición del usuario): «Todos» y cada carpeta añaden sus
+  contadores a la selección o los quitan si ya estaban todos (`toggleMany`); sin «Nueva
+  carpeta». Cabecera «N
   seleccionados» con borrar, añadir a carpeta (`FolderPicker` o carpeta nueva con los
   seleccionados), ocultar/mostrar, editar (solo con uno) y fusionar. Atrás de Android sale del
   modo. **Ocultos** personales (`hidden_counters`) al final de la lista, en un desplegable «Ocultos (N)»
@@ -423,9 +431,9 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - **Líder y administrador** (decisión del usuario): el **líder** es quien crea y dirige el grupo
   (`groups.owner_id`, «Designar líder», «Dejar de ser líder»); el **administrador** es el
   responsable de cada contador (`counters.owner_id`). En código siguen llamándose owner/admin.
-- **«Archivar» se juntó con «Ocultar»** (decisión del usuario): ya no se archiva; un contador
-  archivado de antes cuenta como oculto (`hidden = hidden_counters || archived`) y al
-  mostrarlo se desarchiva. En los grupos ya no se esconden los archivados.
+- **«Archivar» se juntó con «Ocultar»** (decisión del usuario): solo existe `hidden_counters`;
+  la columna `counters.archived` se borró (migración `20261204`, junto con
+  `profiles.avatar_url` y `profiles.hide_counters_from_friends`, que no se usaban).
 - Textos: no dar por hecho que el primer botón rápido es +1 (se configura).
 - El tutorial ilumina la primera tarjeta donde se puede sumar directamente (no un común de
   otro) y también avanza si se envía una solicitud al administrador.
