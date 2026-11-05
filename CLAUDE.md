@@ -225,7 +225,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - Gráficas interactivas (petición del usuario): al tocar `StatsChart` (Estadísticas y grupo)
   se abre `ChartViewer` a pantalla completa (Modal): zoom **solo pellizcando** (PanResponder
   con dos dedos, sin librería de gestos; sin botones, petición del usuario), deslizar por el eje
-  X y **tocar un punto o barra** para ver su dato en un recuadro. Líneas: el toque se calcula a
+  X y **tocar un punto o barra** para ver su dato en un recuadro, que la app coloca siempre
+  dentro de la gráfica (`bubbleAt`; también en barras, con `onPress` de la barra). Líneas: el toque se calcula a
   mano (`onTouchStart/End` + `measure` + desplazamiento de `onScroll`), porque las franjas de
   `focusEnabled` de gifted-charts no reciben toques en el móvil; barras: `renderTooltip`. El
   recuadro usa `bucketTitle` («mié 4 nov 2026»). Bajo la gráfica, «Toca la gráfica para
@@ -301,7 +302,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   cerrado al abrir la app.
 - **Perfil de otros** (`app/usuario/[id].tsx`, se abre tocando a cualquier persona en
   `PersonRow`): si no sois amigos, botón de solicitud; si lo sois, su racha y sus contadores
-  visibles. Siempre, los contadores en común (los de grupos de los dos) con su total y el mío.
+  visibles. Siempre, los contadores en común (los de grupos de los dos) con su total y el mío,
+  **arriba**, y debajo la gráfica «Tú y X» (`CommonCountersChart`, petición del usuario):
+  periodo, barra de contadores en común (por defecto el primero) y dos series por contador
+  (tú y la otra persona) con `get_group_counter_daily`; después «Sus contadores».
   Datos por la RPC `get_user_counters` (SECURITY DEFINER, solo totales). Los individuales son
   visibles para amigos salvo `counters.hidden_from_friends`. En «¿Quién lo ve?» son dos
   opciones (petición del usuario): «Privado» (hidden_from_friends = true) y «Privado y

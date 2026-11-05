@@ -21,6 +21,7 @@ import {
 import { getErrorMessage } from '@/lib/errors';
 import { formatWithUnit } from '@/lib/format';
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
+import { CommonCountersChart } from '@/features/social/components/CommonCountersChart';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 function showError(error: unknown) {
@@ -29,7 +30,8 @@ function showError(error: unknown) {
 
 /**
  * Perfil de otra persona. Si no es tu amiga: botón para enviarle solicitud y los contadores en
- * común (de vuestros grupos). Si lo es: además su racha y los contadores que te enseña.
+ * común (de vuestros grupos). Si lo es: además su racha y los contadores que te enseña. Los en
+ * común van primero, con una gráfica que os compara, y debajo los suyos.
  */
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -188,18 +190,6 @@ export default function UserProfileScreen() {
         </View>
       ) : null}
 
-      {isFriend ? (
-        <Section title="Sus contadores">
-          {publicCounters.length === 0 ? (
-            <Text style={[styles.detail, { color: colors.textMuted }]}>
-              No tiene contadores visibles para sus amigos.
-            </Text>
-          ) : (
-            publicCounters.map((c) => <CounterRow key={c.id} counter={c} />)
-          )}
-        </Section>
-      ) : null}
-
       <Section title="Contadores en común">
         {counters.isPending ? (
           <Text style={[styles.detail, { color: colors.textMuted }]}>Cargando…</Text>
@@ -213,6 +203,27 @@ export default function UserProfileScreen() {
           ))
         )}
       </Section>
+      {commonCounters.length > 0 ? (
+        <Section title={`Tú y ${person.display_name}`}>
+          <CommonCountersChart
+            counters={commonCounters}
+            friendId={id}
+            friendName={person.display_name}
+          />
+        </Section>
+      ) : null}
+
+      {isFriend ? (
+        <Section title="Sus contadores">
+          {publicCounters.length === 0 ? (
+            <Text style={[styles.detail, { color: colors.textMuted }]}>
+              No tiene contadores visibles para sus amigos.
+            </Text>
+          ) : (
+            publicCounters.map((c) => <CounterRow key={c.id} counter={c} />)
+          )}
+        </Section>
+      ) : null}
 
       {isFriend ? (
         <AppButton title="Eliminar amigo" variant="ghost" onPress={confirmRemove} />

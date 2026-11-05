@@ -147,6 +147,30 @@ export function ChartPlot({ labels, series, type, plotWidth, height, interactive
     isAnimated: !interactive,
   };
 
+  // El recuadro del dato tocado: centrado sobre el punto (x, y), encima si cabe y si no debajo,
+  // y siempre dentro de la gráfica (ni por los lados ni por arriba ni por abajo).
+  const bubbleAt = (x: number, y: number, serie: number, index: number) => {
+    const left = Math.min(
+      Math.max(x - BUBBLE_WIDTH / 2, 0),
+      Y_AXIS_WIDTH + plotWidth - BUBBLE_WIDTH,
+    );
+    const above = y - BUBBLE_HEIGHT - 12;
+    const top = Math.min(
+      Math.max(above >= 0 ? above : y + 14, 0),
+      PLOT_TOP + height - BUBBLE_HEIGHT,
+    );
+    return (
+      <View pointerEvents="none" style={[styles.bubbleSpot, { left, top }]}>
+        {bubbleFor(serie, index)}
+      </View>
+    );
+  };
+  const onScroll = (e: { nativeEvent: { contentOffset: { x: number } } }) => {
+    scrollX.current = e.nativeEvent.contentOffset.x;
+    // Al deslizar, el recuadro se cierra (se quedaría fuera de su punto).
+    if (selected) setSelected(null);
+  };
+
   if (type === 'line') {
     const spacing = (points > 1 ? plotWidth / (points - 1) - 1 : plotWidth) * zoom;
     const initialSpacing = 6;
@@ -187,17 +211,7 @@ export function ChartPlot({ labels, series, type, plotWidth, height, interactive
       const value = series[selected.serie]?.values[selected.index];
       if (value === undefined) return null;
       const x = Y_AXIS_WIDTH + initialSpacing + spacing * selected.index - selected.scroll;
-      const y = pointY(value);
-      const left = Math.min(
-        Math.max(x - BUBBLE_WIDTH / 2, 0),
-        Y_AXIS_WIDTH + plotWidth - BUBBLE_WIDTH,
-      );
-      const top = y - BUBBLE_HEIGHT - 12 < 0 ? y + 14 : y - BUBBLE_HEIGHT - 12;
-      return (
-        <View pointerEvents="none" style={[styles.bubbleSpot, { left, top }]}>
-          {bubbleFor(selected.serie, selected.index)}
-        </View>
-      );
+      return bubbleAt(x, pointY(value), selected.serie, selected.index);
     })();
 
     const dataSet = series.map((s, serie) => ({
@@ -220,11 +234,7 @@ export function ChartPlot({ labels, series, type, plotWidth, height, interactive
         spacing={spacing}
         initialSpacing={initialSpacing}
         endSpacing={endSpacing}
-        onScroll={(e: { nativeEvent: { contentOffset: { x: number } } }) => {
-          scrollX.current = e.nativeEvent.contentOffset.x;
-          // Al deslizar, el recuadro se cierra (se quedaría fuera de su punto).
-          if (selected) setSelected(null);
-        }}
+        onScroll={onScroll}
       />
     );
     if (!interactive) return chart;
@@ -248,26 +258,55 @@ export function ChartPlot({ labels, series, type, plotWidth, height, interactive
       labelWidth: (barWidth + 1) * series.length + groupGap,
     })),
   );
-  return (
+  // Al tocar una barra, el recuadro lo pone la app (el de la librería se salía de la gráfica
+  // con barras altas). En los datos cada serie es una barra: el punto del eje X es
+  // índice / nº de series y la serie, el resto.
+  const n = Math.max(series.length, 1);
+  const initialSpacing = 4;
+  const groupWidth = n * barWidth + (n - 1) + groupGap;
+  const barBubble = (() => {
+    if (!interactive || !selected) return null;
+    const value = series[selected.serie]?.values[selected.index];
+    if (value === undefined) return null;
+    const x =
+      Y_AXIS_WIDTH +
+      initialSpacing +
+      selected.index * groupWidth +
+      selected.serie * (barWidth + 1) +
+      barWidth / 2 -
+      selected.scroll;
+    return bubbleAt(
+      x,
+      PLOT_TOP + height * (1 - clamp(value) / maxValue),
+      selected.serie,
+      selected.index,
+    );
+  })();
+  const barChart = (
     <BarChart
       key={dataKey}
       {...common}
       data={data}
       barWidth={barWidth}
-      initialSpacing={4}
+      initialSpacing={initialSpacing}
       endSpacing={interactive ? 24 : 4}
       barBorderTopLeftRadius={2}
       barBorderTopRightRadius={2}
-      // Al tocar una barra sale su recuadro encima. En los datos, cada serie es una barra: el
-      // punto del eje X es índice / nº de series y la serie, el resto.
       {...(interactive
         ? {
-            renderTooltip: (_item: unknown, index: number) =>
-              bubbleFor(index % series.length, Math.floor(index / series.length)),
-            autoCenterTooltip: true,
+            onPress: (_item: unknown, index: number) =>
+              toggle(index % n, Math.floor(index / n), scrollX.current),
+            onScroll,
           }
         : {})}
     />
+  );
+  if (!interactive) return barChart;
+  return (
+    <View>
+      {barChart}
+      {barBubble}
+    </View>
   );
 }
 
