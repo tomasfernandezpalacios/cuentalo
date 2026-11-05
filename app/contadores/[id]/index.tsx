@@ -153,6 +153,11 @@ export default function CounterDetailScreen() {
         canRemove={isCommon ? total >= 1 : myGroupTotal >= 1}
         onCustom={() => setDialog('new')}
       />
+      {/* Tu evolución en este contador (solo lo tuyo); en los de grupo, debajo va la clasificación. */}
+      <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
+        {linkedGroups.length > 0 ? 'Tu evolución' : 'Evolución'}
+      </Text>
+      <CounterChart counterIds={counter.data.linkedCounterIds} name={name} unit={unit} />
       {board ? (
         <>
           <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
@@ -192,11 +197,6 @@ export default function CounterDetailScreen() {
           <Leaderboard counterId={board.counterId} unit={unit} streak={streak !== null} />
         </>
       ) : null}
-      {/* Tu evolución en este contador (solo lo tuyo), justo encima del historial. */}
-      <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
-        {linkedGroups.length > 0 ? 'Tu evolución' : 'Evolución'}
-      </Text>
-      <CounterChart counterIds={counter.data.linkedCounterIds} name={name} unit={unit} />
       <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
         {linkedGroups.length > 0 ? 'Tu historial' : 'Historial'}
       </Text>
