@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -6,6 +5,7 @@ import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import type { PublicProfile } from '../api';
+import { openProfile } from '../openProfile';
 
 type Props = {
   profile: PublicProfile;
@@ -21,7 +21,7 @@ export function PersonRow({ profile, note, actions }: Props) {
   return (
     <View style={[styles.row, { borderBottomColor: colors.border }]}>
       <Pressable
-        onPress={() => router.push({ pathname: '/usuario/[id]', params: { id: profile.id } })}
+        onPress={() => openProfile(profile.id)}
         accessibilityRole="button"
         accessibilityLabel={`${profile.display_name}, @${profile.username}${note ? `, ${note}` : ''}`}
         accessibilityHint="Abre su perfil"

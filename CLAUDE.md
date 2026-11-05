@@ -301,7 +301,7 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   modo. **Ocultos** personales (`hidden_counters`) al final de la lista, en un desplegable «Ocultos (N)»
   cerrado al abrir la app.
 - **Perfil de otros** (`app/usuario/[id].tsx`, se abre tocando a cualquier persona en
-  `PersonRow`): si no sois amigos, botón de solicitud; si lo sois, su racha y sus contadores
+  `PersonRow` y en las clasificaciones de contadores y de rachas, con `openProfile`): si no sois amigos, botón de solicitud; si lo sois, su racha y sus contadores
   visibles. Siempre, los contadores en común (los de grupos de los dos) con su total y el mío,
   **arriba**, y debajo la gráfica «Tú y X» (`CommonCountersChart`, petición del usuario):
   periodo, barra de contadores en común (por defecto el primero) y dos series por contador

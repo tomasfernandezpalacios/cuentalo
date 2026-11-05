@@ -1,9 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useUserId } from '@/features/auth/AuthProvider';
 import { getErrorMessage } from '@/lib/errors';
 import { UserAvatar } from '@/features/perfil/PersonAvatar';
+import { openProfile } from '@/features/social/openProfile';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import { useFriendsStreaks } from '../api';
@@ -45,12 +46,17 @@ export function FriendsStreaks() {
         // En color solo si hoy ya ha mantenido la racha.
         const flameColor = row.activeToday ? colors.flame : colors.textMuted;
         return (
-          <View
+          // Tocar a un amigo abre su perfil.
+          <Pressable
             key={row.userId}
-            accessible
+            onPress={() => openProfile(row.userId)}
+            disabled={isMe}
+            accessibilityRole={isMe ? undefined : 'button'}
             accessibilityLabel={`Posición ${position}: ${isMe ? 'tú' : row.displayName}, ${row.current} ${row.current === 1 ? 'día' : 'días'} de racha`}
-            style={[
+            accessibilityHint={isMe ? undefined : 'Abre su perfil'}
+            style={({ pressed }) => [
               styles.row,
+              { opacity: pressed ? 0.7 : 1 },
               index > 0 && {
                 borderTopColor: colors.border,
                 borderTopWidth: StyleSheet.hairlineWidth,
@@ -72,7 +78,7 @@ export function FriendsStreaks() {
               <Ionicons name="flame" size={20} color={flameColor} />
               <Text style={[styles.number, { color: flameColor }]}>{row.current}</Text>
             </View>
-          </View>
+          </Pressable>
         );
       })}
     </View>

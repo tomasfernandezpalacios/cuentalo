@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { getErrorMessage } from '@/lib/errors';
 import { formatWithUnit, pluralize } from '@/lib/format';
 import { UserAvatar } from '@/features/perfil/PersonAvatar';
+import { openProfile } from '@/features/social/openProfile';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import type { LeaderboardPeriod } from '../api';
@@ -62,13 +63,17 @@ export function Leaderboard({
             const isMe = row.userId === userId;
             const medal = row.total > 0 ? MEDALS[row.position - 1] : undefined;
             return (
-              <View
+              // Tocar a otra persona abre su perfil.
+              <Pressable
                 key={row.userId}
-                accessible
+                onPress={() => openProfile(row.userId)}
+                disabled={isMe}
+                accessibilityRole={isMe ? undefined : 'button'}
                 accessibilityLabel={`Posición ${row.position}: ${isMe ? 'tú' : row.displayName}, ${formatWithUnit(row.total, unit)}`}
-                style={[
+                accessibilityHint={isMe ? undefined : 'Abre su perfil'}
+                style={({ pressed }) => [
                   styles.row,
-                  { borderBottomColor: colors.border },
+                  { borderBottomColor: colors.border, opacity: pressed ? 0.7 : 1 },
                   isMe && { backgroundColor: colors.primarySoft },
                 ]}
               >
@@ -90,7 +95,7 @@ export function Leaderboard({
                 <Text style={[styles.total, { color: colors.text }]} numberOfLines={1}>
                   {formatWithUnit(row.total, unit)}
                 </Text>
-              </View>
+              </Pressable>
             );
           })}
         </View>
