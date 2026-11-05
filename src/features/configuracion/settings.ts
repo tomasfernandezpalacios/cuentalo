@@ -28,6 +28,11 @@ export type Settings = {
    * racha que aún no se haya mantenido ese día (counters). Misma hora para todos.
    */
   reminder: { enabled: boolean; counters: boolean; hour: number; minute: number };
+  /**
+   * Fecha de nacimiento ('AAAA-MM-DD') para el resumen de Estadísticas. Solo en este móvil (no va
+   * a Supabase). null = aún no se ha generado ningún resumen.
+   */
+  birthDate: string | null;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -39,6 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
   haptics: true,
   statsDefault: 'last',
   reminder: { enabled: false, counters: false, hour: 21, minute: 0 },
+  birthDate: null,
 };
 
 /** Cantidades que se pueden elegir para los botones rápidos. */

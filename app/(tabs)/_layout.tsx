@@ -8,6 +8,7 @@ import { useInboxCount } from '@/features/social/hooks';
 import type { TargetId } from '@/features/tutorial/steps';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { fonts, useThemeColors } from '@/lib/theme';
+import { SummaryButton } from '@/features/estadisticas/components/SummaryButton';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -57,6 +58,8 @@ export default function TabsLayout() {
           title: 'Estadísticas',
           tabBarIcon: tabIcon('bar-chart-outline'),
           tabBarButton: tutorialTabButton('tab-estadisticas'),
+          // «Generar resumen» (la primera vez) o el libro: abre el resumen de tu vida.
+          headerRight: () => <SummaryButton />,
         }}
       />
       <Tabs.Screen
