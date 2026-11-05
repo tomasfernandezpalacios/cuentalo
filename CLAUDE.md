@@ -90,6 +90,14 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   (`[id]`) como texto literal y rompe el typecheck.
 - Fase 1: autenticación en `src/features/auth` (carpeta extra a las cuatro de la especificación).
 - Tests con `jest-expo` (`npm test`), en carpetas `__tests__` junto al código.
+- **Bots de prueba** (`scripts/bots/`, petición del usuario): `npm run bots` (opcional
+  `-- --rondas 80 --semilla 7`). Cinco usuarios reales `prueba1`…`prueba5`
+  (`pruebaN@cuentalo.test`, contraseñas en `scripts/bots/.bots.json`, ignorado por Git) con
+  personalidades distintas (`personas.mjs`) hacen las mismas llamadas que la app
+  (`acciones.mjs`) y luego comprueban totales, clasificaciones, rachas, privacidad, códigos y
+  comunes (`comprobaciones.mjs`). Informe por ejecución en `scripts/bots/informes/` y lista
+  acumulada en `hallazgos.md`. `npm run bots:limpiar` borra las cuentas (delete_my_account).
+  Las cuentas las crea el usuario al ejecutarlo (Claude no crea cuentas en servicios reales).
 - Petición del usuario (tras la Fase 2): la tarjeta de la lista es «nombre · +1 +5 −1 · total»
   (el +10 se quitó a petición del usuario), sin número de registros; mantener pulsado +1 abre otra cantidad. El detalle tiene los
   mismos botones más «Otra». Las actualizaciones optimistas tocan lista y detalle a la vez.

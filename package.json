@@ -49,7 +49,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "bots": "node --env-file=.env scripts/bots/bots.mjs",
+    "bots:limpiar": "node --env-file=.env scripts/bots/limpiar.mjs"
   },
   "private": true,
   "jest": {

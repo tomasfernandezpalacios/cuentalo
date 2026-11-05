@@ -48,3 +48,6 @@ yarn-error.*
 # Supabase CLI local
 supabase/.temp/
 supabase/.branches/
+
+# Bots de prueba: contraseñas de las cuentas prueba1…prueba5
+scripts/bots/.bots.json
