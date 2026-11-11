@@ -640,6 +640,13 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   correo integrado de Supabase es gratis pero manda pocos emails por hora; para publicar hará
   falta un SMTP propio (Fase 6).
 
+- Calendario de rachas: además de las flechas, se cambia de mes **deslizando** los días con el
+  dedo (`useMonthSwipe` en `StreakCalendar`, PanResponder solo para gestos claramente
+  horizontales): siguen al dedo, salen por ese lado y entra el mes nuevo por el otro; hacia el
+  futuro desde el mes actual se frena. Los días con actividad son círculos con fondo y borde
+  siempre puestos (transparentes si no) y clave por fecha: en Android salían cuadrados al
+  volver de otro mes.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)
