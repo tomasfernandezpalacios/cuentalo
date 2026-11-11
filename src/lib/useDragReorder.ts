@@ -10,37 +10,51 @@ import {
 
 import { getSettings } from '@/features/configuracion/settings';
 
-import { dropIndex, moveItem } from './reorder';
+import {
+  dropIndex,
+  gridDropIndex,
+  moveItem,
+  type Point,
+  type Size,
+  slotPositions,
+} from './reorder';
 
-// Reordenar una lista vertical manteniendo pulsado y arrastrando (sin librerías de gestos).
+// Reordenar una lista (una columna) o una cuadrícula manteniendo pulsado y arrastrando, sin
+// librerías de gestos.
 //
-// * Mantener pulsado un elemento lo «levanta» (onLongPress con la posición del dedo).
+// * Mantener pulsado un elemento lo «levanta» (crece un poco).
 // * Al mover el dedo, la capa que envuelve la lista se queda con el gesto: el elemento sigue al
-//   dedo y los demás se apartan con una animación corta hacia su nuevo sitio.
-// * Al soltar, avisa del nuevo orden (onReorder con las claves) y todo vuelve a su sitio sin
-//   saltos (el nuevo orden ya se pinta en su posición).
-// * Si se suelta sin mover, no pasa nada (y el elemento hace lo que hiciera al mantenerlo).
+//   dedo y los demás se deslizan a su nuevo hueco.
+// * Al soltar, el elemento se desliza hasta su hueco y solo entonces se guarda el nuevo orden;
+//   cada uno se queda donde se ve hasta que llega ese orden y todo vuelve a 0 antes de pintar
+//   (useLayoutEffect): ni saltos ni un fotograma con el orden viejo.
+// * Si se suelta sin mover, vuelve a su sitio y avisa (onHold).
+//
+// Las animaciones van en el hilo de JS (useNativeDriver: false) a propósito: así poner un valor
+// a mano (setValue) se aplica en el mismo fotograma que el nuevo orden, sin parpadeos.
 
-type Drag = { key: string; from: number; startY: number; granted: boolean };
+const MOVE_MS = 200;
+const DROP_MS = 170;
+const LIFT_SCALE = 1.04;
+
+type Drag = { key: string; from: number; startX: number; startY: number; granted: boolean };
+
+type Handlers = {
+  move: (dx: number, dy: number) => void;
+  onDragStart?: (key: string) => void;
+  finish: () => void;
+};
 
 /**
  * Estado del arrastre, fuera de React (lo leen y cambian los manejadores del gesto). Una
  * función que crea el objeto: así los cambios no son «mutar estado» de React.
  */
-type Handlers = {
-  heights: () => number[];
-  animateOthers: (from: number, to: number, key: string) => void;
-  onDragStart?: (key: string) => void;
-  finish: () => void;
-};
-
 function createDragState() {
   let drag: Drag | null = null;
-  // Lo que el gesto necesita del render más reciente (claves y callbacks al día).
-  let handlers: Handlers = { heights: () => [], animateOthers: () => {}, finish: () => {} };
+  let handlers: Handlers = { move: () => {}, finish: () => {} };
   let target = 0;
-  const heights = new Map<string, number>();
-  const offsets = new Map<string, Animated.Value>();
+  const sizes = new Map<string, Size>();
+  const offsets = new Map<string, Animated.ValueXY>();
   return {
     handlers: () => handlers,
     setHandlers: (value: Handlers) => {
@@ -54,12 +68,12 @@ function createDragState() {
     setTarget: (value: number) => {
       target = value;
     },
-    height: (key: string) => heights.get(key) ?? 0,
-    setHeight: (key: string, value: number) => heights.set(key, value),
+    size: (key: string) => sizes.get(key) ?? { width: 0, height: 0 },
+    setSize: (key: string, value: Size) => sizes.set(key, value),
     offset: (key: string) => {
       let value = offsets.get(key);
       if (!value) {
-        value = new Animated.Value(0);
+        value = new Animated.ValueXY({ x: 0, y: 0 });
         offsets.set(key, value);
       }
       return value;
@@ -70,64 +84,104 @@ function createDragState() {
 type Options = {
   keys: string[];
   onReorder: (keys: string[]) => void;
-  /** Hueco entre elementos (se suma a la altura de cada uno al calcular dónde cae). */
+  /** Hueco entre elementos (en cuadrícula, el mismo en horizontal y en vertical). */
   gap?: number;
-  /** Empieza a moverse (p. ej. para bloquear el desplazamiento de la lista o salir del modo selección). */
+  /** Columnas: 1 = lista (por defecto); 2 o más = cuadrícula de celdas iguales. */
+  columns?: number;
+  /** Empieza a moverse (p. ej. para bloquear el desplazamiento de la lista). */
   onDragStart?: (key: string) => void;
   /** Se mantuvo pulsado y se soltó sin moverlo (p. ej. para entrar en el modo selección). */
   onHold?: (key: string) => void;
 };
 
-export function useDragReorder({ keys, onReorder, gap = 0, onDragStart, onHold }: Options) {
+function slide(value: Animated.ValueXY | Animated.Value, toValue: Point | number, ms: number) {
+  return Animated.timing(value, {
+    toValue,
+    duration: ms,
+    easing: Easing.out(Easing.cubic),
+    useNativeDriver: false,
+  });
+}
+
+export function useDragReorder({
+  keys,
+  onReorder,
+  gap = 0,
+  columns = 1,
+  onDragStart,
+  onHold,
+}: Options) {
   const [state] = useState(createDragState);
-  const [dy] = useState(() => new Animated.Value(0));
+  const [lift] = useState(() => new Animated.ValueXY({ x: 0, y: 0 }));
+  const [scale] = useState(() => new Animated.Value(1));
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
 
-  const heightsInOrder = () => keys.map((k) => state.height(k) + gap);
+  const sizesOf = (order: string[]) => order.map((k) => state.size(k));
 
-  function animateOthers(from: number, to: number, draggedKey: string) {
-    const shift = state.height(draggedKey) + gap;
-    keys.forEach((key, index) => {
-      if (key === draggedKey) return;
-      let toValue = 0;
-      if (from < to && index > from && index <= to) toValue = -shift;
-      if (from > to && index >= to && index < from) toValue = shift;
-      Animated.timing(state.offset(key), {
-        toValue,
-        duration: 180,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
+  /** Desplazamiento de cada elemento para verse en el orden `order` estando pintado en `keys`. */
+  function offsetsFor(order: string[]): Map<string, Point> {
+    const before = slotPositions(sizesOf(keys), columns, gap);
+    const after = slotPositions(sizesOf(order), columns, gap);
+    const result = new Map<string, Point>();
+    order.forEach((key, newIndex) => {
+      const oldIndex = keys.indexOf(key);
+      const a = before[oldIndex] ?? { x: 0, y: 0 };
+      const b = after[newIndex] ?? { x: 0, y: 0 };
+      result.set(key, { x: b.x - a.x, y: b.y - a.y });
+    });
+    return result;
+  }
+
+  function targetFor(drag: Drag, dx: number, dy: number): number {
+    if (columns > 1) return gridDropIndex(sizesOf(keys), columns, gap, drag.from, dx, dy);
+    return dropIndex(
+      keys.map((k) => state.size(k).height + gap),
+      drag.from,
+      dy,
+    );
+  }
+
+  function move(dx: number, dy: number) {
+    const drag = state.get();
+    if (!drag) return;
+    lift.setValue({ x: columns > 1 ? dx : 0, y: dy });
+    const target = targetFor(drag, dx, dy);
+    if (target === state.target()) return;
+    state.setTarget(target);
+    const offsets = offsetsFor(moveItem(keys, drag.from, target));
+    keys.forEach((key) => {
+      if (key === drag.key) return;
+      slide(state.offset(key), offsets.get(key) ?? { x: 0, y: 0 }, MOVE_MS).start();
+    });
+    if (getSettings().haptics) Haptics.selectionAsync().catch(() => {});
+  }
+
+  function finish() {
+    const drag = state.get();
+    if (!drag) return;
+    state.set(null);
+    const to = state.target();
+    const moved = drag.granted && to !== drag.from;
+    const order = moved ? moveItem(keys, drag.from, to) : keys;
+    const final = moved ? (offsetsFor(order).get(drag.key) ?? { x: 0, y: 0 }) : { x: 0, y: 0 };
+    // Se desliza a su hueco y se posa; después se guarda el orden.
+    Animated.parallel([
+      slide(lift, final, DROP_MS),
+      slide(scale, 1, DROP_MS),
+      ...(moved ? [] : keys.map((key) => slide(state.offset(key), { x: 0, y: 0 }, DROP_MS))),
+    ]).start(() => {
+      state.offset(drag.key).setValue(final);
+      setDraggingKey(null);
+      if (moved) onReorder(order);
     });
   }
 
-  function reset() {
-    state.set(null);
-    dy.setValue(0);
-    keys.forEach((key) => state.offset(key).setValue(0));
-    setDraggingKey(null);
-  }
-
-  /**
-   * Al soltar en otro sitio, cada tarjeta se queda donde se ve (la arrastrada, en su hueco nuevo)
-   * hasta que llega el nuevo orden; entonces todo vuelve a 0 antes de pintar (useLayoutEffect),
-   * así no hay ni un fotograma con el orden viejo ni saltos.
-   */
-  function settle(drag: Drag, to: number) {
-    const between = to > drag.from ? keys.slice(drag.from + 1, to + 1) : keys.slice(to, drag.from);
-    const shift = between.reduce((sum, key) => sum + state.height(key) + gap, 0);
-    state.offset(drag.key).setValue(to > drag.from ? shift : -shift);
-    state.set(null);
-    dy.setValue(0);
-    setDraggingKey(null);
-  }
-
-  // Si cambia la lista (p. ej. tras guardar el orden), todo vuelve a su sitio.
+  // Al llegar un orden nuevo, todo vuelve a 0 antes de pintar (ya se pinta en su sitio).
   const keysSignature = keys.join(',');
   useLayoutEffect(() => {
-    dy.setValue(0);
-    keysSignature.split(',').forEach((key) => state.offset(key).setValue(0));
-  }, [keysSignature, dy, state]);
+    lift.setValue({ x: 0, y: 0 });
+    keysSignature.split(',').forEach((key) => state.offset(key).setValue({ x: 0, y: 0 }));
+  }, [keysSignature, lift, state]);
 
   const [responder] = useState(() =>
     PanResponder.create({
@@ -141,13 +195,7 @@ export function useDragReorder({ keys, onReorder, gap = 0, onDragStart, onHold }
       onPanResponderMove: (e) => {
         const drag = state.get();
         if (!drag) return;
-        const moved = e.nativeEvent.pageY - drag.startY;
-        dy.setValue(moved);
-        const target = dropIndex(state.handlers().heights(), drag.from, moved);
-        if (target !== state.target()) {
-          state.setTarget(target);
-          state.handlers().animateOthers(drag.from, target, drag.key);
-        }
+        state.handlers().move(e.nativeEvent.pageX - drag.startX, e.nativeEvent.pageY - drag.startY);
       },
       onPanResponderRelease: () => state.handlers().finish(),
       onPanResponderTerminate: () => state.handlers().finish(),
@@ -156,22 +204,7 @@ export function useDragReorder({ keys, onReorder, gap = 0, onDragStart, onHold }
   );
 
   // El PanResponder se crea una vez: tras cada render recibe los manejadores al día.
-  const handlers: Handlers = {
-    heights: heightsInOrder,
-    animateOthers,
-    onDragStart,
-    finish: () => {
-      const drag = state.get();
-      if (!drag) return;
-      const to = state.target();
-      if (drag.granted && to !== drag.from) {
-        settle(drag, to);
-        onReorder(moveItem(keys, drag.from, to));
-        return;
-      }
-      reset();
-    },
-  };
+  const handlers: Handlers = { move, onDragStart, finish };
   useEffect(() => {
     state.setHandlers(handlers);
   });
@@ -186,31 +219,46 @@ export function useDragReorder({ keys, onReorder, gap = 0, onDragStart, onHold }
     /** Lo que necesita cada elemento. */
     itemProps(key: string) {
       const isDragged = key === draggingKey;
+      const offset = state.offset(key);
       return {
-        onLayout: (e: LayoutChangeEvent) => state.setHeight(key, e.nativeEvent.layout.height),
+        onLayout: (e: LayoutChangeEvent) => {
+          const { width, height } = e.nativeEvent.layout;
+          state.setSize(key, { width, height });
+        },
         style: isDragged
           ? {
               zIndex: 10,
               elevation: 10,
-              transform: [{ translateY: dy }, { scale: 1.03 }],
+              transform: [{ translateX: lift.x }, { translateY: lift.y }, { scale }],
             }
-          : { transform: [{ translateY: state.offset(key) }] },
+          : { transform: [{ translateX: offset.x }, { translateY: offset.y }] },
         isDragged,
         /** Mantener pulsado: levanta el elemento (después se arrastra moviendo el dedo). */
         onLongPress: (e: GestureResponderEvent) => {
           const index = keys.indexOf(key);
           if (index === -1) return;
-          state.set({ key, from: index, startY: e.nativeEvent.pageY, granted: false });
+          state.set({
+            key,
+            from: index,
+            startX: e.nativeEvent.pageX,
+            startY: e.nativeEvent.pageY,
+            granted: false,
+          });
           state.setTarget(index);
+          lift.setValue({ x: 0, y: 0 });
           setDraggingKey(key);
+          slide(scale, LIFT_SCALE, 140).start();
           if (getSettings().haptics) Haptics.selectionAsync().catch(() => {});
         },
-        /** Al soltar: si no llegó a moverse, se cancela (con un pequeño margen, porque el gesto de la lista se queda con el dedo justo después). */
+        /**
+         * Al soltar: si no llegó a moverse, vuelve a su sitio (con un pequeño margen, porque el
+         * gesto de la lista se queda con el dedo justo después) y avisa con onHold.
+         */
         onPressOut: () => {
           setTimeout(() => {
             const drag = state.get();
             if (drag && drag.key === key && !drag.granted) {
-              reset();
+              finish();
               onHold?.(key);
             }
           }, 60);

@@ -568,8 +568,17 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   los botones, y se reduce o corta con «…» si el nombre es largo): nunca pisa los botones.
 - «Ocultos» se cerraba solo al tocarlo (se recalculaba su posición con medidas a medio
   actualizar): ahora la posición del título solo se mide con el desplegable cerrado.
-- El total de cada tarjeta (filas y bloques) va dentro de un recuadro redondeado del color de
-  la app (`primarySoft` con borde) para que destaque (petición del usuario).
+- El total de cada tarjeta (filas y bloques) va dentro de un **rectángulo** redondeado del color
+  de la app (`primarySoft` con borde) para que destaque (petición del usuario; no círculo): alto
+  fijo, se alarga con las cifras y el número centrado en los dos ejes (`textAlign` y
+  `textAlignVertical` centrados, `includeFontPadding: false` y `lineHeight` ajustada).
+- **Arrastrar para reordenar** (`useDragReorder`, también en Estadísticas): lista o cuadrícula
+  (`columns`; en «Mis contadores», 2 en la vista de bloques, con `gridDropIndex` y
+  `slotPositions` en `reorder.ts`, con tests). Al levantar crece un poco; los demás se deslizan
+  a su hueco nuevo (vibración suave al cambiar de hueco); al soltar, la tarjeta se desliza a su
+  hueco y solo después se guarda el orden (antes saltaba de golpe y hacía un «glitch»). Las
+  animaciones del arrastre van sin native driver a propósito: los `setValue` se aplican en el
+  mismo fotograma que el nuevo orden.
 - «Mis contadores» ya no usa FlatList sino un ScrollView con las tarjetas dentro, igual que
   los bloques de Estadísticas: así el arrastre para reordenar es igual de fluido (sin celdas
   virtualizadas, recortes ni capas por celda). Son pocos contadores, no hace falta virtualizar.

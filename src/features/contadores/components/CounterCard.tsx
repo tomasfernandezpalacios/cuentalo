@@ -85,6 +85,7 @@ export function CounterCard({
     <Text
       style={[
         grid ? styles.gridTotal : styles.total,
+        styles.centered,
         { color: colors.primary, ...serifWeight(colors.primary) },
       ]}
       numberOfLines={1}
@@ -184,6 +185,10 @@ export function CounterCard({
   );
 }
 
+/** Alto del recuadro del total: en la fila y en los bloques. */
+const BADGE = 36;
+const GRID_BADGE = 46;
+
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
@@ -205,21 +210,32 @@ const styles = StyleSheet.create({
   },
   gridTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   gridTotalBox: { flex: 1, alignItems: 'flex-end', gap: 2 },
+  // Rectángulo de alto fijo que se alarga con las cifras; el número siempre en el centro (en
+  // los dos ejes), tenga 1 cifra o 6.
   badge: {
+    height: BADGE,
+    minWidth: BADGE + 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderRadius: 14,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    minWidth: 40,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  gridBadge: { paddingHorizontal: 12, paddingVertical: 4, maxWidth: '100%' },
-  gridTotal: { ...displayFont(isCinema ? 34 : 26) },
+  gridBadge: {
+    height: GRID_BADGE,
+    minWidth: GRID_BADGE + 16,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    maxWidth: '100%',
+  },
+  // Sin el relleno de fuente de Android y con altura de línea ajustada: centrado de verdad.
+  centered: { textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false },
+  gridTotal: { ...displayFont(isCinema ? 34 : 26), lineHeight: isCinema ? 38 : 30 },
   gridName: { flex: 1, justifyContent: 'center', gap: 2 },
   gridCheck: { alignItems: 'flex-end' },
   name: { flex: 1, gap: 2 },
   nameText: { fontSize: 17, fontFamily: fonts.title },
   totalBox: { alignItems: 'center', minWidth: 40, maxWidth: 80, gap: 2 },
-  total: { ...displayFont(isCinema ? 26 : 21) },
+  total: { ...displayFont(isCinema ? 26 : 21), lineHeight: isCinema ? 30 : 25 },
   unit: { fontSize: 12, fontFamily: fonts.detail },
 });

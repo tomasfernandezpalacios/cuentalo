@@ -31,6 +31,61 @@ export function applyOrder<T>(
     .map((x) => x.item);
 }
 
+export type Size = { width: number; height: number };
+export type Point = { x: number; y: number };
+
+/**
+ * Posición (esquina superior izquierda) de cada hueco, en el orden dado.
+ * - Una columna: uno debajo de otro, cada uno con su altura.
+ * - Varias columnas (cuadrícula): celdas iguales (las del más grande), fila a fila.
+ */
+export function slotPositions(sizes: Size[], columns: number, gap: number): Point[] {
+  if (columns <= 1) {
+    let y = 0;
+    return sizes.map((size) => {
+      const point = { x: 0, y };
+      y += size.height + gap;
+      return point;
+    });
+  }
+  const cell = cellSize(sizes);
+  return sizes.map((_, index) => ({
+    x: (index % columns) * (cell.width + gap),
+    y: Math.floor(index / columns) * (cell.height + gap),
+  }));
+}
+
+function cellSize(sizes: Size[]): Size {
+  return sizes.reduce(
+    (max, s) => ({ width: Math.max(max.width, s.width), height: Math.max(max.height, s.height) }),
+    { width: 0, height: 0 },
+  );
+}
+
+/**
+ * Cuadrícula: hueco al que va un elemento que estaba en `from` y se ha movido (dx, dy): el de la
+ * celda en la que cae su centro.
+ */
+export function gridDropIndex(
+  sizes: Size[],
+  columns: number,
+  gap: number,
+  from: number,
+  dx: number,
+  dy: number,
+): number {
+  const cell = cellSize(sizes);
+  if (cell.width === 0 || cell.height === 0) return from;
+  const stepX = cell.width + gap;
+  const stepY = cell.height + gap;
+  const fromCol = from % columns;
+  const fromRow = Math.floor(from / columns);
+  const rows = Math.ceil(sizes.length / columns);
+  const col = Math.max(0, Math.min(columns - 1, Math.round(fromCol + dx / stepX)));
+  const row = Math.max(0, Math.min(rows - 1, Math.round(fromRow + dy / stepY)));
+  return Math.min(sizes.length - 1, row * columns + col);
+}
+
 /**
  * Índice al que va un elemento arrastrado `dy` píxeles desde `from`, sabiendo la altura de cada
  * elemento: cruza al vecino cuando su centro pasa por el centro del vecino.

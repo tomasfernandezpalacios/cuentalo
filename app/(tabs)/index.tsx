@@ -131,6 +131,8 @@ export default function CountersScreen() {
   const drag = useDragReorder({
     keys: shown.map((c) => c.id),
     gap: CARD_GAP,
+    // En bloques también se reordena arrastrando, en las dos direcciones.
+    columns: grid ? 2 : 1,
     onHold: (id) => toggleSelected(id),
     onReorder: (keys) =>
       setCounterOrder.mutate([
@@ -333,7 +335,11 @@ export default function CountersScreen() {
     );
     if (!dragProps) return card;
     return (
-      <Animated.View key={item.id} onLayout={dragProps.onLayout} style={dragProps.style}>
+      <Animated.View
+        key={item.id}
+        onLayout={dragProps.onLayout}
+        style={[grid && { width: gridItemWidth }, dragProps.style]}
+      >
         {card}
       </Animated.View>
     );
@@ -567,12 +573,8 @@ export default function CountersScreen() {
         {shown.length === 0 ? (
           emptyView
         ) : grid ? (
-          <View style={styles.gridWrap}>
-            {shown.map((item) => (
-              <View key={item.id} style={{ width: gridItemWidth }}>
-                {renderCard(item, item.id === tutorialCardId)}
-              </View>
-            ))}
+          <View {...drag.containerProps} style={styles.gridWrap}>
+            {shown.map((item) => renderCard(item, item.id === tutorialCardId, true))}
           </View>
         ) : (
           <View {...drag.containerProps} style={styles.cards}>
