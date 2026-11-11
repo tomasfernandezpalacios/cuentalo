@@ -143,7 +143,12 @@ export function CounterCard({
           <>
             {/* Arriba: icono y total. Debajo: nombre, sus grupos y los botones. */}
             <View style={styles.gridTop}>
-              <CounterAvatar emoji={counter.emoji} name={counter.name} size={36} />
+              <CounterAvatar
+                emoji={counter.emoji}
+                name={counter.name}
+                photoPath={counter.photo_path}
+                size={36}
+              />
               <View style={styles.gridTotalBox}>
                 {totalBadge}
                 {unit}
@@ -163,7 +168,12 @@ export function CounterCard({
           </>
         ) : (
           <>
-            <CounterAvatar emoji={counter.emoji} name={counter.name} size={42} />
+            <CounterAvatar
+              emoji={counter.emoji}
+              name={counter.name}
+              photoPath={counter.photo_path}
+              size={42}
+            />
             <View style={styles.name}>
               <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
                 {counter.name}

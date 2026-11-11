@@ -3,17 +3,22 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
+import { EditablePhoto } from '@/components/EditablePhoto';
+import { SegmentedControl } from '@/components/SegmentedControl';
 import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
 import { tutorialEvent } from '@/features/tutorial/store';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
+import { pickPhoto, type PickedPhoto } from '@/lib/photos';
 import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 import { LIMITS, validateOptionalText, validateRequiredText } from '@/lib/validation';
 
 import type { CounterInput } from '../api';
+import { type CounterPhotoChange, useCounterPhotoUrl } from '../photos';
 
 import { CommonCounterInfo } from './CommonCounterInfo';
+import { CounterAvatar } from './CounterAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import { ParticipantsPicker } from './ParticipantsPicker';
 
@@ -41,6 +46,8 @@ type Props = {
    * nombre y emoticono (sin unidad, visibilidad, común ni formato racha: queda privado y amigos).
    */
   simple?: boolean;
+  /** Al editar: la foto que ya tiene el contador (si tiene). */
+  initialPhotoPath?: string | null;
 };
 
 const SUGGESTIONS = [
@@ -63,11 +70,19 @@ export function CounterForm({
   initialParticipantIds = null,
   footer,
   simple = false,
+  initialPhotoPath = null,
 }: Props) {
   const colors = useThemeColors();
   const [name, setName] = useState(initial?.name ?? '');
   const [unit, setUnit] = useState(initial?.unit ?? '');
   const [emoji, setEmoji] = useState(initial?.emoji ?? '');
+  // Icono: emoticono o foto (petición del usuario), como la imagen de los grupos.
+  const [imageMode, setImageMode] = useState<'emoji' | 'photo'>(
+    initialPhotoPath ? 'photo' : 'emoji',
+  );
+  const [newPhoto, setNewPhoto] = useState<PickedPhoto | null>(null);
+  const savedPhoto = useCounterPhotoUrl(initialPhotoPath);
+  const hasPhoto = newPhoto !== null || (imageMode === 'photo' && initialPhotoPath !== null);
   // «Privado y amigos» por defecto: mis amigos ven mis individuales salvo que elija «Privado».
   const [hiddenFromFriends, setHiddenFromFriends] = useState(initial?.hiddenFromFriends ?? false);
   const [streakEnabled, setStreakEnabled] = useState(initial?.streakEnabled ?? false);
@@ -114,6 +129,13 @@ export function CounterForm({
     </>
   );
 
+  /** Qué hacer con la foto al guardar (sin cambios: no se toca). */
+  function photoChange(): CounterPhotoChange | undefined {
+    if (imageMode === 'emoji') return initialPhotoPath ? 'remove' : undefined;
+    if (newPhoto) return newPhoto;
+    return initialPhotoPath ? 'keep' : undefined;
+  }
+
   function handleSubmit() {
     const common = isCommon && commonGroupId !== null;
     const next = {
@@ -124,7 +146,7 @@ export function CounterForm({
     setErrors(next);
     if (!next.name && !next.unit && !next.participants) {
       onSubmit(
-        { name, unit, emoji, hiddenFromFriends, streakEnabled },
+        { name, unit, emoji, hiddenFromFriends, streakEnabled, photo: photoChange() },
         groupId,
         common ? participants : null,
       );
@@ -227,7 +249,61 @@ export function CounterForm({
         maxLength={LIMITS.counterName}
         autoFocus={!initial && !simple}
       />
-      <EmojiPicker value={emoji} onChange={setEmoji} />
+      {simple ? (
+        <EmojiPicker value={emoji} onChange={setEmoji} />
+      ) : (
+        <>
+          <View style={styles.preview}>
+            <EditablePhoto
+              enabled={imageMode === 'photo'}
+              hasPhoto={hasPhoto}
+              editUri={newPhoto?.uri ?? (imageMode === 'photo' ? (savedPhoto.data ?? null) : null)}
+              onPicked={(photo) => {
+                setNewPhoto(photo);
+                setImageMode('photo');
+              }}
+              onRemove={() => {
+                setNewPhoto(null);
+                setImageMode('emoji');
+              }}
+            >
+              <CounterAvatar
+                emoji={emoji || null}
+                name={name || '?'}
+                photoPath={imageMode === 'photo' ? initialPhotoPath : null}
+                localUri={imageMode === 'photo' ? newPhoto?.uri : null}
+                size={96}
+              />
+            </EditablePhoto>
+          </View>
+          <SegmentedControl
+            options={[
+              { value: 'emoji', label: 'Emoticono' },
+              { value: 'photo', label: 'Foto' },
+            ]}
+            value={imageMode}
+            onChange={setImageMode}
+          />
+          {imageMode === 'emoji' ? (
+            <EmojiPicker value={emoji} onChange={setEmoji} />
+          ) : (
+            <View style={styles.photoActions}>
+              {hasPhoto ? null : (
+                <AppButton
+                  title="Elegir foto de la galería"
+                  variant="secondary"
+                  onPress={() => pickPhoto('library').then((p) => p && setNewPhoto(p))}
+                />
+              )}
+              <Text style={[styles.photoHint, { color: colors.textMuted }]}>
+                {hasPhoto
+                  ? 'Toca «Editar» sobre la foto para cambiarla, editarla o borrarla.'
+                  : 'La foto la ve quien ve el contador.'}
+              </Text>
+            </View>
+          )}
+        </>
+      )}
       {simple ? null : (
         <TextField
           label="Unidad (opcional)"
@@ -352,6 +428,9 @@ function VisibilityOption({ title, description, selected, onPress }: OptionProps
 }
 
 const styles = StyleSheet.create({
+  preview: { alignItems: 'center' },
+  photoActions: { gap: 8 },
+  photoHint: { ...proseFont(14) },
   guide: { borderRadius: 14, padding: 14, gap: 6 },
   visibility: { gap: 8 },
   label: { fontSize: 15, fontFamily: fonts.detail },

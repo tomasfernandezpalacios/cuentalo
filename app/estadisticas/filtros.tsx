@@ -165,7 +165,12 @@ export default function StatsFiltersScreen() {
                 size={24}
                 color={checked ? colors.primary : colors.textMuted}
               />
-              <CounterAvatar emoji={item.emoji} name={item.name} size={36} />
+              <CounterAvatar
+                emoji={item.emoji}
+                name={item.name}
+                photoPath={item.photo_path}
+                size={36}
+              />
               <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
                 {item.name}
               </Text>

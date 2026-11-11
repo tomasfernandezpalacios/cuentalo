@@ -57,6 +57,7 @@ export type Database = {
           name: string;
           unit: string | null;
           emoji: string | null;
+          photo_path: string | null;
           group_id: string | null;
           is_common: boolean;
           hidden_from_friends: boolean;
@@ -79,6 +80,7 @@ export type Database = {
           name?: string;
           unit?: string | null;
           emoji?: string | null;
+          photo_path?: string | null;
           streak_enabled?: boolean;
           hidden_from_friends?: boolean;
         };

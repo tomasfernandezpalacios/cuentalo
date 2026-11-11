@@ -2,6 +2,7 @@ import type { HomeBundle, Tables, Views } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 
 import { applyLinks, type CounterLink, type LinkedGroup } from './links';
+import { applyCounterPhoto, type CounterPhotoChange } from './photos';
 
 export type Counter = Tables<'counters'>;
 export type Entry = Tables<'entries'>;
@@ -84,6 +85,8 @@ export type CounterInput = {
   hiddenFromFriends: boolean;
   /** Formato racha: además del total, una racha de días seguidos con +1 o más. */
   streakEnabled: boolean;
+  /** Foto como icono: una nueva, dejar la que hay o quitarla (sin pasar: no se toca). */
+  photo?: CounterPhotoChange;
 };
 
 /**
@@ -297,7 +300,7 @@ async function fetchSingleCounter(id: string, myId: string): Promise<CounterWith
  * es un contador común.
  */
 export async function createCounter(
-  { name, unit, emoji, hiddenFromFriends, streakEnabled }: CounterInput,
+  { name, unit, emoji, hiddenFromFriends, streakEnabled, photo }: CounterInput,
   groupId: string | null,
   participantIds: string[] | null = null,
 ): Promise<Counter> {
@@ -317,6 +320,9 @@ export async function createCounter(
     .single();
   if (error) throw error;
   if (isCommon) await setParticipants(data.id, participantIds);
+  if (photo && typeof photo === 'object') {
+    return { ...data, photo_path: await applyCounterPhoto(data.id, null, photo) };
+  }
   return data;
 }
 
@@ -340,6 +346,11 @@ export async function updateCounter(id: string, patch: Partial<CounterInput>): P
     })
     .eq('id', id);
   if (error) throw error;
+  if (patch.photo !== undefined && patch.photo !== 'keep') {
+    const current = await supabase.from('counters').select('photo_path').eq('id', id).single();
+    if (current.error) throw current.error;
+    await applyCounterPhoto(id, current.data.photo_path, patch.photo);
+  }
 }
 
 /**

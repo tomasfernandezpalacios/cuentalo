@@ -18,6 +18,7 @@ function counter(overrides: Partial<Counter>): Counter {
     name: 'Cervezas',
     unit: null,
     emoji: null,
+    photo_path: null,
     group_id: null,
     is_common: false,
     hidden_from_friends: false,

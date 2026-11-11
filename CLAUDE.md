@@ -600,6 +600,22 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   claro y oscuro). Un color guardado que ya no existe vuelve al dorado. Se quitó
   `ColorPickerDialog` (en Git si hiciera falta).
 
+- El dorado sale como «Dorado (recomendado)» en Configuración (petición del usuario). El dorado
+  claro es `#7E611B` (con `#8A6A1F` no llegaba a AA sobre el papel).
+- **Foto como icono del contador** (petición del usuario; migración `20261212`):
+  `counters.photo_path` y bucket privado `counter-photos` (`<counter_id>/<ts>.<ext>`, 2 MB). La
+  sube quien edita el contador (`can_edit_counter_photo`: dueño de un individual o
+  administrador de uno de grupo) y la ve quien ve el contador o, en individuales visibles para
+  amigos, sus amigos (`can_see_counter_photo`). En el formulario (no en el modo sencillo del
+  tutorial): Emoticono / Foto como en los grupos, con `EditablePhoto`. `CounterAvatar` enseña
+  foto > emoticono > inicial (`photoPath`, enlaces firmados de 1 h en `useCounterPhotoUrl`,
+  fuera de `refreshAll`). El perfil de otros (RPC `get_user_counters`) aún no trae la foto.
+- **Barras de «Mis contadores» escondidas** (petición del usuario): la de carpetas (con el botón
+  de vista) y el buscador van en un panel plegado de serie. Se abre al tirar hacia abajo estando
+  arriba del todo (es el mismo gesto que refresca; en iOS también al pasar de −50) y se cierra al
+  volver a bajar por la lista. Siempre abiertas en el modo selección, con una carpeta elegida o
+  con algo escrito en el buscador.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

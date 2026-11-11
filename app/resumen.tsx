@@ -119,7 +119,9 @@ function Summary({ birthDate, onChangeDate }: { birthDate: string; onChangeDate:
               key={c.id}
               label={c.name}
               value={formatWithUnit(c.myTotal, c.unit)}
-              avatar={<CounterAvatar emoji={c.emoji} name={c.name} size={28} />}
+              avatar={
+                <CounterAvatar emoji={c.emoji} name={c.name} photoPath={c.photo_path} size={28} />
+              }
             />
           ))}
         </View>

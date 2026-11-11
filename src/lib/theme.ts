@@ -234,7 +234,7 @@ export const accents: Record<
   { label: string; light: AccentColors; dark: AccentColors }
 > = {
   dorado: {
-    label: 'Dorado',
+    label: 'Dorado (recomendado)',
     light: { primary: cinemaPalette.light.primary, primarySoft: cinemaPalette.light.primarySoft },
     dark: { primary: cinemaPalette.dark.primary, primarySoft: cinemaPalette.dark.primarySoft },
   },

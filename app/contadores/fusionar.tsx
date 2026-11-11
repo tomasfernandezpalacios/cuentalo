@@ -150,7 +150,12 @@ export default function MergeCountersScreen() {
                 size={24}
                 color={checked ? colors.primary : colors.textMuted}
               />
-              <CounterAvatar emoji={item.emoji} name={item.name} size={36} />
+              <CounterAvatar
+                emoji={item.emoji}
+                name={item.name}
+                photoPath={item.photo_path}
+                size={36}
+              />
               <View style={styles.flex}>
                 <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
                   {item.name}

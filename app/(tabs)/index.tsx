@@ -1,9 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { useCallback, useRef, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
 import {
   Animated,
   BackHandler,
+  Easing,
   ScrollView,
   Pressable,
   RefreshControl,
@@ -84,6 +85,12 @@ export default function CountersScreen() {
   // «Ocultos» solo aparece al llegar al final de la lista y se recoge al volver a subir.
   const [revealHidden, setRevealHidden] = useState(false);
   const [revealAnim] = useState(() => new Animated.Value(0));
+  // Barras de arriba (carpetas, vista y búsqueda): escondidas hasta tirar hacia abajo arriba del
+  // todo. Siempre visibles en el modo selección, con una carpeta elegida o con algo buscado.
+  const [barsOpen, setBarsOpen] = useState(false);
+  const [barsHeight, setBarsHeight] = useState(0);
+  const [barsAnim] = useState(() => new Animated.Value(0));
+  const lastOffset = useRef(0);
   const scrollMetrics = useRef({ offset: 0, viewport: 0, content: 0, footer: 0, titleTop: 0 });
   // Al abrir la app siempre se empieza en «Todos» y sin filtros.
   const [filters, setFilters] = useState<CounterFilters>(DEFAULT_FILTERS);
@@ -140,6 +147,18 @@ export default function CountersScreen() {
         ...ordered.map((c) => c.id).filter((id) => !keys.includes(id)),
       ]),
   });
+
+  // --- Barras de arriba --------------------------------------------------------------------
+
+  const barsVisible = barsOpen || selecting || filters.folderId !== null || query !== '';
+  useEffect(() => {
+    Animated.timing(barsAnim, {
+      toValue: barsVisible ? 1 : 0,
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [barsVisible, barsAnim]);
 
   if (isPending) return <LoadingView />;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
@@ -305,8 +324,14 @@ export default function CountersScreen() {
   }
 
   function onListScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    scrollMetrics.current.offset = e.nativeEvent.contentOffset.y;
+    const y = e.nativeEvent.contentOffset.y;
+    scrollMetrics.current.offset = y;
     checkReveal();
+    // En iOS, tirar más allá del principio da desplazamientos negativos: abre las barras.
+    if (y < -BARS_PULL) setBarsOpen(true);
+    // Al bajar por la lista, se esconden.
+    if (barsOpen && y > BARS_HIDE_AFTER && y > lastOffset.current) setBarsOpen(false);
+    lastOffset.current = y;
   }
 
   // --- Vista ------------------------------------------------------------------------------
@@ -494,26 +519,72 @@ export default function CountersScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <Stack.Screen options={selecting ? selectionOptions : normalOptions} />
-      <FolderBar
-        folders={folderList}
-        selectedId={filters.folderId}
-        onSelect={(folderId) => setFilters({ ...filters, folderId })}
-        onLongPressFolder={folderOptions}
-        onNewFolder={() => router.push('/carpetas/nueva')}
-        layout={{
-          value: counterLayout,
-          onToggle: () => updateSettings({ counterLayout: grid ? 'list' : 'grid' }),
-        }}
-        selection={
-          selecting
-            ? {
-                selectedIds,
-                allIds: filtered.map((c) => c.id),
-                onToggle: toggleMany,
-              }
-            : undefined
-        }
-      />
+      {/* Barras de carpetas y de búsqueda: escondidas de serie. Salen al tirar hacia abajo
+          estando arriba del todo y se esconden al volver a bajar por la lista. */}
+      <Animated.View
+        style={[
+          styles.barsClip,
+          { height: barsAnim.interpolate({ inputRange: [0, 1], outputRange: [0, barsHeight] }) },
+        ]}
+      >
+        <View
+          style={styles.barsInner}
+          onLayout={(e) => setBarsHeight(Math.ceil(e.nativeEvent.layout.height))}
+        >
+          <FolderBar
+            folders={folderList}
+            selectedId={filters.folderId}
+            onSelect={(folderId) => setFilters({ ...filters, folderId })}
+            onLongPressFolder={folderOptions}
+            onNewFolder={() => router.push('/carpetas/nueva')}
+            layout={{
+              value: counterLayout,
+              onToggle: () => updateSettings({ counterLayout: grid ? 'list' : 'grid' }),
+            }}
+            selection={
+              selecting
+                ? {
+                    selectedIds,
+                    allIds: filtered.map((c) => c.id),
+                    onToggle: toggleMany,
+                  }
+                : undefined
+            }
+          />
+          {showSearch ? (
+            <View style={styles.searchWrap}>
+              <View
+                style={[
+                  styles.search,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                ]}
+              >
+                <Ionicons name="search" size={18} color={colors.textMuted} />
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Buscar contador"
+                  placeholderTextColor={colors.textMuted}
+                  accessibilityLabel="Buscar contador"
+                  autoCorrect={false}
+                  returnKeyType="search"
+                  style={[styles.searchInput, { color: colors.text }]}
+                />
+                {query ? (
+                  <Pressable
+                    onPress={() => setQuery('')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Borrar búsqueda"
+                    hitSlop={10}
+                  >
+                    <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
+        </View>
+      </Animated.View>
       {/* Lista en un ScrollView (no FlatList): igual que los bloques de Estadísticas, así el
           arrastre para reordenar va igual de fluido (sin celdas virtualizadas ni recortes). */}
       <ScrollView
@@ -537,39 +608,14 @@ export default function CountersScreen() {
             colors={[colors.primary]}
             refreshing={isRefetching}
             onRefresh={() => {
+              // Tirar hacia abajo arriba del todo: además de refrescar, enseña las barras.
+              setBarsOpen(true);
               refetch();
               folders.refetch();
             }}
           />
         }
       >
-        {showSearch ? (
-          <View
-            style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <Ionicons name="search" size={18} color={colors.textMuted} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Buscar contador"
-              placeholderTextColor={colors.textMuted}
-              accessibilityLabel="Buscar contador"
-              autoCorrect={false}
-              returnKeyType="search"
-              style={[styles.searchInput, { color: colors.text }]}
-            />
-            {query ? (
-              <Pressable
-                onPress={() => setQuery('')}
-                accessibilityRole="button"
-                accessibilityLabel="Borrar búsqueda"
-                hitSlop={10}
-              >
-                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-              </Pressable>
-            ) : null}
-          </View>
-        ) : undefined}
         {shown.length === 0 ? (
           emptyView
         ) : grid ? (
@@ -659,11 +705,18 @@ export default function CountersScreen() {
 const SEARCH_FROM = 6;
 
 const CARD_GAP = 10;
+/** iOS: cuánto hay que tirar más allá del principio para que salgan las barras. */
+const BARS_PULL = 50;
+/** Cuánto hay que bajar por la lista para que se escondan. */
+const BARS_HIDE_AFTER = 24;
 const LIST_PADDING = 12;
 /** Cuánto del título «Ocultos» tiene que verse para que aparezca. */
 const REVEAL_MARGIN = 24;
 
 const styles = StyleSheet.create({
+  barsClip: { overflow: 'hidden' },
+  barsInner: { position: 'absolute', top: 0, left: 0, right: 0 },
+  searchWrap: { paddingHorizontal: LIST_PADDING, paddingTop: 10 },
   search: {
     flexDirection: 'row',
     alignItems: 'center',

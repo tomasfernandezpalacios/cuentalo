@@ -67,6 +67,7 @@ export default function EditCounterScreen() {
         hiddenFromFriends: counter.data.hidden_from_friends,
         streakEnabled: counter.data.streak_enabled,
       }}
+      initialPhotoPath={counter.data.photo_path ?? null}
       sharedGroupName={group?.name}
       submitTitle="Guardar cambios"
       saving={update.isPending || setParticipants.isPending}

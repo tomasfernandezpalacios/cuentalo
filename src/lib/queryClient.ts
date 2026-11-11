@@ -11,7 +11,12 @@ export function refreshAll(client: QueryClient = queryClient) {
   return client.invalidateQueries({
     predicate: (query) => {
       const [first, second] = query.queryKey;
-      if (first === 'profile-photo' || first === 'avatar' || first === 'profile-private')
+      if (
+        first === 'profile-photo' ||
+        first === 'counter-photo' ||
+        first === 'avatar' ||
+        first === 'profile-private'
+      )
         return false;
       // La agenda resumida tampoco: leerla cuesta y no cambia por lo que se haga en la app.
       if (

@@ -47,6 +47,7 @@ export default function CounterDetailScreen() {
     name,
     unit,
     emoji,
+    photo_path: photoPath,
     total,
     myTotal,
     myEntryCount,
@@ -104,7 +105,7 @@ export default function CounterDetailScreen() {
           ...linkedGroups.map((g) => `Grupo ${g.group.name}: ${formatWithUnit(g.total, unit)}`),
         ].join('. ')}
       >
-        <CounterAvatar emoji={emoji} name={name} size={72} />
+        <CounterAvatar emoji={emoji} name={name} photoPath={photoPath} size={72} />
         <Text style={[styles.total, { color: colors.text }]}>{formatAmount(displayTotal)}</Text>
         {unit ? <Text style={[styles.unit, { color: colors.textMuted }]}>{unit}</Text> : null}
         <Text style={[styles.count, { color: colors.textMuted }]}>
