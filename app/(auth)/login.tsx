@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
 import { FormScreen } from '@/components/FormScreen';
@@ -63,15 +63,8 @@ export default function LoginScreen() {
         textContentType="password"
         onSubmitEditing={handleSubmit}
       />
-      {formError ? (
-        <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>{formError}</Text>
-      ) : null}
-
-      <AppButton title="Entrar" onPress={handleSubmit} loading={signInMutation.isPending} />
-
-      <AppButton
-        title="¿Olvidaste tu contraseña?"
-        variant="ghost"
+      {/* Justo debajo de la contraseña, a la derecha (petición del usuario). */}
+      <Pressable
         onPress={() =>
           router.push({
             pathname: '/recuperar',
@@ -79,12 +72,25 @@ export default function LoginScreen() {
             params: isEmailLogin(login) ? { email: login.trim() } : {},
           })
         }
-      />
-      <AppButton
-        title="¿No tienes cuenta? Regístrate"
-        variant="ghost"
-        onPress={() => router.push('/registro')}
-      />
+        accessibilityRole="button"
+        hitSlop={10}
+        style={({ pressed }) => [styles.forgot, { opacity: pressed ? 0.6 : 1 }]}
+      >
+        <Text style={[styles.link, { color: colors.primary }]}>¿Olvidaste tu contraseña?</Text>
+      </Pressable>
+      {formError ? (
+        <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>{formError}</Text>
+      ) : null}
+
+      {/* «Entrar» y, pegado debajo, el enlace para registrarse. */}
+      <View style={styles.actions}>
+        <AppButton title="Entrar" onPress={handleSubmit} loading={signInMutation.isPending} />
+        <AppButton
+          title="¿No tienes cuenta? Regístrate"
+          variant="ghost"
+          onPress={() => router.push('/registro')}
+        />
+      </View>
     </FormScreen>
   );
 }
@@ -93,4 +99,7 @@ const styles = StyleSheet.create({
   header: { marginTop: 80, marginBottom: 24, gap: 8 },
   title: { ...displayFont(36) },
   subtitle: { ...proseFont(17) },
+  forgot: { alignSelf: 'flex-end', marginTop: -6 },
+  link: { fontSize: 15, fontFamily: fonts.title },
+  actions: { gap: 2 },
 });
