@@ -1,4 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
+import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -15,7 +17,7 @@ import { usePendingInvite } from '@/features/social/pendingInvite';
 import { TutorialHost } from '@/features/tutorial/TutorialHost';
 import { useTutorialAutoStart } from '@/features/tutorial/useTutorialAutoStart';
 import { queryClient } from '@/lib/queryClient';
-import { fonts, useColorMode, useThemeColors } from '@/lib/theme';
+import { headerOptions, useColorMode, useThemeColors } from '@/lib/theme';
 
 // La pantalla de carga (icono sobre fondo liso, ver app.json) se mantiene hasta tener las
 // fuentes y saber si hay sesión, para no enseñar un parpadeo de pantallas a medio cargar.
@@ -40,9 +42,7 @@ function RootNavigator() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: colors.surface },
-        headerTintColor: colors.text,
-        headerTitleStyle: { fontFamily: fonts.title },
+        ...headerOptions(colors),
         contentStyle: { backgroundColor: colors.background },
         headerBackButtonDisplayMode: 'minimal',
         // Misma flecha en todas las pantallas, también en las que se abren como ventana
@@ -114,9 +114,14 @@ function ThemedStatusBar() {
 }
 
 export default function RootLayout() {
+  // Las de los dos estilos (clásico y cine): se cargan siempre, son pocas.
   const [fontsLoaded, fontError] = useFonts({
-    [fonts.title]: require('../assets/fonts/Ubuntu-Bold.ttf'),
-    [fonts.detail]: require('../assets/fonts/Redaction-Regular.ttf'),
+    'Ubuntu-Bold': require('../assets/fonts/Ubuntu-Bold.ttf'),
+    'Redaction-Regular': require('../assets/fonts/Redaction-Regular.ttf'),
+    InstrumentSerif_400Regular,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
   });
 
   // Si las fuentes fallan seguimos con las del sistema en vez de bloquear la app.

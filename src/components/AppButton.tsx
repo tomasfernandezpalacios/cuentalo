@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
 
-import { fonts, useThemeColors } from '@/lib/theme';
+import { CINEMA_ELEVATED_2, fonts, isCinema, shape, useThemeColors } from '@/lib/theme';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
@@ -31,7 +31,7 @@ export function AppButton({
 
   const background = {
     primary: colors.primary,
-    secondary: colors.surface,
+    secondary: isCinema ? CINEMA_ELEVATED_2 : colors.surface,
     danger: colors.danger,
     ghost: 'transparent',
   }[variant];
@@ -54,7 +54,7 @@ export function AppButton({
         small && styles.small,
         {
           backgroundColor: background,
-          borderColor: variant === 'secondary' ? colors.border : 'transparent',
+          borderColor: variant === 'secondary' && !isCinema ? colors.border : 'transparent',
           opacity: isDisabled ? 0.5 : pressed ? 0.8 : 1,
         },
         style,
@@ -73,14 +73,14 @@ export function AppButton({
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 48,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    minHeight: isCinema ? 50 : 48,
+    paddingHorizontal: isCinema ? 22 : 16,
+    borderRadius: shape.button,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: { fontSize: 16, fontFamily: fonts.title },
-  small: { minHeight: 36, paddingHorizontal: 12, borderRadius: 10 },
+  small: { minHeight: 36, paddingHorizontal: 14, borderRadius: isCinema ? 999 : 10 },
   smallTitle: { fontSize: 14 },
 });

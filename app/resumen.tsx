@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   formContent: { padding: 24, gap: 18, alignItems: 'stretch' },
-  formTitle: { fontSize: 26, fontFamily: fonts.title },
+  formTitle: { fontSize: 26, fontFamily: fonts.display },
   detail: { fontSize: 15, fontFamily: fonts.detail, lineHeight: 21 },
   dateText: { fontSize: 17, fontFamily: fonts.title },
   content: { padding: 16, gap: 18 },

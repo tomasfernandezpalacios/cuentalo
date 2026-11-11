@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
-import { fonts, useThemeColors } from '@/lib/theme';
+import { chipColors, fonts, shape, useThemeColors } from '@/lib/theme';
 
 /** Tarjeta que agrupa las filas de una sección de Configuración. */
 export function SettingsGroup({ title, children }: { title: string; children: ReactNode }) {
@@ -133,15 +133,15 @@ export function OptionChips<T extends string | number>({
             style={[
               styles.chip,
               {
-                backgroundColor: selected ? colors.primary : colors.background,
-                borderColor: selected ? colors.primary : colors.border,
+                backgroundColor: chipColors(colors, selected).backgroundColor,
+                borderColor: chipColors(colors, selected).borderColor,
               },
             ]}
           >
             {option.color ? (
               <View style={[styles.swatch, { backgroundColor: option.color }]} />
             ) : null}
-            <Text style={[styles.chipText, { color: selected ? colors.onPrimary : colors.text }]}>
+            <Text style={[styles.chipText, { color: chipColors(colors, selected).color }]}>
               {option.label}
             </Text>
           </Pressable>
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   group: { gap: 8 },
   groupTitle: { fontSize: 14, fontFamily: fonts.title, marginLeft: 4 },
-  card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
+  card: { borderRadius: shape.card, borderWidth: 1, overflow: 'hidden' },
   row: { paddingHorizontal: 16, paddingVertical: 12, minHeight: 52, gap: 10 },
   rowTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   label: { fontSize: 16, fontFamily: fonts.title },

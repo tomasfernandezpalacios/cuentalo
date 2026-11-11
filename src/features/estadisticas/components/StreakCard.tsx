@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, shape, useThemeColors } from '@/lib/theme';
 
 import { useStreak } from '../api';
 import { localToday } from '../periods';
@@ -121,7 +121,13 @@ function WeekBar({ days }: { days: Set<string> }) {
 }
 
 const styles = StyleSheet.create({
-  card: { paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1.5, gap: 12 },
+  card: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: shape.card,
+    borderWidth: 1.5,
+    gap: 12,
+  },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   // El número y «días de racha» en la misma línea, apoyados en la misma base.
   headline: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
@@ -134,7 +140,7 @@ const styles = StyleSheet.create({
   segment: { alignSelf: 'stretch', height: 12, borderRadius: 6, borderWidth: 2 },
   weekLetter: { fontSize: 12, fontFamily: fonts.title },
   texts: { flex: 1, gap: 2 },
-  number: { fontSize: 34, fontFamily: fonts.title, lineHeight: 40 },
+  number: { fontSize: 34, fontFamily: fonts.display, lineHeight: 40 },
   label: { fontSize: 17, fontFamily: fonts.title },
   detail: { fontSize: 14, fontFamily: fonts.detail },
 });

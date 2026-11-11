@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   list: { padding: 16 },
   header: { gap: 20, marginBottom: 8 },
   totalBox: { alignItems: 'center', paddingVertical: 16, gap: 4 },
-  total: { fontSize: 56, fontFamily: fonts.title },
+  total: { fontSize: 56, fontFamily: fonts.display },
   unit: { fontSize: 18, fontFamily: fonts.detail },
   count: { fontSize: 14, marginTop: 4, fontFamily: fonts.detail },
   groupTotal: { fontSize: 15, marginTop: 6, fontFamily: fonts.title, textAlign: 'center' },

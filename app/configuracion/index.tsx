@@ -2,6 +2,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { useStartTutorial } from '@/features/tutorial/useTutorialAutoStart';
 import { useMutation } from '@tanstack/react-query';
+import { reloadAppAsync } from 'expo';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -25,6 +26,7 @@ import {
   MAX_QUICK_AMOUNTS,
   QUICK_AMOUNT_OPTIONS,
   type ThemeMode,
+  type VisualStyle,
   toggleQuickAmount,
   updateSettings,
   useSettings,
@@ -38,7 +40,19 @@ import {
   type PrivacySettings,
 } from '@/features/perfil/api';
 import { getErrorMessage } from '@/lib/errors';
-import { accents, customAccentColors, fonts, useColorMode, useThemeColors } from '@/lib/theme';
+import {
+  accents,
+  customAccentColors,
+  fonts,
+  isCinema,
+  useColorMode,
+  useThemeColors,
+} from '@/lib/theme';
+
+const STYLES: { value: VisualStyle; label: string }[] = [
+  { value: 'clasico', label: 'Clásico' },
+  { value: 'cine', label: 'Cine (prueba)' },
+];
 
 const THEMES: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'Automático' },
@@ -107,6 +121,19 @@ export default function SettingsScreen() {
     });
   }
 
+  /**
+   * Las tipografías, formas y colores del estilo se fijan al arrancar: se guarda y se reinicia la
+   * app (si no se reinicia ahora, se aplica la próxima vez que se abra).
+   */
+  function changeStyle(visualStyle: VisualStyle) {
+    if (visualStyle === settings.visualStyle) return;
+    updateSettings({ visualStyle });
+    appAlert('Cambiar estilo', 'Para ver el nuevo estilo hay que reiniciar la app.', [
+      { text: 'Más tarde', style: 'cancel' },
+      { text: 'Reiniciar ahora', onPress: () => void reloadAppAsync('Cambio de estilo') },
+    ]);
+  }
+
   function confirmDelete() {
     appAlert(
       'Eliminar cuenta',
@@ -170,40 +197,56 @@ export default function SettingsScreen() {
       <SettingsGroup title="Apariencia">
         <SettingsRow
           first
-          label="Tema"
+          label="Estilo"
+          detail="Cine es un estilo de prueba: oscuro cálido, dorado y letra editorial. Al cambiarlo, la app se reinicia."
           below={
             <OptionChips
-              options={THEMES}
-              isSelected={(v) => v === settings.theme}
-              onPress={(theme) => updateSettings({ theme })}
+              options={STYLES}
+              isSelected={(v) => v === settings.visualStyle}
+              onPress={changeStyle}
             />
           }
         />
-        <SettingsRow
-          label="Color"
-          detail="Botones, pestañas y detalles de la app."
-          below={
-            <OptionChips<AccentChoice>
-              options={[
-                ...(Object.keys(accents) as AccentName[]).map((name) => ({
-                  value: name as AccentChoice,
-                  label: accents[name].label,
-                  color: accents[name][mode].primary,
-                })),
-                // El último: un color elegido a mano en un recuadro.
-                {
-                  value: 'custom',
-                  label: 'Personalizado',
-                  color: customAccentColors(settings.customAccent)[mode].primary,
-                },
-              ]}
-              isSelected={(v) => v === settings.accent}
-              onPress={(accent) =>
-                accent === 'custom' ? setPickingColor(true) : updateSettings({ accent })
+        {/* El estilo Cine tiene su propio tema (oscuro) y color (dorado). */}
+        {!isCinema && (
+          <>
+            <SettingsRow
+              label="Tema"
+              below={
+                <OptionChips
+                  options={THEMES}
+                  isSelected={(v) => v === settings.theme}
+                  onPress={(theme) => updateSettings({ theme })}
+                />
               }
             />
-          }
-        />
+            <SettingsRow
+              label="Color"
+              detail="Botones, pestañas y detalles de la app."
+              below={
+                <OptionChips<AccentChoice>
+                  options={[
+                    ...(Object.keys(accents) as AccentName[]).map((name) => ({
+                      value: name as AccentChoice,
+                      label: accents[name].label,
+                      color: accents[name][mode].primary,
+                    })),
+                    // El último: un color elegido a mano en un recuadro.
+                    {
+                      value: 'custom',
+                      label: 'Personalizado',
+                      color: customAccentColors(settings.customAccent)[mode].primary,
+                    },
+                  ]}
+                  isSelected={(v) => v === settings.accent}
+                  onPress={(accent) =>
+                    accent === 'custom' ? setPickingColor(true) : updateSettings({ accent })
+                  }
+                />
+              }
+            />
+          </>
+        )}
       </SettingsGroup>
 
       <SettingsGroup title="Contadores">

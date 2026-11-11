@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { CounterGroup } from '@/features/contadores/api';
 import { GroupAvatar } from '@/features/social/components/GroupAvatar';
 import { formatWithUnit } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, shape, useThemeColors } from '@/lib/theme';
 
 export type ChartTotal = {
   id: string;
@@ -53,7 +53,7 @@ export function ChartTotals({ totals }: { totals: ChartTotal[] }) {
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 16, borderWidth: 1, paddingHorizontal: 14 },
+  card: { borderRadius: shape.card, borderWidth: 1, paddingHorizontal: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
   dot: { width: 12, height: 12, borderRadius: 6 },
   nameRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },

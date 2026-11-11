@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 
 import { formatAmount } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, shape, useThemeColors } from '@/lib/theme';
 
 import { ChartPlot, type ChartSeries, type ChartType, Y_AXIS_WIDTH } from './ChartPlot';
 import { ChartViewer } from './ChartViewer';
@@ -143,7 +143,7 @@ export function StatsChart({
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 16, borderWidth: 1, padding: 12, paddingBottom: 48 },
+  card: { borderRadius: shape.card, borderWidth: 1, padding: 12, paddingBottom: 48 },
   emptyCard: { paddingBottom: 12, minHeight: 120, justifyContent: 'center' },
   empty: { textAlign: 'center', fontSize: 14, fontFamily: fonts.detail },
   hint: {

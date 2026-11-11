@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatAmount, formatWithUnit } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, isCinema, shape, useThemeColors } from '@/lib/theme';
 
 import type { CounterWithTotal } from '../api';
 
@@ -137,13 +137,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 10,
-    borderRadius: 18,
+    borderRadius: shape.card,
     borderWidth: 1,
     gap: 8,
   },
   name: { flex: 1, gap: 2 },
   nameText: { fontSize: 17, fontFamily: fonts.title },
   totalBox: { alignItems: 'flex-end', minWidth: 36, maxWidth: 64 },
-  total: { fontSize: 21, fontFamily: fonts.title },
+  total: { fontSize: isCinema ? 26 : 21, fontFamily: fonts.display },
   unit: { fontSize: 12, fontFamily: fonts.detail },
 });

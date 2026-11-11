@@ -74,6 +74,6 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   header: { marginTop: 80, marginBottom: 24, gap: 8 },
-  title: { fontSize: 36, fontFamily: fonts.title },
+  title: { fontSize: 36, fontFamily: fonts.display },
   subtitle: { fontSize: 17, fontFamily: fonts.detail },
 });

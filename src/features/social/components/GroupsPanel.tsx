@@ -10,7 +10,7 @@ import { TextField } from '@/components/TextField';
 import { ErrorView } from '@/components/StateViews';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { getErrorMessage } from '@/lib/errors';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, shape, useThemeColors } from '@/lib/theme';
 
 import { normalizeInviteCode, type MyGroup } from '../api';
 import { GroupAvatar } from './GroupAvatar';
@@ -166,7 +166,7 @@ export function GroupRow({ group }: { group: MyGroup }) {
 
 const styles = StyleSheet.create({
   container: { gap: 24 },
-  card: { padding: 14, borderRadius: 16, borderWidth: 1, gap: 6 },
+  card: { padding: 14, borderRadius: shape.card, borderWidth: 1, gap: 6 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

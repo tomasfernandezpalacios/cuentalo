@@ -7,11 +7,17 @@ import { useSyncExternalStore } from 'react';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type AccentName = 'morado' | 'azul' | 'verde' | 'naranja' | 'rosa';
+/**
+ * Estilo visual de toda la app: 'clasico' (el morado de siempre) o 'cine' (prueba: oscuro
+ * cálido, dorado y tipografía editorial). Se aplica al arrancar la app.
+ */
+export type VisualStyle = 'clasico' | 'cine';
 /** Un color de serie o el personalizado (`customAccent`). */
 export type AccentChoice = AccentName | 'custom';
 
 export type Settings = {
   theme: ThemeMode;
+  visualStyle: VisualStyle;
   accent: AccentChoice;
   /** Color elegido a mano ('#RRGGBB'), para accent = 'custom'. */
   customAccent: string;
@@ -37,6 +43,7 @@ export type Settings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
+  visualStyle: 'clasico',
   accent: 'morado',
   customAccent: '#5B4BDB',
   quickAmounts: [1, 5],

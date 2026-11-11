@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { fonts, useThemeColors } from '@/lib/theme';
+import { CINEMA_ELEVATED_2, chipColors, isCinema, shape, fonts, useThemeColors } from '@/lib/theme';
 
 type Option<T extends string> = { value: T; label: string };
 
@@ -15,7 +15,13 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
   return (
     <View
       accessibilityRole="tablist"
-      style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: isCinema ? CINEMA_ELEVATED_2 : colors.surface,
+          borderColor: isCinema ? 'transparent' : colors.border,
+        },
+      ]}
     >
       {options.map((option) => {
         const selected = option.value === value;
@@ -25,10 +31,16 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
             onPress={() => onChange(option.value)}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
-            style={[styles.segment, selected && { backgroundColor: colors.primary }]}
+            style={[
+              styles.segment,
+              selected && { backgroundColor: chipColors(colors, true).backgroundColor },
+            ]}
           >
             <Text
-              style={[styles.label, { color: selected ? colors.onPrimary : colors.text }]}
+              style={[
+                styles.label,
+                { color: selected ? chipColors(colors, true).color : colors.text },
+              ]}
               numberOfLines={1}
             >
               {option.label}
@@ -41,11 +53,11 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
 }
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 3 },
+  container: { flexDirection: 'row', borderRadius: shape.button, borderWidth: 1, padding: 3 },
   segment: {
     flex: 1,
     minHeight: 36,
-    borderRadius: 9,
+    borderRadius: shape.button,
     alignItems: 'center',
     justifyContent: 'center',
   },

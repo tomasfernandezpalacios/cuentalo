@@ -78,6 +78,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   content: { padding: 20, gap: 24 },
   header: { alignItems: 'center', gap: 4, marginTop: 8 },
-  name: { fontSize: 26, fontFamily: fonts.title, marginTop: 8 },
+  name: { fontSize: 26, fontFamily: fonts.display, marginTop: 8 },
   detail: { fontSize: 15, fontFamily: fonts.detail },
 });

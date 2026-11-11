@@ -73,7 +73,7 @@ export default function JoinGroupScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8 },
   emoji: { fontSize: 56 },
-  title: { fontSize: 26, fontFamily: fonts.title, textAlign: 'center' },
+  title: { fontSize: 26, fontFamily: fonts.display, textAlign: 'center' },
   detail: { fontSize: 15, fontFamily: fonts.detail, textAlign: 'center' },
   button: { alignSelf: 'stretch', marginTop: 16 },
 });

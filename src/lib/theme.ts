@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { type AccentName, useSettings } from '@/features/configuracion/settings';
+import { type AccentName, getSettings, useSettings } from '@/features/configuracion/settings';
 import { customAccent, normalizeHex } from '@/lib/color';
 
 const palette = {
@@ -32,15 +32,87 @@ const palette = {
 };
 
 /**
- * Tipografías (cargadas en app/_layout.tsx):
- * - title: Ubuntu Bold, para títulos, nombres, cifras y botones.
- * - detail: Redaction, para detalles y textos secundarios.
- * Con fuentes personalizadas no se usa fontWeight: cada archivo ya es un peso concreto.
+ * Estilo visual (Configuración → Apariencia). Se lee una vez al arrancar: las tipografías y
+ * formas de cada pantalla se fijan al cargar, así que cambiarlo reinicia la app.
+ * - 'clasico': el morado de siempre, claro u oscuro.
+ * - 'cine' (prueba): «cuaderno de estudio de noche con luz de lámpara». Oscuro cálido, un solo
+ *   acento dorado, serif editorial para títulos y cifras y sans neutra para la interfaz.
  */
-export const fonts = {
-  title: 'Ubuntu-Bold',
-  detail: 'Redaction-Regular',
-} as const;
+export const isCinema = getSettings().visualStyle === 'cine';
+
+/** Paleta del estilo Cine (siempre oscura). Texto sobre el dorado, siempre casi negro. */
+const cinemaPalette = {
+  background: '#0B0A09',
+  surface: '#141311',
+  text: '#F5F1E8',
+  textMuted: '#A8A196',
+  border: 'rgba(255,255,255,0.08)',
+  primary: '#E9C46A',
+  primarySoft: '#2A2418',
+  flame: '#E58A55',
+  onPrimary: '#0B0A09',
+  danger: '#EF4444',
+};
+
+/**
+ * Tipografías (cargadas en app/_layout.tsx). Con fuentes personalizadas no se usa
+ * fontWeight: cada archivo ya es un peso concreto.
+ * - title: títulos, nombres, cifras y botones (clásico: Ubuntu Bold; cine: Inter SemiBold).
+ * - detail: detalles y textos secundarios (clásico: Redaction; cine: Inter Regular).
+ * - display: títulos de pantalla y cifras grandes (clásico: Ubuntu Bold; cine: Instrument
+ *   Serif, el toque editorial).
+ */
+export const fonts = isCinema
+  ? ({
+      title: 'Inter_600SemiBold',
+      detail: 'Inter_400Regular',
+      display: 'InstrumentSerif_400Regular',
+    } as const)
+  : ({ title: 'Ubuntu-Bold', detail: 'Redaction-Regular', display: 'Ubuntu-Bold' } as const);
+
+/** Fondo de chips, campos y tarjetas anidadas en el estilo Cine (un escalón sobre las tarjetas). */
+export const CINEMA_ELEVATED_2 = '#1C1A17';
+
+/**
+ * Colores de un chip (carpetas, opciones, periodos…). Clásico: el activo en el color de la app.
+ * Cine: píldoras oscuras y la activa en blanco hueso con texto casi negro.
+ */
+export function chipColors(colors: ThemeColors, selected: boolean) {
+  if (isCinema) {
+    return selected
+      ? { backgroundColor: colors.text, borderColor: colors.text, color: colors.background }
+      : { backgroundColor: CINEMA_ELEVATED_2, borderColor: 'transparent', color: colors.text };
+  }
+  return selected
+    ? { backgroundColor: colors.primary, borderColor: colors.primary, color: colors.onPrimary }
+    : { backgroundColor: colors.background, borderColor: colors.border, color: colors.text };
+}
+
+/**
+ * Cabeceras de las pantallas. Cine: sin franja ni sombra (se funden con el fondo) y el título en
+ * la serif editorial; clásico: la franja de siempre.
+ */
+export function headerOptions(colors: ThemeColors) {
+  return isCinema
+    ? {
+        headerStyle: { backgroundColor: colors.background },
+        headerShadowVisible: false,
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontFamily: fonts.display, fontSize: 26 },
+      }
+    : {
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontFamily: fonts.title },
+      };
+}
+
+/**
+ * Formas: en el estilo Cine, tarjetas muy redondeadas y botones y chips en píldora.
+ */
+export const shape = isCinema
+  ? { card: 24, button: 999, chip: 999 }
+  : { card: 16, button: 12, chip: 18 };
 
 export type ThemeColors = typeof palette.light;
 
@@ -85,6 +157,8 @@ export const accents: Record<
 export function useColorMode(): 'light' | 'dark' {
   const system = useColorScheme();
   const { theme } = useSettings();
+  // El estilo Cine es oscuro siempre (es su identidad).
+  if (isCinema) return 'dark';
   if (theme !== 'system') return theme;
   return system === 'dark' ? 'dark' : 'light';
 }
@@ -104,5 +178,6 @@ export function useThemeColors(): ThemeColors {
   const { accent, customAccent: custom } = useSettings();
   const customColors = useMemo(() => customAccentColors(custom), [custom]);
   const chosen = accent === 'custom' ? customColors : (accents[accent] ?? accents.morado);
+  if (isCinema) return cinemaPalette;
   return { ...palette[mode], ...chosen[mode] };
 }

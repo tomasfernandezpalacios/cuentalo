@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { getErrorMessage } from '@/lib/errors';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, shape, useThemeColors } from '@/lib/theme';
 
 import { buildInviteLink, formatInviteCode } from '../api';
 import { useInviteCode } from '../hooks';
@@ -158,7 +158,7 @@ function InviteCode({ groupId, groupName }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { gap: 12, borderRadius: 18, padding: 14 },
+  card: { gap: 12, borderRadius: shape.card, padding: 14 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   // El código y «Compartir» van abajo, a la altura del final de la imagen, y juntos.
   side: { flex: 1, alignSelf: 'stretch', justifyContent: 'flex-end' },

@@ -1,6 +1,22 @@
+import { isCinema } from './theme';
+
 // Colores para distinguir contadores en las gráficas. Elegidos para verse bien sobre fondo claro
-// y oscuro y distinguirse entre sí; el primero es el morado de la app.
-export const CHART_COLORS = [
+// y oscuro y distinguirse entre sí; el primero es el morado de la app. En el estilo Cine, el
+// dorado primero y después tonos apagados (terracota, lavanda, salvia, azul polvo…), nunca neón.
+const CINEMA_COLORS = [
+  '#E9C46A',
+  '#D98466',
+  '#A98BD4',
+  '#7FAE8B',
+  '#6FA3C7',
+  '#F5F1E8',
+  '#C9A44A',
+  '#B5735C',
+  '#8C78B0',
+  '#6E9378',
+];
+
+const CLASSIC_COLORS = [
   '#6C5CE7',
   '#F2994A',
   '#16A085',
@@ -12,6 +28,8 @@ export const CHART_COLORS = [
   '#00A8C6',
   '#EB5757',
 ];
+
+export const CHART_COLORS = isCinema ? CINEMA_COLORS : CLASSIC_COLORS;
 
 /** Color estable para la posición `index` (se repiten si hay más contadores que colores). */
 export function chartColor(index: number): string {

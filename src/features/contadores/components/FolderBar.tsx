@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { fonts, useThemeColors } from '@/lib/theme';
+import { chipColors, fonts, useThemeColors } from '@/lib/theme';
 
 import type { Folder } from '../folders';
 
@@ -91,14 +91,14 @@ export function FolderBar({
         style={[
           styles.chip,
           {
-            backgroundColor: selected ? colors.primary : colors.background,
-            borderColor: selected ? colors.primary : colors.border,
+            backgroundColor: chipColors(colors, selected).backgroundColor,
+            borderColor: chipColors(colors, selected).borderColor,
             opacity: options.disabled ? 0.4 : 1,
           },
         ]}
       >
         <Text
-          style={[styles.label, { color: selected ? colors.onPrimary : colors.text }]}
+          style={[styles.label, { color: chipColors(colors, selected).color }]}
           numberOfLines={1}
           maxFontSizeMultiplier={1.3}
         >

@@ -501,6 +501,19 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   (límite de iOS: 64), con menos días por adelantado cuantos más contadores.
 - Buscador en «Mis contadores» (ignora tildes, `src/lib/search.ts`) a partir de 6 contadores.
 
+- **Estilo «Cine» (prueba, petición del usuario)**: Configuración → Apariencia → Estilo
+  (`settings.visualStyle`: 'clasico' | 'cine', por defecto clásico). Se lee una vez al arrancar
+  (`isCinema` en `theme.ts`) y al cambiarlo se ofrece reiniciar (`reloadAppAsync` de `expo`).
+  Cine: siempre oscuro cálido (`cinemaPalette`: fondo `#0B0A09`, tarjetas `#141311`, chips
+  `#1C1A17` = `CINEMA_ELEVATED_2`, texto `#F5F1E8`), un solo acento dorado `#E9C46A` con texto
+  casi negro, Inter para la interfaz y **Instrument Serif** (`fonts.display`) para títulos de
+  cabecera y cifras grandes, tarjetas de radio 24 y botones/chips en píldora (`shape`), chip
+  activo blanco hueso (`chipColors`), cabeceras sin franja (`headerOptions`), barra de pestañas
+  en cápsula flotante sin textos con la activa en píldora blanca, y colores de gráfica apagados
+  (`CINEMA_COLORS`). En clásico, Tema y Color siguen como siempre (en Cine se ocultan). El estilo
+  anterior está guardado en la etiqueta de Git `diseno-clasico`. Fuentes de
+  `@expo-google-fonts/instrument-serif` e `@expo-google-fonts/inter`.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)
