@@ -86,17 +86,22 @@ export function StreakCalendar({ activeDays }: { activeDays: Set<string> }) {
             const active = activeDays.has(day);
             const isToday = day === today;
             return (
+              // Clave por día (no por posición): al cambiar de mes se crean círculos nuevos.
               <View
-                key={j}
+                key={day}
                 style={styles.cell}
                 accessible
                 accessibilityLabel={`${Number(day.slice(8, 10))}${active ? ', con actividad' : ''}${isToday ? ', hoy' : ''}`}
               >
                 <View
+                  // Siempre con fondo (transparente si no hay actividad) y borde: en Android,
+                  // si una vista sin fondo lo recibe después, pierde el redondeo y sale cuadrada.
                   style={[
                     styles.dayCircle,
-                    active && { backgroundColor: colors.flame },
-                    isToday && { borderColor: colors.primary, borderWidth: 2 },
+                    {
+                      backgroundColor: active ? colors.flame : 'transparent',
+                      borderColor: isToday ? colors.primary : 'transparent',
+                    },
                   ]}
                 >
                   <Text
@@ -137,6 +142,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+    borderWidth: 2,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
