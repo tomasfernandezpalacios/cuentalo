@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Stack } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
 import { EditablePhoto } from '@/components/EditablePhoto';
@@ -48,6 +49,8 @@ type Props = {
   simple?: boolean;
   /** Al editar: la foto que ya tiene el contador (si tiene). */
   initialPhotoPath?: string | null;
+  /** El botón de guardar va en la cabecera (arriba a la derecha) en vez de abajo. */
+  submitInHeader?: boolean;
 };
 
 const SUGGESTIONS = [
@@ -71,6 +74,7 @@ export function CounterForm({
   footer,
   simple = false,
   initialPhotoPath = null,
+  submitInHeader = false,
 }: Props) {
   const colors = useThemeColors();
   const [name, setName] = useState(initial?.name ?? '');
@@ -391,9 +395,33 @@ export function CounterForm({
           {getErrorMessage(error)}
         </Text>
       ) : null}
-      <TutorialTarget id="crear-contador" enabled={simple}>
-        <AppButton title={submitTitle} onPress={handleSubmit} loading={saving} />
-      </TutorialTarget>
+      {submitInHeader ? (
+        // Guardar arriba a la derecha (petición del usuario, al editar).
+        <Stack.Screen
+          options={{
+            headerRight: () => (
+              <Pressable
+                onPress={handleSubmit}
+                disabled={saving}
+                accessibilityRole="button"
+                accessibilityLabel={submitTitle}
+                hitSlop={10}
+                style={({ pressed }) => [styles.headerSave, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                {saving ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <Text style={[styles.headerSaveText, { color: colors.primary }]}>Guardar</Text>
+                )}
+              </Pressable>
+            ),
+          }}
+        />
+      ) : (
+        <TutorialTarget id="crear-contador" enabled={simple}>
+          <AppButton title={submitTitle} onPress={handleSubmit} loading={saving} />
+        </TutorialTarget>
+      )}
       {footer}
     </FormScreen>
   );
@@ -429,6 +457,8 @@ function VisibilityOption({ title, description, selected, onPress }: OptionProps
 
 const styles = StyleSheet.create({
   preview: { alignItems: 'center' },
+  headerSave: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  headerSaveText: { fontSize: 17, fontFamily: fonts.title },
   photoActions: { gap: 8 },
   photoHint: { ...proseFont(14) },
   guide: { borderRadius: 14, padding: 14, gap: 6 },

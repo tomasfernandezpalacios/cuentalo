@@ -147,7 +147,8 @@ export function CounterCard({
                 emoji={counter.emoji}
                 name={counter.name}
                 photoPath={counter.photo_path}
-                size={36}
+                // Más grande en los bloques (petición del usuario): tan alto como el total.
+                size={GRID_ICON}
               />
               <View style={styles.gridTotalBox}>
                 {totalBadge}
@@ -155,7 +156,12 @@ export function CounterCard({
               </View>
             </View>
             <View style={styles.gridName}>
-              <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
+              {/* Con el icono grande, si hay línea de grupos el nombre ocupa una sola línea para
+                  que todo quepa en el cuadrado. */}
+              <Text
+                style={[styles.nameText, { color: colors.text }]}
+                numberOfLines={subtitle ? 1 : 2}
+              >
                 {counter.name}
               </Text>
               {subtitle ? (
@@ -199,6 +205,8 @@ export function CounterCard({
 /** Alto del recuadro del total: en la fila y en los bloques. */
 const BADGE = 36;
 const GRID_BADGE = 46;
+/** Icono de los bloques de la cuadrícula. */
+const GRID_ICON = 52;
 
 const styles = StyleSheet.create({
   card: {

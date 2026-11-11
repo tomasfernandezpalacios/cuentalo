@@ -13,6 +13,7 @@ import {
   TextInput,
   useWindowDimensions,
   View,
+  type GestureResponderEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
@@ -91,6 +92,7 @@ export default function CountersScreen() {
   const [barsHeight, setBarsHeight] = useState(0);
   const [barsAnim] = useState(() => new Animated.Value(0));
   const lastOffset = useRef(0);
+  const pullStart = useRef<number | null>(null);
   const scrollMetrics = useRef({ offset: 0, viewport: 0, content: 0, footer: 0, titleTop: 0 });
   // Al abrir la app siempre se empieza en «Todos» y sin filtros.
   const [filters, setFilters] = useState<CounterFilters>(DEFAULT_FILTERS);
@@ -327,11 +329,26 @@ export default function CountersScreen() {
     const y = e.nativeEvent.contentOffset.y;
     scrollMetrics.current.offset = y;
     checkReveal();
-    // En iOS, tirar más allá del principio da desplazamientos negativos: abre las barras.
-    if (y < -BARS_PULL) setBarsOpen(true);
     // Al bajar por la lista, se esconden.
     if (barsOpen && y > BARS_HIDE_AFTER && y > lastOffset.current) setBarsOpen(false);
     lastOffset.current = y;
+  }
+
+  /**
+   * Abrir las barras sin recargar: se sigue el dedo (no el desplazamiento, que en Android no
+   * pasa de 0). En cuanto la lista está arriba del todo, se apunta dónde está el dedo; si desde
+   * ahí sigue bajando BARS_PULL puntos (tirando hacia abajo), salen las barras. Funciona aunque se
+   * llegue arriba en el mismo gesto.
+   */
+  function onListTouchMove(e: GestureResponderEvent) {
+    if (barsOpen || drag.dragging) return;
+    const y = e.nativeEvent.pageY;
+    if (scrollMetrics.current.offset > 1) {
+      pullStart.current = null;
+      return;
+    }
+    if (pullStart.current === null) pullStart.current = y;
+    else if (y - pullStart.current > BARS_PULL) setBarsOpen(true);
   }
 
   // --- Vista ------------------------------------------------------------------------------
@@ -592,6 +609,9 @@ export default function CountersScreen() {
         contentContainerStyle={styles.list}
         scrollEnabled={!drag.dragging}
         onScroll={onListScroll}
+        onTouchMove={onListTouchMove}
+        onTouchEnd={() => (pullStart.current = null)}
+        onTouchCancel={() => (pullStart.current = null)}
         scrollEventThrottle={32}
         onLayout={(e) => {
           scrollMetrics.current.viewport = e.nativeEvent.layout.height;
@@ -705,8 +725,8 @@ export default function CountersScreen() {
 const SEARCH_FROM = 6;
 
 const CARD_GAP = 10;
-/** iOS: cuánto hay que tirar más allá del principio para que salgan las barras. */
-const BARS_PULL = 50;
+/** Cuánto hay que tirar hacia abajo, ya arriba del todo, para que salgan las barras. */
+const BARS_PULL = 40;
 /** Cuánto hay que bajar por la lista para que se escondan. */
 const BARS_HIDE_AFTER = 24;
 const LIST_PADDING = 12;

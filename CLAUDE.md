@@ -616,6 +616,14 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   volver a bajar por la lista. Siempre abiertas en el modo selección, con una carpeta elegida o
   con algo escrito en el buscador.
 
+- Las barras de «Mis contadores» se abren solas al tirar hacia abajo estando arriba del todo:
+  se sigue el dedo (`onTouchMove`, 40 puntos desde que la lista llega arriba), sin depender de
+  recargar (en Android el desplazamiento no baja de 0). Recargar también las abre.
+- Editar contador: «Guardar» va arriba a la derecha en la cabecera (`CounterForm
+  submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón abajo.
+- Bloques de la cuadrícula: icono más grande (52); si hay línea de grupos, el nombre va en una
+  sola línea para que todo quepa en el cuadrado.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

@@ -70,6 +70,7 @@ export default function EditCounterScreen() {
       initialPhotoPath={counter.data.photo_path ?? null}
       sharedGroupName={group?.name}
       submitTitle="Guardar cambios"
+      submitInHeader
       saving={update.isPending || setParticipants.isPending}
       error={update.error ?? setParticipants.error}
       sharedGroupId={group?.id}
