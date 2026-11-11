@@ -101,3 +101,11 @@ export function customAccent(
     },
   };
 }
+
+/** El mismo color con transparencia (0–1), como rgba(); si no es #RRGGBB, se devuelve tal cual. */
+export function withAlpha(hex: string, alpha: number): string {
+  const clean = normalizeHex(hex);
+  if (!clean) return hex;
+  const n = parseInt(clean.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}

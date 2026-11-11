@@ -12,8 +12,22 @@ describe('parseSettings', () => {
   it('mezcla lo guardado con lo que falta', () => {
     const s = parseSettings(JSON.stringify({ theme: 'dark', reminder: { enabled: true } }));
     expect(s.theme).toBe('dark');
-    expect(s.accent).toBe('morado');
+    expect(s.accent).toBe('dorado');
     expect(s.reminder).toEqual({ enabled: true, counters: false, hour: 21, minute: 0 });
+  });
+
+  it('pasa una vez al dorado y al oscuro a quien tenía lo de antes de serie', () => {
+    const old = parseSettings(JSON.stringify({ accent: 'morado', theme: 'system' }));
+    expect(old.accent).toBe('dorado');
+    expect(old.theme).toBe('dark');
+    const chosen = parseSettings(JSON.stringify({ accent: 'azul', theme: 'light' }));
+    expect(chosen.accent).toBe('azul');
+    expect(chosen.theme).toBe('light');
+    const after = parseSettings(
+      JSON.stringify({ accent: 'morado', theme: 'system', cineDefaults: true }),
+    );
+    expect(after.accent).toBe('morado');
+    expect(after.theme).toBe('system');
   });
 
   it('limpia las cantidades rápidas: positivas, sin repetir, ordenadas y como mucho 3', () => {

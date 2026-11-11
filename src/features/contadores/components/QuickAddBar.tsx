@@ -171,6 +171,6 @@ const styles = StyleSheet.create({
   stretchRow: { alignSelf: 'stretch' },
   streakStretch: { flex: 1, height: 44 },
   streak: { flexDirection: 'row', height: 48, minWidth: 36, gap: 1, paddingHorizontal: 2 },
-  largeLabel: { fontSize: 19, fontFamily: fonts.title },
-  compactLabel: { fontSize: 14, fontFamily: fonts.title },
+  largeLabel: { fontSize: 22, fontFamily: fonts.title },
+  compactLabel: { fontSize: 17, fontFamily: fonts.title },
 });

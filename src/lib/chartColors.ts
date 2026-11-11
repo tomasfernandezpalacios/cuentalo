@@ -9,7 +9,8 @@ const CINEMA_COLORS = [
   '#A98BD4',
   '#7FAE8B',
   '#6FA3C7',
-  '#F5F1E8',
+  // Topo: se ve en claro y en oscuro (antes, blanco hueso, que en el modo claro no se veía).
+  '#9C8F7A',
   '#C9A44A',
   '#B5735C',
   '#8C78B0',

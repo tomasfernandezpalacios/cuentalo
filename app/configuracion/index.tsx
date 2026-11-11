@@ -26,7 +26,6 @@ import {
   MAX_QUICK_AMOUNTS,
   QUICK_AMOUNT_OPTIONS,
   type ThemeMode,
-  type VisualStyle,
   toggleQuickAmount,
   updateSettings,
   useSettings,
@@ -40,19 +39,7 @@ import {
   type PrivacySettings,
 } from '@/features/perfil/api';
 import { getErrorMessage } from '@/lib/errors';
-import {
-  accents,
-  customAccentColors,
-  fonts,
-  isCinema,
-  useColorMode,
-  useThemeColors,
-} from '@/lib/theme';
-
-const STYLES: { value: VisualStyle; label: string }[] = [
-  { value: 'clasico', label: 'Clásico' },
-  { value: 'cine', label: 'Cine (prueba)' },
-];
+import { accents, customAccentColors, fonts, useColorMode, useThemeColors } from '@/lib/theme';
 
 const THEMES: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'Automático' },
@@ -122,16 +109,20 @@ export default function SettingsScreen() {
   }
 
   /**
-   * Las tipografías, formas y colores del estilo se fijan al arrancar: se guarda y se reinicia la
-   * app (si no se reinicia ahora, se aplica la próxima vez que se abra).
+   * Los colores cambian al momento, pero algunos detalles fijos (el engrosado de los títulos) se
+   * calculan al arrancar: se ofrece reiniciar para que todo quede perfecto.
    */
-  function changeStyle(visualStyle: VisualStyle) {
-    if (visualStyle === settings.visualStyle) return;
-    updateSettings({ visualStyle });
-    appAlert('Cambiar estilo', 'Para ver el nuevo estilo hay que reiniciar la app.', [
-      { text: 'Más tarde', style: 'cancel' },
-      { text: 'Reiniciar ahora', onPress: () => void reloadAppAsync('Cambio de estilo') },
-    ]);
+  function changeTheme(theme: ThemeMode) {
+    if (theme === settings.theme) return;
+    updateSettings({ theme });
+    appAlert(
+      'Cambiar tema',
+      'Reinicia la app para que los títulos se vean bien en el nuevo tema.',
+      [
+        { text: 'Más tarde', style: 'cancel' },
+        { text: 'Reiniciar ahora', onPress: () => void reloadAppAsync('Cambio de tema') },
+      ],
+    );
   }
 
   function confirmDelete() {
@@ -195,58 +186,44 @@ export default function SettingsScreen() {
       </SettingsGroup>
 
       <SettingsGroup title="Apariencia">
-        <SettingsRow
-          first
-          label="Estilo"
-          detail="Cine es un estilo de prueba: oscuro cálido, dorado y letra editorial. Al cambiarlo, la app se reinicia."
-          below={
-            <OptionChips
-              options={STYLES}
-              isSelected={(v) => v === settings.visualStyle}
-              onPress={changeStyle}
-            />
-          }
-        />
-        {/* El estilo Cine tiene su propio tema (oscuro) y color (dorado). */}
-        {!isCinema && (
-          <>
-            <SettingsRow
-              label="Tema"
-              below={
-                <OptionChips
-                  options={THEMES}
-                  isSelected={(v) => v === settings.theme}
-                  onPress={(theme) => updateSettings({ theme })}
-                />
-              }
-            />
-            <SettingsRow
-              label="Color"
-              detail="Botones, pestañas y detalles de la app."
-              below={
-                <OptionChips<AccentChoice>
-                  options={[
-                    ...(Object.keys(accents) as AccentName[]).map((name) => ({
-                      value: name as AccentChoice,
-                      label: accents[name].label,
-                      color: accents[name][mode].primary,
-                    })),
-                    // El último: un color elegido a mano en un recuadro.
-                    {
-                      value: 'custom',
-                      label: 'Personalizado',
-                      color: customAccentColors(settings.customAccent)[mode].primary,
-                    },
-                  ]}
-                  isSelected={(v) => v === settings.accent}
-                  onPress={(accent) =>
-                    accent === 'custom' ? setPickingColor(true) : updateSettings({ accent })
-                  }
-                />
-              }
-            />
-          </>
-        )}
+        <>
+          <SettingsRow
+            first
+            label="Tema"
+            below={
+              <OptionChips
+                options={THEMES}
+                isSelected={(v) => v === settings.theme}
+                onPress={changeTheme}
+              />
+            }
+          />
+          <SettingsRow
+            label="Color"
+            detail="Botones, pestañas y detalles de la app."
+            below={
+              <OptionChips<AccentChoice>
+                options={[
+                  ...(Object.keys(accents) as AccentName[]).map((name) => ({
+                    value: name as AccentChoice,
+                    label: accents[name].label,
+                    color: accents[name][mode].primary,
+                  })),
+                  // El último: un color elegido a mano en un recuadro.
+                  {
+                    value: 'custom',
+                    label: 'Personalizado',
+                    color: customAccentColors(settings.customAccent)[mode].primary,
+                  },
+                ]}
+                isSelected={(v) => v === settings.accent}
+                onPress={(accent) =>
+                  accent === 'custom' ? setPickingColor(true) : updateSettings({ accent })
+                }
+              />
+            }
+          />
+        </>
       </SettingsGroup>
 
       <SettingsGroup title="Contadores">

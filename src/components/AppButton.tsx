@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
 
-import { CINEMA_ELEVATED_2, fonts, isCinema, shape, useThemeColors } from '@/lib/theme';
+import { fonts, isCinema, shape, useThemeColors } from '@/lib/theme';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
@@ -31,7 +31,7 @@ export function AppButton({
 
   const background = {
     primary: colors.primary,
-    secondary: isCinema ? CINEMA_ELEVATED_2 : colors.surface,
+    secondary: colors.elevated,
     danger: colors.danger,
     ghost: 'transparent',
   }[variant];

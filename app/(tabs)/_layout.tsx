@@ -79,7 +79,8 @@ function cinemaTabBar(colors: ThemeColors, bottomInset: number) {
       paddingBottom: 0,
       paddingTop: 0,
       paddingHorizontal: 8,
-      marginHorizontal: 24,
+      // Casi de borde a borde (petición del usuario), sin perder la forma redondeada.
+      marginHorizontal: 6,
       marginBottom: bottomInset + 12,
       elevation: 0,
       shadowOpacity: 0,

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { CINEMA_ELEVATED_2, chipColors, isCinema, shape, fonts, useThemeColors } from '@/lib/theme';
+import { chipColors, isCinema, shape, fonts, useThemeColors } from '@/lib/theme';
 
 type Option<T extends string> = { value: T; label: string };
 
@@ -18,7 +18,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
       style={[
         styles.container,
         {
-          backgroundColor: isCinema ? CINEMA_ELEVATED_2 : colors.surface,
+          backgroundColor: isCinema ? colors.elevated : colors.surface,
           borderColor: isCinema ? 'transparent' : colors.border,
         },
       ]}

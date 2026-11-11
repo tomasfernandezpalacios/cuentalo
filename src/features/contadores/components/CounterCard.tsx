@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { withAlpha } from '@/lib/color';
 import { formatAmount, formatWithUnit } from '@/lib/format';
 import { displayFont, fonts, isCinema, serifWeight, shape, useThemeColors } from '@/lib/theme';
 
@@ -104,7 +105,7 @@ export function CounterCard({
         grid && styles.gridBadge,
         {
           backgroundColor: colors.primarySoft,
-          borderColor: isCinema ? 'rgba(233,196,106,0.35)' : colors.primary,
+          borderColor: isCinema ? withAlpha(colors.primary, 0.35) : colors.primary,
         },
       ]}
     >

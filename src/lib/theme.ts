@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { useColorScheme } from 'react-native';
+import { Appearance, useColorScheme } from 'react-native';
 
 import { type AccentName, getSettings, useSettings } from '@/features/configuracion/settings';
-import { customAccent, normalizeHex } from '@/lib/color';
+import { customAccent, normalizeHex, withAlpha } from '@/lib/color';
 
 const palette = {
   light: {
@@ -11,6 +11,7 @@ const palette = {
     text: '#14141A',
     textMuted: '#6B6B78',
     border: '#E4E4EC',
+    elevated: '#FFFFFF',
     primary: '#5B4BDB',
     primarySoft: '#ECE9FC',
     flame: '#F2711C',
@@ -23,6 +24,7 @@ const palette = {
     text: '#F2F2F5',
     textMuted: '#9A9AA8',
     border: '#2A2A33',
+    elevated: '#1A1A21',
     primary: '#8B7DFF',
     primarySoft: '#262240',
     flame: '#FF8A3D',
@@ -32,27 +34,59 @@ const palette = {
 };
 
 /**
- * Estilo visual (Configuración → Apariencia). Se lee una vez al arrancar: las tipografías y
- * formas de cada pantalla se fijan al cargar, así que cambiarlo reinicia la app.
- * - 'clasico': el morado de siempre, claro u oscuro.
- * - 'cine' (prueba): «cuaderno de estudio de noche con luz de lámpara». Oscuro cálido, un solo
- *   acento dorado, serif editorial para títulos y cifras y sans neutra para la interfaz.
+ * Estilo de la app: «Cine» (decisión del usuario, es el único). Cálido y editorial: serif para
+ * títulos y cifras, Redaction 10 para el resto, tarjetas muy redondeadas, botones en píldora.
+ * Claro u oscuro y con el color de destaque que se elija (dorado de serie).
+ *
+ * El estilo anterior («clásico», morado) sigue en las ramas `isCinema ? … : …` por si hiciera
+ * falta volver, y entero en las etiquetas de Git `diseno-clasico` (antes de Cine) y
+ * `estilos-elegibles` (con los dos estilos elegibles en Configuración).
  */
-export const isCinema = getSettings().visualStyle === 'cine';
+export const isCinema = true;
 
-/** Paleta del estilo Cine (siempre oscura). Texto sobre el dorado, siempre casi negro. */
+/**
+ * Paletas de Cine. Oscuro: «cuaderno de noche con luz de lámpara» (negro cálido, blanco hueso).
+ * Claro: papel cálido (nunca blanco puro) con tinta casi negra. El color de destaque se añade
+ * encima (accents).
+ */
 const cinemaPalette = {
-  background: '#0B0A09',
-  surface: '#141311',
-  text: '#F5F1E8',
-  textMuted: '#A8A196',
-  border: 'rgba(255,255,255,0.08)',
-  primary: '#E9C46A',
-  primarySoft: '#2A2418',
-  flame: '#E58A55',
-  onPrimary: '#0B0A09',
-  danger: '#EF4444',
+  light: {
+    background: '#F3EEE4',
+    surface: '#FBF8F2',
+    elevated: '#E9E2D4',
+    text: '#1A1714',
+    textMuted: '#6B655B',
+    border: 'rgba(26,23,20,0.10)',
+    primary: '#8A6A1F',
+    primarySoft: '#EFE3C6',
+    flame: '#C2551F',
+    onPrimary: '#FFFFFF',
+    danger: '#C62828',
+  },
+  dark: {
+    background: '#0B0A09',
+    surface: '#141311',
+    elevated: '#1C1A17',
+    text: '#F5F1E8',
+    textMuted: '#A8A196',
+    border: 'rgba(255,255,255,0.08)',
+    primary: '#E9C46A',
+    primarySoft: '#2A2418',
+    flame: '#E58A55',
+    onPrimary: '#0B0A09',
+    danger: '#EF4444',
+  },
 };
+
+/**
+ * Modo con el que arrancó la app. Lo usan los estilos fijos (StyleSheet) que dependen del modo,
+ * como el engrosado de la serif; por eso cambiar el tema ofrece reiniciar la app.
+ */
+const startMode: 'light' | 'dark' = (() => {
+  const { theme } = getSettings();
+  if (theme !== 'system') return theme;
+  return Appearance.getColorScheme() === 'light' ? 'light' : 'dark';
+})();
 
 /**
  * Tipografías (cargadas en app/_layout.tsx). Con fuentes personalizadas no se usa
@@ -77,9 +111,6 @@ export const fonts = isCinema
       prose: 'Redaction-Regular',
     } as const);
 
-/** Fondo de chips, campos y tarjetas anidadas en el estilo Cine (un escalón sobre las tarjetas). */
-export const CINEMA_ELEVATED_2 = '#1C1A17';
-
 /**
  * Colores de un chip (carpetas, opciones, periodos…). Clásico: el activo en el color de la app.
  * Cine: píldoras oscuras y la activa en dorado suave (fondo dorado oscuro, borde y texto dorados).
@@ -88,7 +119,7 @@ export function chipColors(colors: ThemeColors, selected: boolean) {
   if (isCinema) {
     return selected
       ? { backgroundColor: colors.primarySoft, borderColor: colors.primary, color: colors.primary }
-      : { backgroundColor: CINEMA_ELEVATED_2, borderColor: 'transparent', color: colors.text };
+      : { backgroundColor: colors.elevated, borderColor: 'transparent', color: colors.text };
   }
   return selected
     ? { backgroundColor: colors.primary, borderColor: colors.primary, color: colors.onPrimary }
@@ -117,7 +148,7 @@ export function displayFont(size: number) {
  * usuario) se dibuja una sombra nítida del mismo color desplazada medio punto. `color` es el del
  * texto (por defecto, el blanco hueso de Cine; si el texto es dorado, se pasa el dorado).
  */
-export function serifWeight(color: string = cinemaPalette.text) {
+export function serifWeight(color: string = cinemaPalette[startMode].text) {
   if (!isCinema) return {};
   return {
     textShadowColor: color,
@@ -147,8 +178,8 @@ export function proseFont(size: number, lineHeight?: number) {
 export function inverseColors(colors: ThemeColors) {
   return isCinema
     ? {
-        backgroundColor: CINEMA_ELEVATED_2,
-        borderColor: 'rgba(233,196,106,0.35)',
+        backgroundColor: colors.elevated,
+        borderColor: withAlpha(colors.primary, 0.35),
         color: colors.text,
       }
     : { backgroundColor: colors.text, borderColor: colors.text, color: colors.background };
@@ -196,13 +227,18 @@ export type ThemeColors = typeof palette.light;
 type AccentColors = Pick<ThemeColors, 'primary' | 'primarySoft'>;
 
 /**
- * Colores de acento que se pueden elegir en Configuración (el morado es el de serie). Todos
+ * Colores de acento que se pueden elegir en Configuración (el dorado es el de serie). Todos
  * tienen un contraste de al menos 4,5:1 con el texto de los botones (AA) en su modo.
  */
 export const accents: Record<
   AccentName,
   { label: string; light: AccentColors; dark: AccentColors }
 > = {
+  dorado: {
+    label: 'Dorado',
+    light: { primary: cinemaPalette.light.primary, primarySoft: cinemaPalette.light.primarySoft },
+    dark: { primary: cinemaPalette.dark.primary, primarySoft: cinemaPalette.dark.primarySoft },
+  },
   morado: {
     label: 'Morado',
     light: { primary: '#5B4BDB', primarySoft: '#ECE9FC' },
@@ -234,19 +270,18 @@ export const accents: Record<
 export function useColorMode(): 'light' | 'dark' {
   const system = useColorScheme();
   const { theme } = useSettings();
-  // El estilo Cine es oscuro siempre (es su identidad).
-  if (isCinema) return 'dark';
   if (theme !== 'system') return theme;
   return system === 'dark' ? 'dark' : 'light';
 }
 
 /** Colores de los dos modos para un color elegido a mano (con contraste AA en los botones). */
 export function customAccentColors(hex: string) {
-  return customAccent(normalizeHex(hex) ?? accents.morado.light.primary, {
-    lightBackground: palette.light.background,
-    darkBackground: palette.dark.background,
-    lightOnPrimary: palette.light.onPrimary,
-    darkOnPrimary: palette.dark.onPrimary,
+  const base = isCinema ? cinemaPalette : palette;
+  return customAccent(normalizeHex(hex) ?? accents.dorado.light.primary, {
+    lightBackground: base.light.background,
+    darkBackground: base.dark.background,
+    lightOnPrimary: base.light.onPrimary,
+    darkOnPrimary: base.dark.onPrimary,
   });
 }
 
@@ -254,7 +289,7 @@ export function useThemeColors(): ThemeColors {
   const mode = useColorMode();
   const { accent, customAccent: custom } = useSettings();
   const customColors = useMemo(() => customAccentColors(custom), [custom]);
-  const chosen = accent === 'custom' ? customColors : (accents[accent] ?? accents.morado);
-  if (isCinema) return cinemaPalette;
-  return { ...palette[mode], ...chosen[mode] };
+  const chosen = accent === 'custom' ? customColors : (accents[accent] ?? accents.dorado);
+  const base = isCinema ? cinemaPalette : palette;
+  return { ...base[mode], ...chosen[mode] };
 }

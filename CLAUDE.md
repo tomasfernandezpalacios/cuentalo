@@ -501,9 +501,17 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   (límite de iOS: 64), con menos días por adelantado cuantos más contadores.
 - Buscador en «Mis contadores» (ignora tildes, `src/lib/search.ts`) a partir de 6 contadores.
 
-- **Estilo «Cine» (prueba, petición del usuario)**: Configuración → Apariencia → Estilo
-  (`settings.visualStyle`: 'clasico' | 'cine', por defecto clásico). Se lee una vez al arrancar
-  (`isCinema` en `theme.ts`) y al cambiarlo se ofrece reiniciar (`reloadAppAsync` de `expo`).
+- **Estilo «Cine», el único de la app** (decisión del usuario, 2026-11-11): `isCinema = true`
+  en `theme.ts`. El estilo clásico (morado) sigue en las ramas `isCinema ? … : …` y entero en
+  las etiquetas de Git `diseno-clasico` (antes de Cine) y `estilos-elegibles` (con los dos
+  estilos elegibles). En Configuración ya no hay «Estilo»; sí **Tema** (automático, claro,
+  oscuro; de serie oscuro) y **Color** (dorado de serie, el resto de antes y personalizado). Cine
+  claro: papel cálido `#F3EEE4`, tarjetas `#FBF8F2`, tinta `#1A1714`, dorado oscuro `#8A6A1F`
+  con texto blanco. `colors.elevated` (chips y botones secundarios) y `withAlpha` sustituyen a
+  los colores fijos del oscuro. Quien tenía el morado y el tema del sistema de serie pasa una vez
+  al dorado y al oscuro (`settings.cineDefaults`, con test). El engrosado de la serif usa el modo
+  con el que arrancó la app: al cambiar el tema se ofrece reiniciar. Historia: antes era una
+  prueba elegible (`settings.visualStyle`, que ya no se usa).
   Cine: siempre oscuro cálido (`cinemaPalette`: fondo `#0B0A09`, tarjetas `#141311`, chips
   `#1C1A17` = `CINEMA_ELEVATED_2`, texto `#F5F1E8`), un solo acento dorado `#E9C46A` con texto
   casi negro, Inter para la interfaz y **Instrument Serif** (`fonts.display`) para títulos de
@@ -582,6 +590,9 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - «Mis contadores» ya no usa FlatList sino un ScrollView con las tarjetas dentro, igual que
   los bloques de Estadísticas: así el arrastre para reordenar es igual de fluido (sin celdas
   virtualizadas, recortes ni capas por celda). Son pocos contadores, no hace falta virtualizar.
+
+- Barra de pestañas de Cine: cápsula redondeada casi de borde a borde (`marginHorizontal: 6`).
+- Botones de sumar y restar: números más grandes (17 en la tarjeta, 22 en el detalle).
 
 ## Cambios estéticos pendientes
 

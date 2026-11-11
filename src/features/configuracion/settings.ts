@@ -6,7 +6,7 @@ import { useSyncExternalStore } from 'react';
 // elegido se aplica desde el primer fotograma.
 
 export type ThemeMode = 'system' | 'light' | 'dark';
-export type AccentName = 'morado' | 'azul' | 'verde' | 'naranja' | 'rosa';
+export type AccentName = 'dorado' | 'morado' | 'azul' | 'verde' | 'naranja' | 'rosa';
 /**
  * Estilo visual de toda la app: 'clasico' (el morado de siempre) o 'cine' (prueba: oscuro
  * cálido, dorado y tipografía editorial). Se aplica al arrancar la app.
@@ -42,13 +42,18 @@ export type Settings = {
    * (profile_private); si queda una aquí, useBirthDate la sube una vez y la borra.
    */
   birthDate: string | null;
+  /**
+   * Ya se pasó al estilo Cine como único (dorado y oscuro de serie). Quien venía del morado de
+   * antes lo recibe una vez; después elige lo que quiera.
+   */
+  cineDefaults: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  theme: 'system',
+  theme: 'dark',
   visualStyle: 'clasico',
   counterLayout: 'list',
-  accent: 'morado',
+  accent: 'dorado',
   customAccent: '#5B4BDB',
   quickAmounts: [1, 5],
   confirmRemove: false,
@@ -56,6 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
   statsDefault: 'last',
   reminder: { enabled: false, counters: false, hour: 21, minute: 0 },
   birthDate: null,
+  cineDefaults: true,
 };
 
 /** Cantidades que se pueden elegir para los botones rápidos. */
@@ -72,9 +78,19 @@ export function parseSettings(raw: string | null): Settings {
     const amounts = Array.isArray(saved.quickAmounts)
       ? saved.quickAmounts.filter((n) => Number.isInteger(n) && n > 0)
       : [];
+    // Antes del estilo Cine único el color de serie era el morado y el tema, el del sistema:
+    // se cambian una vez al dorado y al oscuro (lo propio de Cine).
+    const migrated: Partial<Settings> = saved.cineDefaults
+      ? {}
+      : {
+          cineDefaults: true,
+          accent: saved.accent === undefined || saved.accent === 'morado' ? 'dorado' : saved.accent,
+          theme: saved.theme === undefined || saved.theme === 'system' ? 'dark' : saved.theme,
+        };
     return {
       ...DEFAULT_SETTINGS,
       ...saved,
+      ...migrated,
       quickAmounts:
         amounts.length > 0
           ? [...new Set(amounts)].sort((a, b) => a - b).slice(0, MAX_QUICK_AMOUNTS)
