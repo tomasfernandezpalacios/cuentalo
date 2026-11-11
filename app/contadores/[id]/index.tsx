@@ -22,7 +22,7 @@ import {
 import { useCounterActions } from '@/features/contadores/useCounterActions';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount, formatWithUnit, pluralize } from '@/lib/format';
-import { displayFont, fonts, titleFont, useThemeColors } from '@/lib/theme';
+import { displayFont, fonts, proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
 // El diálogo está cerrado (null), creando un registro ('new') o editando uno (Entry).
 type DialogState = null | 'new' | Entry;
@@ -316,5 +316,5 @@ const styles = StyleSheet.create({
   groupChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1 },
   groupChipText: { fontSize: 14, fontFamily: fonts.title },
   sectionTitle: { ...titleFont(18), marginTop: 8 },
-  empty: { textAlign: 'center', paddingVertical: 24, fontFamily: fonts.detail },
+  empty: { ...proseFont(15), textAlign: 'center', paddingVertical: 24 },
 });

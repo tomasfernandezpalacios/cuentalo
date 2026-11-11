@@ -9,7 +9,7 @@ import { TextField } from '@/components/TextField';
 import { EmojiPicker } from '@/features/contadores/components/EmojiPicker';
 import { getErrorMessage } from '@/lib/errors';
 import { pickPhoto } from '@/lib/photos';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 import { LIMITS, validateRequiredText } from '@/lib/validation';
 
 import type { Group, GroupInput, PickedPhoto } from '../api';
@@ -127,5 +127,5 @@ const styles = StyleSheet.create({
   preview: { alignItems: 'center', marginTop: 8 },
   label: { fontSize: 15, fontFamily: fonts.detail },
   photoActions: { gap: 8 },
-  hint: { fontSize: 14, fontFamily: fonts.detail },
+  hint: { ...proseFont(14) },
 });

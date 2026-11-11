@@ -60,7 +60,8 @@ import { getErrorMessage } from '@/lib/errors';
 import { applyOrder } from '@/lib/reorder';
 import { matchesSearch } from '@/lib/search';
 import { useDragReorder } from '@/lib/useDragReorder';
-import { fonts, screenTitleFont, useThemeColors } from '@/lib/theme';
+import { reportBadgeWidth, TITLE_GAP, useScreenTitleSize } from '@/lib/screenTitle';
+import { fonts, isCinema, screenTitleFont, useThemeColors } from '@/lib/theme';
 
 function openNewCounter() {
   router.push('/contadores/nuevo');
@@ -84,6 +85,7 @@ export default function CountersScreen() {
   const [showHidden, setShowHidden] = useState(false);
   // Vista de los contadores (filas o bloques), guardada en el móvil.
   const { counterLayout } = useSettings();
+  const titleSize = useScreenTitleSize();
   const grid = counterLayout === 'grid';
   const { width } = useWindowDimensions();
   const gridItemWidth = (width - 2 * LIST_PADDING - CARD_GAP) / 2;
@@ -403,12 +405,18 @@ export default function CountersScreen() {
     // Título con el fuego de la racha a su derecha.
     headerTitle: () => (
       <View style={styles.title}>
-        <Text style={[styles.titleText, { color: colors.text }]} numberOfLines={1}>
+        <Text
+          style={[styles.titleText, { color: colors.text }, isCinema && { fontSize: titleSize }]}
+          numberOfLines={1}
+        >
           Mis contadores
         </Text>
-        <TutorialTarget id="racha">
-          <StreakBadge />
-        </TutorialTarget>
+        {/* Su ancho decide el tamaño de todos los títulos (para que nada se solape). */}
+        <View onLayout={(e) => reportBadgeWidth(e.nativeEvent.layout.width)}>
+          <TutorialTarget id="racha">
+            <StreakBadge />
+          </TutorialTarget>
+        </View>
       </View>
     ),
     headerRight: () => (
@@ -690,7 +698,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 16, paddingVertical: 8 },
   flex: { flex: 1 },
-  title: { flexDirection: 'row', alignItems: 'center', gap: 24 },
+  title: { flexDirection: 'row', alignItems: 'center', gap: isCinema ? TITLE_GAP : 24 },
   titleText: { ...screenTitleFont() },
   list: { padding: LIST_PADDING, gap: CARD_GAP, flexGrow: 1 },
   gridRow: { gap: CARD_GAP },

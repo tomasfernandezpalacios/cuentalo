@@ -548,6 +548,16 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   «Descubrir más» → `app/amigos/descubrir.tsx` (buscador de cualquier usuario y hasta 100
   sugerencias). El número no se verifica: alguien podría poner uno ajeno (V1).
 
+- Cine, textos (petición del usuario): todo lo que no es título va en **Tinos** (libre, con las
+  mismas medidas que Times New Roman, que no se puede incluir; `fonts.title` = Tinos Bold,
+  `fonts.detail` = Tinos Regular). Explicaciones, pistas, textos vacíos y avisos en la serif
+  itálica (`proseFont`). Títulos de cabecera: todos del mismo tamaño, el mayor que cabe en
+  «Mis contadores» sin solaparse con la racha ni con los botones (`src/lib/screenTitle.tsx`:
+  `TitleMeasurer` mide el texto a tamaño 100, la racha avisa de su ancho, `fitTitleSize` con
+  tests, entre 20 y 30).
+- La vista de «Mis contadores» (filas o bloques) se guarda en el móvil y es la que sale al
+  volver a abrir la app.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

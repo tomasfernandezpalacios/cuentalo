@@ -8,7 +8,7 @@ import { TextField } from '@/components/TextField';
 import { tutorialEvent } from '@/features/tutorial/store';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 import { LIMITS, validateOptionalText, validateRequiredText } from '@/lib/validation';
 
 import type { CounterInput } from '../api';
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 15, fontFamily: fonts.detail },
   option: { padding: 14, borderRadius: 12, borderWidth: 1, gap: 4 },
   optionTitle: { fontSize: 15, fontFamily: fonts.title },
-  hint: { fontSize: 14, fontFamily: fonts.detail },
+  hint: { ...proseFont(14) },
   commonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   checkbox: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   flexText: { flex: 1, gap: 2 },

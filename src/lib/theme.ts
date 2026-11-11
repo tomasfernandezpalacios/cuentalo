@@ -57,16 +57,16 @@ const cinemaPalette = {
 /**
  * Tipografías (cargadas en app/_layout.tsx). Con fuentes personalizadas no se usa
  * fontWeight: cada archivo ya es un peso concreto.
- * - title: títulos, nombres, cifras y botones (clásico: Ubuntu Bold; cine: Inter Medium, un poco más fina a petición del usuario).
- * - detail: detalles y textos secundarios (clásico: Redaction; cine: Inter Regular).
+ * - title: títulos, nombres, cifras y botones (clásico: Ubuntu Bold; cine: Tinos Bold, la libre con las medidas de Times New Roman).
+ * - detail: detalles y textos secundarios (clásico: Redaction; cine: Tinos, como Times New Roman).
  * - display: títulos de pantalla y cifras grandes (clásico: Ubuntu Bold; cine: Instrument
  *   Serif, el toque editorial).
  * - prose: explicaciones largas y avisos (clásico: Redaction; cine: Instrument Serif itálica).
  */
 export const fonts = isCinema
   ? ({
-      title: 'Inter_500Medium',
-      detail: 'Inter_400Regular',
+      title: 'Tinos_700Bold',
+      detail: 'Tinos_400Regular',
       display: 'InstrumentSerif_400Regular',
       prose: 'InstrumentSerif_400Regular_Italic',
     } as const)
@@ -159,9 +159,9 @@ export function inverseColors(colors: ThemeColors) {
  * todas. En Cine, grande y en la serif; en clásico, como siempre (la cabecera de «Mis contadores»
  * es propia y usa 18).
  */
-export function screenTitleFont() {
+export function screenTitleFont(size = 30) {
   return isCinema
-    ? { fontFamily: fonts.display, fontSize: 34, ...serifWeight() }
+    ? { fontFamily: fonts.display, fontSize: size, ...serifWeight() }
     : { fontFamily: fonts.title, fontSize: 18 };
 }
 
@@ -169,13 +169,13 @@ export function screenTitleFont() {
  * Cabeceras de las pantallas. Cine: sin franja ni sombra (se funden con el fondo) y el título en
  * la serif editorial; clásico: la franja de siempre.
  */
-export function headerOptions(colors: ThemeColors) {
+export function headerOptions(colors: ThemeColors, titleSize?: number) {
   return isCinema
     ? {
         headerStyle: { backgroundColor: colors.background },
         headerShadowVisible: false,
         headerTintColor: colors.text,
-        headerTitleStyle: screenTitleFont(),
+        headerTitleStyle: screenTitleFont(titleSize),
       }
     : {
         headerStyle: { backgroundColor: colors.surface },

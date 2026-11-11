@@ -4,7 +4,7 @@ import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatAmount } from '@/lib/format';
-import { fonts, titleFont, useThemeColors } from '@/lib/theme';
+import { fonts, proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
 import { ChartPlot, type ChartSeries, type ChartType, Y_AXIS_WIDTH } from './ChartPlot';
 
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   },
   controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   zoom: { minWidth: 64, textAlign: 'center', fontSize: 14, fontFamily: fonts.detail },
-  hint: { fontSize: 13, fontFamily: fonts.detail, textAlign: 'center' },
+  hint: { ...proseFont(13), textAlign: 'center' },
   legend: { gap: 6 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 10, height: 10, borderRadius: 5 },

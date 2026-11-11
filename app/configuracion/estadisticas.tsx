@@ -6,7 +6,7 @@ import { ErrorView, LoadingView } from '@/components/StateViews';
 import { updateSettings, useSettings } from '@/features/configuracion/settings';
 import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { useCounterList } from '@/features/contadores/hooks';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 
 const LAST_USED = 'last';
 
@@ -77,7 +77,7 @@ export default function StatsDefaultScreen() {
 
 const styles = StyleSheet.create({
   list: { padding: 16 },
-  hint: { fontSize: 14, fontFamily: fonts.detail, marginBottom: 8 },
+  hint: { ...proseFont(14), marginBottom: 8 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

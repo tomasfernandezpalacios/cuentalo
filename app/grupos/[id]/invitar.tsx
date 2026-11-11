@@ -7,7 +7,7 @@ import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import { PersonRow } from '@/features/social/components/PersonRow';
 import { useFriendships, useGroup, useInviteToGroup } from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { proseFont, useThemeColors } from '@/lib/theme';
 
 /** Lista de amigos para invitar al grupo. Solo se puede invitar a amigos aceptados. */
 export default function InviteScreen() {
@@ -81,5 +81,5 @@ export default function InviteScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   list: { padding: 16 },
-  hint: { fontSize: 14, fontFamily: fonts.detail, marginBottom: 8 },
+  hint: { ...proseFont(14), marginBottom: 8 },
 });

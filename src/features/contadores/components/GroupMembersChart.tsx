@@ -16,7 +16,7 @@ import { useGroup } from '@/features/social/hooks';
 import { chartColor } from '@/lib/chartColors';
 import { getErrorMessage } from '@/lib/errors';
 import { formatWithUnit } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 
 import type { LeaderboardPeriod } from '../api';
 import { useGroupCounterDaily } from '../hooks';
@@ -147,7 +147,7 @@ export function GroupMembersChart({ groupId, counterId, unit, period }: Props) {
 
 const styles = StyleSheet.create({
   container: { gap: 12 },
-  muted: { fontSize: 14, fontFamily: fonts.detail },
+  muted: { ...proseFont(14) },
   totals: { gap: 6 },
   totalRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 10, height: 10, borderRadius: 5 },

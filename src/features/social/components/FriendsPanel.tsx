@@ -7,7 +7,7 @@ import { Section } from '@/components/Section';
 import { ErrorView } from '@/components/StateViews';
 import { TextField } from '@/components/TextField';
 import { getErrorMessage } from '@/lib/errors';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
 import type { Friendship, PublicProfile } from '../api';
@@ -213,6 +213,6 @@ function Tag({ text }: { text: string }) {
 const styles = StyleSheet.create({
   container: { gap: 24 },
   suggestions: { gap: 12 },
-  muted: { fontSize: 14, fontFamily: fonts.detail, paddingVertical: 8 },
+  muted: { ...proseFont(14), paddingVertical: 8 },
   tag: { fontSize: 14, fontFamily: fonts.detail },
 });

@@ -13,7 +13,14 @@ import {
 
 import { AppButton } from '@/components/AppButton';
 import { hexToHsv, type Hsv, hsvToHex, normalizeHex } from '@/lib/color';
-import { customAccentColors, fonts, titleFont, useColorMode, useThemeColors } from '@/lib/theme';
+import {
+  customAccentColors,
+  fonts,
+  proseFont,
+  titleFont,
+  useColorMode,
+  useThemeColors,
+} from '@/lib/theme';
 
 type Props = {
   initial: string;
@@ -237,7 +244,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   previewText: { fontSize: 14, fontFamily: fonts.title },
-  hint: { fontSize: 13, fontFamily: fonts.detail },
+  hint: { ...proseFont(13) },
   actions: { flexDirection: 'row', gap: 10 },
   flex: { flex: 1 },
 });

@@ -9,6 +9,7 @@ import { useInboxCount } from '@/features/social/hooks';
 import type { TargetId } from '@/features/tutorial/steps';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { fonts, headerOptions, isCinema, type ThemeColors, useThemeColors } from '@/lib/theme';
+import { useScreenTitleSize } from '@/lib/screenTitle';
 import { SummaryButton } from '@/features/estadisticas/components/SummaryButton';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -92,12 +93,13 @@ export default function TabsLayout() {
   // Punto rojo en «Amigos y grupos» mientras haya algo pendiente en el buzón.
   const inbox = useInboxCount();
   const insets = useSafeAreaInsets();
+  const titleSize = useScreenTitleSize();
   return (
     // Fondo detrás de la barra (en el estilo Cine se ve alrededor de la cápsula).
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Tabs
         screenOptions={{
-          ...headerOptions(colors),
+          ...headerOptions(colors, titleSize),
           ...(isCinema
             ? cinemaTabBar(colors, insets.bottom)
             : {

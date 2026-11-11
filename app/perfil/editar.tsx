@@ -20,7 +20,7 @@ import {
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { getErrorMessage } from '@/lib/errors';
 import { pickPhoto } from '@/lib/photos';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 import { LIMITS, validateRequiredText, validateUsername } from '@/lib/validation';
 
 type ImageMode = 'emoji' | 'photo';
@@ -162,5 +162,5 @@ const styles = StyleSheet.create({
   preview: { alignItems: 'center', marginTop: 8 },
   label: { fontSize: 15, fontFamily: fonts.detail },
   photoActions: { gap: 8 },
-  hint: { fontSize: 14, fontFamily: fonts.detail },
+  hint: { ...proseFont(14) },
 });

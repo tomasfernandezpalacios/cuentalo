@@ -3,6 +3,7 @@ import {
   InstrumentSerif_400Regular,
   InstrumentSerif_400Regular_Italic,
 } from '@expo-google-fonts/instrument-serif';
+import { Tinos_400Regular, Tinos_400Regular_Italic, Tinos_700Bold } from '@expo-google-fonts/tinos';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -20,7 +21,8 @@ import { usePendingInvite } from '@/features/social/pendingInvite';
 import { TutorialHost } from '@/features/tutorial/TutorialHost';
 import { useTutorialAutoStart } from '@/features/tutorial/useTutorialAutoStart';
 import { queryClient } from '@/lib/queryClient';
-import { headerOptions, useColorMode, useThemeColors } from '@/lib/theme';
+import { TitleMeasurer, useScreenTitleSize } from '@/lib/screenTitle';
+import { headerOptions, isCinema, useColorMode, useThemeColors } from '@/lib/theme';
 
 // La pantalla de carga (icono sobre fondo liso, ver app.json) se mantiene hasta tener las
 // fuentes y saber si hay sesión, para no enseñar un parpadeo de pantallas a medio cargar.
@@ -30,6 +32,8 @@ SplashScreen.setOptions({ fade: true, duration: 200 });
 function RootNavigator() {
   const { session, isLoading } = useAuth();
   const colors = useThemeColors();
+  // Títulos de cabecera del mismo tamaño que el que cabe en «Mis contadores».
+  const titleSize = useScreenTitleSize();
   const isSignedIn = session !== null;
   usePendingInvite(isSignedIn);
   useReminderSync(isSignedIn);
@@ -45,7 +49,7 @@ function RootNavigator() {
   return (
     <Stack
       screenOptions={{
-        ...headerOptions(colors),
+        ...headerOptions(colors, titleSize),
         contentStyle: { backgroundColor: colors.background },
         headerBackButtonDisplayMode: 'minimal',
         // Misma flecha en todas las pantallas, también en las que se abren como ventana
@@ -124,6 +128,9 @@ export default function RootLayout() {
     'Redaction-Regular': require('../assets/fonts/Redaction-Regular.ttf'),
     InstrumentSerif_400Regular,
     InstrumentSerif_400Regular_Italic,
+    Tinos_400Regular,
+    Tinos_400Regular_Italic,
+    Tinos_700Bold,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -139,6 +146,7 @@ export default function RootLayout() {
         <UndoToastHost />
         <TutorialHost />
         <DialogHost />
+        {isCinema ? <TitleMeasurer /> : null}
         <ThemedStatusBar />
       </AuthProvider>
     </QueryClientProvider>

@@ -19,7 +19,7 @@ import {
 } from '@/features/estadisticas/periods';
 import { chartColor } from '@/lib/chartColors';
 import { formatWithUnit } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 
 import type { UserCounter } from '../api';
 
@@ -178,7 +178,7 @@ export function CommonCountersChart({ counters, friendId, friendName }: Props) {
 
 const styles = StyleSheet.create({
   container: { gap: 12 },
-  muted: { fontSize: 14, fontFamily: fonts.detail },
+  muted: { ...proseFont(14) },
   totals: { gap: 6 },
   totalRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 10, height: 10, borderRadius: 5 },
