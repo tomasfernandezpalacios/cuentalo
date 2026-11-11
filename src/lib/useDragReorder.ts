@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -74,9 +74,11 @@ type Options = {
   gap?: number;
   /** Empieza a moverse (p. ej. para bloquear el desplazamiento de la lista o salir del modo selección). */
   onDragStart?: (key: string) => void;
+  /** Se mantuvo pulsado y se soltó sin moverlo (p. ej. para entrar en el modo selección). */
+  onHold?: (key: string) => void;
 };
 
-export function useDragReorder({ keys, onReorder, gap = 0, onDragStart }: Options) {
+export function useDragReorder({ keys, onReorder, gap = 0, onDragStart, onHold }: Options) {
   const [state] = useState(createDragState);
   const [dy] = useState(() => new Animated.Value(0));
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
@@ -106,9 +108,23 @@ export function useDragReorder({ keys, onReorder, gap = 0, onDragStart }: Option
     setDraggingKey(null);
   }
 
+  /**
+   * Al soltar en otro sitio, cada tarjeta se queda donde se ve (la arrastrada, en su hueco nuevo)
+   * hasta que llega el nuevo orden; entonces todo vuelve a 0 antes de pintar (useLayoutEffect),
+   * así no hay ni un fotograma con el orden viejo ni saltos.
+   */
+  function settle(drag: Drag, to: number) {
+    const between = to > drag.from ? keys.slice(drag.from + 1, to + 1) : keys.slice(to, drag.from);
+    const shift = between.reduce((sum, key) => sum + state.height(key) + gap, 0);
+    state.offset(drag.key).setValue(to > drag.from ? shift : -shift);
+    state.set(null);
+    dy.setValue(0);
+    setDraggingKey(null);
+  }
+
   // Si cambia la lista (p. ej. tras guardar el orden), todo vuelve a su sitio.
   const keysSignature = keys.join(',');
-  useEffect(() => {
+  useLayoutEffect(() => {
     dy.setValue(0);
     keysSignature.split(',').forEach((key) => state.offset(key).setValue(0));
   }, [keysSignature, dy, state]);
@@ -148,7 +164,11 @@ export function useDragReorder({ keys, onReorder, gap = 0, onDragStart }: Option
       const drag = state.get();
       if (!drag) return;
       const to = state.target();
-      if (drag.granted && to !== drag.from) onReorder(moveItem(keys, drag.from, to));
+      if (drag.granted && to !== drag.from) {
+        settle(drag, to);
+        onReorder(moveItem(keys, drag.from, to));
+        return;
+      }
       reset();
     },
   };
@@ -189,7 +209,10 @@ export function useDragReorder({ keys, onReorder, gap = 0, onDragStart }: Option
         onPressOut: () => {
           setTimeout(() => {
             const drag = state.get();
-            if (drag && drag.key === key && !drag.granted) reset();
+            if (drag && drag.key === key && !drag.granted) {
+              reset();
+              onHold?.(key);
+            }
           }, 60);
         },
       };

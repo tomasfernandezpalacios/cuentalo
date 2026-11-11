@@ -13,7 +13,12 @@ export function refreshAll(client: QueryClient = queryClient) {
       const [first, second] = query.queryKey;
       if (first === 'profile-photo' || first === 'avatar' || first === 'profile-private')
         return false;
-      if (first === 'social' && (second === 'photo' || second === 'invite-code')) return false;
+      // La agenda resumida tampoco: leerla cuesta y no cambia por lo que se haga en la app.
+      if (
+        first === 'social' &&
+        (second === 'photo' || second === 'invite-code' || second === 'contact-hashes')
+      )
+        return false;
       return true;
     },
   });

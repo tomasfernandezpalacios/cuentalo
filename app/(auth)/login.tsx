@@ -8,7 +8,7 @@ import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
 import { signIn } from '@/features/auth/api';
 import { getErrorMessage } from '@/lib/errors';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { displayFont, fonts, useThemeColors } from '@/lib/theme';
 import { validateEmail } from '@/lib/validation';
 
 export default function LoginScreen() {
@@ -74,6 +74,6 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   header: { marginTop: 80, marginBottom: 24, gap: 8 },
-  title: { fontSize: 36, fontFamily: fonts.display },
+  title: { ...displayFont(36) },
   subtitle: { fontSize: 17, fontFamily: fonts.detail },
 });

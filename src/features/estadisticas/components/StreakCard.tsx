@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { fonts, shape, useThemeColors } from '@/lib/theme';
+import { displayFont, fonts, shape, useThemeColors } from '@/lib/theme';
 
 import { useStreak } from '../api';
 import { localToday } from '../periods';
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   segment: { alignSelf: 'stretch', height: 12, borderRadius: 6, borderWidth: 2 },
   weekLetter: { fontSize: 12, fontFamily: fonts.title },
   texts: { flex: 1, gap: 2 },
-  number: { fontSize: 34, fontFamily: fonts.display, lineHeight: 40 },
+  number: { ...displayFont(34), lineHeight: 40 },
   label: { fontSize: 17, fontFamily: fonts.title },
   detail: { fontSize: 14, fontFamily: fonts.detail },
 });

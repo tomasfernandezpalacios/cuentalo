@@ -19,7 +19,10 @@ import {
   useSendFriendRequest,
 } from '../hooks';
 
+import { SUGGESTIONS_PREVIEW, useFriendSuggestions } from '../contacts';
+
 import { PersonRow } from './PersonRow';
+import { DiscoverMoreRow, PhoneSyncCard, SuggestionList } from './Suggestions';
 
 function showError(error: unknown) {
   appAlert('Error', getErrorMessage(error));
@@ -33,6 +36,7 @@ export function FriendsPanel() {
   const send = useSendFriendRequest();
   const respond = useRespondFriendRequest();
   const remove = useDeleteFriendship();
+  const suggestions = useFriendSuggestions(SUGGESTIONS_PREVIEW);
 
   if (friendships.isError) {
     return <ErrorView error={friendships.error} onRetry={friendships.refetch} />;
@@ -164,6 +168,19 @@ export function FriendsPanel() {
         )}
       </Section>
 
+      {/* Debajo de los amigos: sincronizar el número y personas que quizá conozcas. */}
+      <Section title="Personas que quizá conozcas">
+        <View style={styles.suggestions}>
+          <PhoneSyncCard />
+          {suggestions.isPending ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (suggestions.data ?? []).length > 0 ? (
+            <SuggestionList suggestions={suggestions.data ?? []} />
+          ) : null}
+          <DiscoverMoreRow />
+        </View>
+      </Section>
+
       {outgoing.length > 0 ? (
         <Section title="Solicitudes enviadas">
           <View>
@@ -195,6 +212,7 @@ function Tag({ text }: { text: string }) {
 
 const styles = StyleSheet.create({
   container: { gap: 24 },
+  suggestions: { gap: 12 },
   muted: { fontSize: 14, fontFamily: fonts.detail, paddingVertical: 8 },
   tag: { fontSize: 14, fontFamily: fonts.detail },
 });

@@ -22,7 +22,7 @@ import {
 import { useCounterActions } from '@/features/contadores/useCounterActions';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount, formatWithUnit, pluralize } from '@/lib/format';
-import { fonts, titleFont, useThemeColors } from '@/lib/theme';
+import { displayFont, fonts, titleFont, useThemeColors } from '@/lib/theme';
 
 // El diálogo está cerrado (null), creando un registro ('new') o editando uno (Entry).
 type DialogState = null | 'new' | Entry;
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   list: { padding: 16 },
   header: { gap: 20, marginBottom: 8 },
   totalBox: { alignItems: 'center', paddingVertical: 16, gap: 4 },
-  total: { fontSize: 56, fontFamily: fonts.display },
+  total: { ...displayFont(56) },
   unit: { fontSize: 18, fontFamily: fonts.detail },
   count: { fontSize: 14, marginTop: 4, fontFamily: fonts.detail },
   groupTotal: { fontSize: 15, marginTop: 6, fontFamily: fonts.title, textAlign: 'center' },

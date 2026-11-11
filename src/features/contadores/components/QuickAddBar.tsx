@@ -26,6 +26,8 @@ type Props = {
    * del −1, los días de racha con la llama (en color si hoy ya se ha mantenido).
    */
   streak?: { days: number; todayDone: boolean } | null;
+  /** Como mucho estos botones de sumar (en los bloques de la cuadrícula, uno). */
+  maxAmounts?: number;
 };
 
 /** Botones rápidos (+1 +5 por defecto), −1 y, opcionalmente, "Otra". */
@@ -39,13 +41,16 @@ export function QuickAddBar({
   compact = false,
   tutorialTarget = false,
   streak = null,
+  maxAmounts = Infinity,
 }: Props) {
   const colors = useThemeColors();
   const { quickAmounts } = useSettings();
   const size = compact ? styles.compact : styles.large;
   const label = compact ? styles.compactLabel : styles.largeLabel;
   const showStreak = compact && streak !== null;
-  const amounts = showStreak ? quickAmounts.slice(0, 1) : quickAmounts;
+  const amounts = showStreak
+    ? quickAmounts.slice(0, 1)
+    : quickAmounts.slice(0, Math.min(maxAmounts, quickAmounts.length));
   const flameColor = streak?.todayDone ? colors.flame : colors.textMuted;
 
   return (

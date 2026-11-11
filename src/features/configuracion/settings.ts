@@ -12,12 +12,15 @@ export type AccentName = 'morado' | 'azul' | 'verde' | 'naranja' | 'rosa';
  * cálido, dorado y tipografía editorial). Se aplica al arrancar la app.
  */
 export type VisualStyle = 'clasico' | 'cine';
+/** Cómo se ven los contadores en «Mis contadores»: filas (de serie) o bloques, dos por fila. */
+export type CounterLayout = 'list' | 'grid';
 /** Un color de serie o el personalizado (`customAccent`). */
 export type AccentChoice = AccentName | 'custom';
 
 export type Settings = {
   theme: ThemeMode;
   visualStyle: VisualStyle;
+  counterLayout: CounterLayout;
   accent: AccentChoice;
   /** Color elegido a mano ('#RRGGBB'), para accent = 'custom'. */
   customAccent: string;
@@ -44,6 +47,7 @@ export type Settings = {
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   visualStyle: 'clasico',
+  counterLayout: 'list',
   accent: 'morado',
   customAccent: '#5B4BDB',
   quickAmounts: [1, 5],

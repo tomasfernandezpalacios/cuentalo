@@ -3,6 +3,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { chipColors, fonts, useThemeColors } from '@/lib/theme';
 
+import type { CounterLayout } from '@/features/configuracion/settings';
+
 import type { Folder } from '../folders';
 
 type Props = {
@@ -18,6 +20,8 @@ type Props = {
    * todos); no hay «Nueva carpeta». `allIds`: los contadores de la lista.
    */
   selection?: { selectedIds: string[]; allIds: string[]; onToggle: (ids: string[]) => void };
+  /** Vista de los contadores (filas o bloques): botón cuadrado fijo a la derecha. */
+  layout?: { value: CounterLayout; onToggle: () => void };
 };
 
 /**
@@ -31,8 +35,34 @@ export function FolderBar({
   onLongPressFolder,
   onNewFolder,
   selection,
+  layout,
 }: Props) {
   const colors = useThemeColors();
+
+  const layoutButton = layout ? (
+    <Pressable
+      onPress={layout.onToggle}
+      accessibilityRole="button"
+      accessibilityLabel={
+        layout.value === 'list' ? 'Ver los contadores en bloques' : 'Ver los contadores en filas'
+      }
+      hitSlop={6}
+      style={({ pressed }) => [
+        styles.layoutButton,
+        {
+          backgroundColor: chipColors(colors, false).backgroundColor,
+          borderColor: colors.border,
+          opacity: pressed ? 0.6 : 1,
+        },
+      ]}
+    >
+      <Ionicons
+        name={layout.value === 'list' ? 'grid-outline' : 'list-outline'}
+        size={18}
+        color={colors.text}
+      />
+    </Pressable>
+  ) : null;
 
   if (selection) {
     const isAllSelected = (ids: string[]) =>
@@ -110,13 +140,18 @@ export function FolderBar({
 
   return (
     <View
-      style={[styles.bar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
+      style={[
+        styles.bar,
+        styles.row,
+        { backgroundColor: colors.surface, borderBottomColor: colors.border },
+      ]}
     >
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.content}
         accessibilityRole="tablist"
+        style={styles.flex}
       >
         {chip('all', 'Todos', selectedId === null, () => onSelect(null))}
         {folders.map((folder) =>
@@ -140,12 +175,25 @@ export function FolderBar({
           </Text>
         </Pressable>
       </ScrollView>
+      {layoutButton}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   bar: { borderBottomWidth: StyleSheet.hairlineWidth },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  flex: { flex: 1 },
+  layoutButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginLeft: 4,
+  },
   content: { paddingHorizontal: 12, paddingVertical: 8, gap: 8, alignItems: 'center' },
   chip: {
     height: 32,

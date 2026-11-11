@@ -79,6 +79,7 @@ function RootNavigator() {
         />
         <Stack.Screen name="grupos/[id]/administrador" options={{ title: 'Designar líder' }} />
         <Stack.Screen name="usuario/[id]" options={{ title: '' }} />
+        <Stack.Screen name="amigos/descubrir" options={{ title: 'Descubrir' }} />
         <Stack.Screen name="avisos" options={{ title: 'Buzón' }} />
         <Stack.Screen name="racha" options={{ title: 'Tu racha' }} />
         <Stack.Screen

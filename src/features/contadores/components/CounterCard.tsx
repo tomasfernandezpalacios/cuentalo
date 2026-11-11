@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatAmount, formatWithUnit } from '@/lib/format';
-import { fonts, isCinema, shape, useThemeColors } from '@/lib/theme';
+import { displayFont, fonts, isCinema, serifWeight, shape, useThemeColors } from '@/lib/theme';
 
 import type { CounterWithTotal } from '../api';
 
@@ -29,6 +29,8 @@ type Props = {
   selected?: boolean;
   /** Primera tarjeta de la lista: la que ilumina el tutorial (tarjeta y su primer botón). */
   tutorialTarget?: boolean;
+  /** Bloque cuadrado de la cuadrícula (dos por fila) en vez de fila. */
+  grid?: boolean;
 };
 
 /** Tarjeta de la lista: emoticono · nombre · botones rápidos y −1 · total. */
@@ -43,8 +45,61 @@ export function CounterCard({
   selectionMode = false,
   selected = false,
   tutorialTarget = false,
+  grid = false,
 }: Props) {
   const colors = useThemeColors();
+  const subtitle = [
+    counter.linkedGroups.length > 0
+      ? `👥 ${counter.linkedGroups.map((g) => g.group.name).join(' · ')}`
+      : null,
+    counter.is_common ? 'Común' : null,
+    counter.hidden ? 'Oculto' : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const quickAdd = (
+    <QuickAddBar
+      compact
+      unit={counter.unit}
+      onAdd={onAdd}
+      onRemoveOne={onRemoveOne}
+      canRemove={counter.is_common ? counter.total >= 1 : counter.myGroupTotal >= 1}
+      streak={
+        counter.streak
+          ? { days: counter.streak.current, todayDone: counter.streak.todayDone }
+          : null
+      }
+      onLongPressAdd={onCustomAdd}
+      tutorialTarget={tutorialTarget}
+      maxAmounts={grid ? 1 : undefined}
+    />
+  );
+  const check = (
+    <Ionicons
+      name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+      size={28}
+      color={selected ? colors.primary : colors.textMuted}
+    />
+  );
+  const total = (
+    <Text
+      style={[
+        grid ? styles.gridTotal : styles.total,
+        { color: colors.primary, ...serifWeight(colors.primary) },
+      ]}
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      maxFontSizeMultiplier={1.3}
+    >
+      {/* En un compartido la tarjeta muestra lo mío; el total del grupo está en el detalle. */}
+      {formatAmount(counter.displayTotal)}
+    </Text>
+  );
+  const unit = counter.unit ? (
+    <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
+      {counter.unit}
+    </Text>
+  ) : null;
   return (
     <TutorialTarget id="tarjeta" enabled={tutorialTarget}>
       <Pressable
@@ -58,7 +113,7 @@ export function CounterCard({
           selectionMode ? undefined : 'Abre el contador. Mantén pulsado para seleccionar'
         }
         style={({ pressed }) => [
-          styles.card,
+          grid ? styles.gridCard : styles.card,
           {
             backgroundColor: selected ? colors.primarySoft : colors.surface,
             borderColor: selected ? colors.primary : colors.border,
@@ -67,65 +122,46 @@ export function CounterCard({
           },
         ]}
       >
-        <CounterAvatar emoji={counter.emoji} name={counter.name} size={42} />
-        <View style={styles.name}>
-          <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
-            {counter.name}
-          </Text>
-          {counter.group || counter.hidden ? (
-            <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
-              {[
-                counter.linkedGroups.length > 0
-                  ? `👥 ${counter.linkedGroups.map((g) => g.group.name).join(' · ')}`
-                  : null,
-                counter.is_common ? 'Común' : null,
-                counter.hidden ? 'Oculto' : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
+        {grid ? (
+          <>
+            <View style={styles.gridTop}>
+              <CounterAvatar emoji={counter.emoji} name={counter.name} size={36} />
+              {selectionMode ? check : null}
+            </View>
+            <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
+              {counter.name}
             </Text>
-          ) : null}
-        </View>
-
-        {selectionMode ? (
-          <Ionicons
-            name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-            size={28}
-            color={selected ? colors.primary : colors.textMuted}
-          />
+            <View style={styles.gridTotalRow}>
+              {total}
+              {unit}
+            </View>
+            {subtitle ? (
+              <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
+                {subtitle}
+              </Text>
+            ) : null}
+            {selectionMode ? null : quickAdd}
+          </>
         ) : (
-          <QuickAddBar
-            compact
-            unit={counter.unit}
-            onAdd={onAdd}
-            onRemoveOne={onRemoveOne}
-            canRemove={counter.is_common ? counter.total >= 1 : counter.myGroupTotal >= 1}
-            streak={
-              counter.streak
-                ? { days: counter.streak.current, todayDone: counter.streak.todayDone }
-                : null
-            }
-            onLongPressAdd={onCustomAdd}
-            tutorialTarget={tutorialTarget}
-          />
+          <>
+            <CounterAvatar emoji={counter.emoji} name={counter.name} size={42} />
+            <View style={styles.name}>
+              <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
+                {counter.name}
+              </Text>
+              {subtitle ? (
+                <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
+            {selectionMode ? check : quickAdd}
+            <View style={styles.totalBox}>
+              {total}
+              {unit}
+            </View>
+          </>
         )}
-
-        <View style={styles.totalBox}>
-          <Text
-            style={[styles.total, { color: colors.primary }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={1.3}
-          >
-            {/* En un compartido la tarjeta muestra lo mío; el total del grupo está en el detalle. */}
-            {formatAmount(counter.displayTotal)}
-          </Text>
-          {counter.unit ? (
-            <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
-              {counter.unit}
-            </Text>
-          ) : null}
-        </View>
       </Pressable>
     </TutorialTarget>
   );
@@ -141,9 +177,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 8,
   },
+  gridCard: {
+    flex: 1,
+    aspectRatio: 1,
+    padding: 12,
+    borderRadius: shape.card,
+    borderWidth: 1,
+    gap: 4,
+    justifyContent: 'space-between',
+  },
+  gridTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  gridTotalRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  gridTotal: { ...displayFont(isCinema ? 38 : 30), flexShrink: 1 },
   name: { flex: 1, gap: 2 },
   nameText: { fontSize: 17, fontFamily: fonts.title },
   totalBox: { alignItems: 'flex-end', minWidth: 36, maxWidth: 64 },
-  total: { fontSize: isCinema ? 26 : 21, fontFamily: fonts.display },
+  total: { ...displayFont(isCinema ? 26 : 21) },
   unit: { fontSize: 12, fontFamily: fonts.detail },
 });

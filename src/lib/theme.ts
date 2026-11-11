@@ -57,7 +57,7 @@ const cinemaPalette = {
 /**
  * Tipografías (cargadas en app/_layout.tsx). Con fuentes personalizadas no se usa
  * fontWeight: cada archivo ya es un peso concreto.
- * - title: títulos, nombres, cifras y botones (clásico: Ubuntu Bold; cine: Inter SemiBold).
+ * - title: títulos, nombres, cifras y botones (clásico: Ubuntu Bold; cine: Inter Medium, un poco más fina a petición del usuario).
  * - detail: detalles y textos secundarios (clásico: Redaction; cine: Inter Regular).
  * - display: títulos de pantalla y cifras grandes (clásico: Ubuntu Bold; cine: Instrument
  *   Serif, el toque editorial).
@@ -65,7 +65,7 @@ const cinemaPalette = {
  */
 export const fonts = isCinema
   ? ({
-      title: 'Inter_600SemiBold',
+      title: 'Inter_500Medium',
       detail: 'Inter_400Regular',
       display: 'InstrumentSerif_400Regular',
       prose: 'InstrumentSerif_400Regular_Italic',
@@ -100,7 +100,30 @@ export function chipColors(colors: ThemeColors, selected: boolean) {
  * como su letra es más pequeña a igual tamaño, se agranda un 30 %.
  */
 export function titleFont(size: number) {
-  return { fontFamily: fonts.display, fontSize: isCinema ? Math.round(size * 1.3) : size };
+  return {
+    fontFamily: fonts.display,
+    fontSize: isCinema ? Math.round(size * 1.3) : size,
+    ...serifWeight(),
+  };
+}
+
+/** Cifras grandes y títulos destacados con la letra de `display` (en Cine, un poco más gruesa). */
+export function displayFont(size: number) {
+  return { fontFamily: fonts.display, fontSize: size, ...serifWeight() };
+}
+
+/**
+ * Instrument Serif solo existe en un grosor: para que se vea un poco más gruesa (petición del
+ * usuario) se dibuja una sombra nítida del mismo color desplazada medio punto. `color` es el del
+ * texto (por defecto, el blanco hueso de Cine; si el texto es dorado, se pasa el dorado).
+ */
+export function serifWeight(color: string = cinemaPalette.text) {
+  if (!isCinema) return {};
+  return {
+    textShadowColor: color,
+    textShadowOffset: { width: 0.6, height: 0 },
+    textShadowRadius: 0.6,
+  };
 }
 
 /**
@@ -138,7 +161,7 @@ export function inverseColors(colors: ThemeColors) {
  */
 export function screenTitleFont() {
   return isCinema
-    ? { fontFamily: fonts.display, fontSize: 34 }
+    ? { fontFamily: fonts.display, fontSize: 34, ...serifWeight() }
     : { fontFamily: fonts.title, fontSize: 18 };
 }
 

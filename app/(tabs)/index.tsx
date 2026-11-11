@@ -18,10 +18,14 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
+import { updateSettings, useSettings } from '@/features/configuracion/settings';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import type { CounterWithTotal } from '@/features/contadores/api';
 import { CounterCard } from '@/features/contadores/components/CounterCard';
@@ -78,6 +82,15 @@ export default function CountersScreen() {
   const removeFromHome = useSetRemovedFromHome();
   const actions = useCounterActions();
   const [showHidden, setShowHidden] = useState(false);
+  // Vista de los contadores (filas o bloques), guardada en el móvil.
+  const { counterLayout } = useSettings();
+  const grid = counterLayout === 'grid';
+  const { width } = useWindowDimensions();
+  const gridItemWidth = (width - 2 * LIST_PADDING - CARD_GAP) / 2;
+  // «Ocultos» solo aparece al llegar al final de la lista y se recoge al volver a subir.
+  const [revealHidden, setRevealHidden] = useState(false);
+  const [revealAnim] = useState(() => new Animated.Value(0));
+  const scrollMetrics = useRef({ offset: 0, viewport: 0, content: 0, footer: 0 });
   // Al abrir la app siempre se empieza en «Todos» y sin filtros.
   const [filters, setFilters] = useState<CounterFilters>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -118,15 +131,13 @@ export default function CountersScreen() {
   );
   const shown = filtered.filter((c) => !c.hidden);
 
-  // Mantener pulsado una tarjeta entra en el modo selección; si además se arrastra, la cambia
-  // de sitio (y la selección vuelve a como estaba).
-  const longPress = useRef<{ id: string; before: string[] } | null>(null);
+  // Mantener pulsado una tarjeta la levanta: si se arrastra, cambia de sitio; si se suelta sin
+  // moverla, entra en el modo selección. La selección no cambia mientras se arrastra (antes sí y
+  // la lista cambiaba de forma a mitad del gesto, por eso las tarjetas «se rallaban»).
   const drag = useDragReorder({
     keys: shown.map((c) => c.id),
     gap: CARD_GAP,
-    onDragStart: () => {
-      if (longPress.current) setSelectedIds(longPress.current.before);
-    },
+    onHold: (id) => toggleSelected(id),
     onReorder: (keys) =>
       setCounterOrder.mutate([
         ...keys,
@@ -272,6 +283,32 @@ export default function CountersScreen() {
     ]);
   }
 
+  // --- Ocultos al final ------------------------------------------------------------------
+
+  /**
+   * El título «Ocultos» se ve cuando el final de la pantalla llega a él (has bajado del todo).
+   * Si se vuelve a subir por encima, se recoge el desplegable y el título se esconde.
+   */
+  function checkReveal() {
+    const { offset, viewport, content, footer } = scrollMetrics.current;
+    if (!viewport || !content) return;
+    const footerTop = content - LIST_PADDING - footer;
+    const reveal = offset + viewport >= footerTop + REVEAL_MARGIN;
+    if (reveal === revealHidden) return;
+    setRevealHidden(reveal);
+    if (!reveal) setShowHidden(false);
+    Animated.timing(revealAnim, {
+      toValue: reveal ? 1 : 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  function onListScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    scrollMetrics.current.offset = e.nativeEvent.contentOffset.y;
+    checkReveal();
+  }
+
   // --- Vista ------------------------------------------------------------------------------
 
   function renderCard(item: CounterWithTotal, isFirst = false, draggable = false) {
@@ -281,14 +318,10 @@ export default function CountersScreen() {
         key={item.id}
         counter={item}
         tutorialTarget={isFirst}
+        grid={grid}
         selectionMode={selecting}
         selected={selectedIds.includes(item.id)}
-        onLongPress={(e) => {
-          // Entra en el modo selección (como siempre) y, si se arrastra, la cambia de sitio.
-          longPress.current = { id: item.id, before: selectedIds };
-          toggleSelected(item.id);
-          dragProps?.onLongPress(e);
-        }}
+        onLongPress={(e) => (dragProps ? dragProps.onLongPress(e) : toggleSelected(item.id))}
         onPressOut={dragProps?.onPressOut}
         onPress={() =>
           selecting
@@ -456,6 +489,10 @@ export default function CountersScreen() {
         onSelect={(folderId) => setFilters({ ...filters, folderId })}
         onLongPressFolder={folderOptions}
         onNewFolder={() => router.push('/carpetas/nueva')}
+        layout={{
+          value: counterLayout,
+          onToggle: () => updateSettings({ counterLayout: grid ? 'list' : 'grid' }),
+        }}
         selection={
           selecting
             ? {
@@ -471,10 +508,34 @@ export default function CountersScreen() {
           <FlatList
             data={shown}
             keyExtractor={(counter) => counter.id}
-            renderItem={({ item }) => renderCard(item, item.id === tutorialCardId, true)}
+            key={grid ? 'grid' : 'list'}
+            numColumns={grid ? 2 : 1}
+            columnWrapperStyle={grid ? styles.gridRow : undefined}
+            renderItem={({ item }) =>
+              grid ? (
+                <View style={{ width: gridItemWidth }}>
+                  {renderCard(item, item.id === tutorialCardId)}
+                </View>
+              ) : (
+                renderCard(item, item.id === tutorialCardId, true)
+              )
+            }
             scrollEnabled={!drag.dragging}
+            onScroll={onListScroll}
+            scrollEventThrottle={32}
+            onLayout={(e) => {
+              scrollMetrics.current.viewport = e.nativeEvent.layout.height;
+              checkReveal();
+            }}
+            onContentSizeChange={(_w, h) => {
+              scrollMetrics.current.content = h;
+              checkReveal();
+            }}
+            // En Android la lista quita las vistas fuera de su celda: la tarjeta arrastrada
+            // desaparecía a ratos.
+            removeClippedSubviews={false}
             // La tarjeta que se arrastra va por encima de las demás.
-            CellRendererComponent={DragCell}
+            CellRendererComponent={grid ? undefined : DragCell}
             keyboardShouldPersistTaps="handled"
             ListHeaderComponent={
               showSearch ? (
@@ -522,38 +583,52 @@ export default function CountersScreen() {
             }
             ListEmptyComponent={emptyView}
             ListFooterComponent={
-              <View style={styles.footer}>
-                {hidden.length > 0 ? (
-                  <View style={styles.hidden}>
-                    {/* Desplegable cerrado por defecto: los ocultos no estorban en la lista. */}
+              hidden.length > 0 ? (
+                <View
+                  style={styles.hidden}
+                  onLayout={(e) => {
+                    scrollMetrics.current.footer = e.nativeEvent.layout.height;
+                    checkReveal();
+                  }}
+                >
+                  <Animated.View
+                    style={{ opacity: revealAnim }}
+                    pointerEvents={revealHidden ? 'auto' : 'none'}
+                  >
+                    {/* Sin bloque: un texto y la flecha para desplegar. */}
                     <Pressable
                       onPress={() => setShowHidden((v) => !v)}
                       accessibilityRole="button"
                       accessibilityState={{ expanded: showHidden }}
                       accessibilityLabel={`Ocultos, ${hidden.length}`}
-                      style={({ pressed }) => [
-                        styles.hiddenToggle,
-                        {
-                          backgroundColor: colors.surface,
-                          borderColor: colors.border,
-                          opacity: pressed ? 0.7 : 1,
-                        },
-                      ]}
+                      hitSlop={8}
+                      style={({ pressed }) => [styles.hiddenToggle, { opacity: pressed ? 0.6 : 1 }]}
                     >
-                      <Ionicons name="eye-off-outline" size={20} color={colors.textMuted} />
-                      <Text style={[styles.hiddenTitle, { color: colors.text }]}>
+                      <Text style={[styles.hiddenTitle, { color: colors.textMuted }]}>
                         Ocultos ({hidden.length})
                       </Text>
                       <Ionicons
                         name={showHidden ? 'chevron-up' : 'chevron-down'}
-                        size={20}
+                        size={18}
                         color={colors.textMuted}
                       />
                     </Pressable>
-                    {showHidden ? hidden.map((item) => renderCard(item)) : null}
-                  </View>
-                ) : null}
-              </View>
+                  </Animated.View>
+                  {showHidden ? (
+                    grid ? (
+                      <View style={styles.gridWrap}>
+                        {hidden.map((item) => (
+                          <View key={item.id} style={{ width: gridItemWidth }}>
+                            {renderCard(item)}
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      hidden.map((item) => renderCard(item))
+                    )
+                  ) : null}
+                </View>
+              ) : undefined
             }
           />
         </View>
@@ -589,6 +664,9 @@ export default function CountersScreen() {
 const SEARCH_FROM = 6;
 
 const CARD_GAP = 10;
+const LIST_PADDING = 12;
+/** Cuánto del título «Ocultos» tiene que verse para que aparezca. */
+const REVEAL_MARGIN = 24;
 
 /** Qué tarjeta se está arrastrando (para la celda de la lista, que es un componente fijo). */
 const DraggingKey = createContext<string | null>(null);
@@ -614,7 +692,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   title: { flexDirection: 'row', alignItems: 'center', gap: 24 },
   titleText: { ...screenTitleFont() },
-  list: { padding: 12, gap: CARD_GAP, flexGrow: 1 },
+  list: { padding: LIST_PADDING, gap: CARD_GAP, flexGrow: 1 },
+  gridRow: { gap: CARD_GAP },
+  gridWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP },
   draggingCell: { zIndex: 10, elevation: 10 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18, marginRight: 14 },
   selectionActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginRight: 14 },
@@ -633,16 +713,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badge: { position: 'absolute', top: -1, right: -2, width: 9, height: 9, borderRadius: 5 },
-  footer: { gap: 10 },
-  hidden: { gap: 10, marginTop: 16 },
-  hiddenTitle: { flex: 1, fontSize: 15, fontFamily: fonts.title },
+  hidden: { gap: 10, marginTop: 6 },
+  hiddenTitle: { fontSize: 15, fontFamily: fonts.title },
   hiddenToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    minHeight: 48,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    borderWidth: 1,
+    justifyContent: 'center',
+    gap: 6,
+    minHeight: 44,
   },
 });

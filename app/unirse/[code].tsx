@@ -7,7 +7,7 @@ import { formatInviteCode, normalizeInviteCode } from '@/features/social/api';
 import { useGroupPreview, useJoinGroupByCode } from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
 import { pluralize } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { displayFont, fonts, useThemeColors } from '@/lib/theme';
 
 /** Se abre con el enlace de invitación (cuentalo://unirse/CODIGO) o al escribir un código. */
 export default function JoinGroupScreen() {
@@ -73,7 +73,7 @@ export default function JoinGroupScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8 },
   emoji: { fontSize: 56 },
-  title: { fontSize: 26, fontFamily: fonts.display, textAlign: 'center' },
+  title: { ...displayFont(26), textAlign: 'center' },
   detail: { fontSize: 15, fontFamily: fonts.detail, textAlign: 'center' },
   button: { alignSelf: 'stretch', marginTop: 16 },
 });

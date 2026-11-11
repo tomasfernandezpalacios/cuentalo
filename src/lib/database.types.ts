@@ -251,6 +251,12 @@ export type Database = {
         };
         Relationships: [];
       };
+      phone_directory: {
+        Row: { user_id: string; phone_hash: string; updated_at: string };
+        Insert: { phone_hash: string; user_id?: string; updated_at?: string };
+        Update: { phone_hash?: string; updated_at?: string };
+        Relationships: [];
+      };
       hidden_counters: {
         Row: { user_id: string; counter_id: string };
         Insert: { counter_id: string; user_id?: string };
@@ -397,6 +403,22 @@ export type Database = {
           current_streak: number;
           best_streak: number;
           active_today: boolean;
+        }[];
+      };
+      set_my_phone: {
+        Args: { p_hash: string };
+        Returns: undefined;
+      };
+      get_friend_suggestions: {
+        Args: { p_contact_hashes?: string[]; p_limit?: number; p_offset?: number };
+        Returns: {
+          id: string;
+          username: string;
+          display_name: string;
+          emoji: string | null;
+          photo_path: string | null;
+          is_contact: boolean;
+          mutual_count: number;
         }[];
       };
       decide_counter_request: {

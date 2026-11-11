@@ -40,6 +40,12 @@
         }
       ],
       [
+        "expo-contacts",
+        {
+          "contactsPermission": "Cuéntalo usa tus contactos para mostrarte cuáles de ellos usan la app."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Cuéntalo usa tus fotos para poner una imagen a tu perfil y a tus grupos.",

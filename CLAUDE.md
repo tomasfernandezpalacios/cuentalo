@@ -521,6 +521,33 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   anterior está guardado en la etiqueta de Git `diseno-clasico`. Fuentes de
   `@expo-google-fonts/instrument-serif` e `@expo-google-fonts/inter`.
 
+- Cine, grosores (petición del usuario): Instrument Serif solo tiene un peso, así que se
+  engorda con una sombra nítida del mismo color (`serifWeight`, ya incluida en `titleFont`,
+  `displayFont` y `screenTitleFont`; con texto dorado se pasa el color). La sans de la interfaz
+  pasa a Inter Medium (más fina).
+- **Arrastrar en «Mis contadores»**: mantener pulsado levanta la tarjeta; si se mueve, cambia de
+  sitio; si se suelta sin moverla, entra en el modo selección (`onHold` de `useDragReorder`).
+  Antes el modo selección se activaba a mitad del gesto, la lista cambiaba de forma y las
+  tarjetas «se rallaban». Al soltar, cada tarjeta se queda donde se ve hasta que llega el nuevo
+  orden (`settle` + `useLayoutEffect`) y la lista no recorta vistas (`removeClippedSubviews`).
+- **Ocultos** (petición del usuario): sin bloque; al final de la lista un texto «Ocultos (N)» con
+  flecha que solo aparece (fundido) al bajar hasta el final y, al volver a subir, se esconde y
+  se recoge el desplegable (`checkReveal` con las medidas del scroll).
+- **Vista en bloques** (petición del usuario): botón cuadrado a la derecha de la barra de
+  carpetas que cambia entre filas (de serie) y bloques cuadrados, dos por fila
+  (`settings.counterLayout`, `CounterCard grid`: icono, nombre, total grande y solo el primer
+  botón rápido y el −1). En bloques no se reordena arrastrando (el arrastre es vertical).
+- **Contactos y sugerencias** (petición del usuario; migración `20261211`). Sincronizar el
+  número es voluntario y sin SMS (costaría dinero): se guarda solo el SHA-256 de
+  'cuentalo:' + sus 9 últimas cifras (`phone.ts`, con tests; `expo-crypto`) en
+  `phone_directory` (RPC `set_my_phone`; se quita borrando la fila). La agenda se lee con
+  `expo-contacts/legacy` (solo tras dar permiso) y se envían sus resúmenes a
+  `get_friend_suggestions` (SECURITY DEFINER): contactos que sincronizaron su número y amigos
+  de amigos (con cuántos en común), sin quien ya tiene relación conmigo. En «Amigos», bajo tus
+  amigos: tarjeta para sincronizar (o «sincronizado · Quitar»), hasta 20 sugerencias y
+  «Descubrir más» → `app/amigos/descubrir.tsx` (buscador de cualquier usuario y hasta 100
+  sugerencias). El número no se verifica: alguien podría poner uno ajeno (V1).
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

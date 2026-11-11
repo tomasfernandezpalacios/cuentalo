@@ -17,7 +17,14 @@ import Svg, { Path } from 'react-native-svg';
 
 import { AppButton } from '@/components/AppButton';
 import { getSettings } from '@/features/configuracion/settings';
-import { fonts, inverseColors, proseFont, titleFont, useThemeColors } from '@/lib/theme';
+import {
+  displayFont,
+  fonts,
+  inverseColors,
+  proseFont,
+  titleFont,
+  useThemeColors,
+} from '@/lib/theme';
 
 import { dimPath, type Hole, holeFor, lerpHole, placeBubble, type Rect } from './layout';
 import { stepKind, type Step } from './steps';
@@ -854,8 +861,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
-  logoText: { fontSize: 48, fontFamily: fonts.display },
-  welcomeTitle: { fontSize: 30, fontFamily: fonts.display, textAlign: 'left' },
+  logoText: { ...displayFont(48) },
+  welcomeTitle: { ...displayFont(30), textAlign: 'left' },
   welcomeSubtitle: { fontSize: 19, fontFamily: fonts.title, textAlign: 'left' },
   welcomeText: { ...proseFont(17, 24), textAlign: 'left' },
   welcomeButtons: { gap: 8 },
@@ -909,7 +916,7 @@ const styles = StyleSheet.create({
   trackFill: { height: 4, borderRadius: 2 },
   finish: { paddingHorizontal: 24, zIndex: 1000, elevation: 1000 },
   finishBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  finishTitle: { fontSize: 34, fontFamily: fonts.display, textAlign: 'center' },
+  finishTitle: { ...displayFont(34), textAlign: 'center' },
   finishText: { ...proseFont(18, 25), textAlign: 'center' },
   finishBottom: { alignItems: 'center', gap: 12 },
   circle: { width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2 },
@@ -924,6 +931,6 @@ const styles = StyleSheet.create({
   },
   holdHint: { fontSize: 14, fontFamily: fonts.detail },
   promise: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  brandText: { fontSize: 44, fontFamily: fonts.display, textAlign: 'center' },
-  promiseText: { fontSize: 26, fontFamily: fonts.display, textAlign: 'center', lineHeight: 34 },
+  brandText: { ...displayFont(44), textAlign: 'center' },
+  promiseText: { ...displayFont(26), textAlign: 'center', lineHeight: 34 },
 });

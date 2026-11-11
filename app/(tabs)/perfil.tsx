@@ -10,7 +10,7 @@ import { useProfile } from '@/features/perfil/api';
 import { GroupRow } from '@/features/social/components/GroupsPanel';
 import { useMyGroups } from '@/features/social/hooks';
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { displayFont, fonts, useThemeColors } from '@/lib/theme';
 
 export default function ProfileScreen() {
   const colors = useThemeColors();
@@ -78,6 +78,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   content: { padding: 20, gap: 24 },
   header: { alignItems: 'center', gap: 4, marginTop: 8 },
-  name: { fontSize: 26, fontFamily: fonts.display, marginTop: 8 },
+  name: { ...displayFont(26), marginTop: 8 },
   detail: { fontSize: 15, fontFamily: fonts.detail },
 });
