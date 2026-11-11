@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Modal, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, titleFont, useThemeColors } from '@/lib/theme';
 
 import type { Folder } from '../folders';
 
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   card: { borderRadius: 20, padding: 18, gap: 8, maxHeight: '70%' },
-  title: { fontSize: 19, fontFamily: fonts.title },
+  title: { ...titleFont(19) },
   list: { flexGrow: 0 },
   row: {
     flexDirection: 'row',

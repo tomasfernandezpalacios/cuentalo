@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { fonts, shape, useThemeColors } from '@/lib/theme';
+import { fonts, shape, titleFont, useThemeColors } from '@/lib/theme';
 
 import { ageBreakdown, birthStart } from '../age';
 
@@ -75,7 +75,7 @@ export function AgeBlock({ birthDate, action, onPress, onLongPress, onPressOut }
 const styles = StyleSheet.create({
   block: { borderRadius: shape.card, padding: 16, gap: 12 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  title: { fontSize: 22, fontFamily: fonts.title },
+  title: { ...titleFont(22) },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tile: {
     flexGrow: 1,

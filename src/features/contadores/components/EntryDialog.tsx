@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, View } from 'r
 import { AppButton } from '@/components/AppButton';
 import { DateTimeField } from '@/components/DateTimeField';
 import { TextField } from '@/components/TextField';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { titleFont, useThemeColors } from '@/lib/theme';
 import { LIMITS, parseAmount } from '@/lib/validation';
 
 import type { Entry, EntryInput } from '../api';
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: { borderRadius: 20, padding: 20, gap: 16 },
-  title: { fontSize: 20, fontFamily: fonts.title },
+  title: { ...titleFont(20) },
   actions: { flexDirection: 'row', gap: 12 },
   flex: { flex: 1 },
 });

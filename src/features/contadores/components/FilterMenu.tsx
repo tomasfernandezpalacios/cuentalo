@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/AppButton';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, titleFont, useThemeColors } from '@/lib/theme';
 
 import {
   DEFAULT_FILTERS,
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   content: { padding: 16, gap: 10 },
-  title: { fontSize: 17, fontFamily: fonts.title },
+  title: { ...titleFont(17) },
   label: { fontSize: 14, fontFamily: fonts.detail, marginTop: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1 },

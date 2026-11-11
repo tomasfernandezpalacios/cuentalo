@@ -56,7 +56,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { applyOrder } from '@/lib/reorder';
 import { matchesSearch } from '@/lib/search';
 import { useDragReorder } from '@/lib/useDragReorder';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, titleFont, useThemeColors } from '@/lib/theme';
 
 function openNewCounter() {
   router.push('/contadores/nuevo');
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 16, paddingVertical: 8 },
   flex: { flex: 1 },
   title: { flexDirection: 'row', alignItems: 'center', gap: 24 },
-  titleText: { fontSize: 18, fontFamily: fonts.title },
+  titleText: { ...titleFont(18) },
   list: { padding: 12, gap: CARD_GAP, flexGrow: 1 },
   draggingCell: { zIndex: 10, elevation: 10 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18, marginRight: 14 },

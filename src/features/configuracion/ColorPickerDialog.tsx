@@ -13,7 +13,7 @@ import {
 
 import { AppButton } from '@/components/AppButton';
 import { hexToHsv, type Hsv, hsvToHex, normalizeHex } from '@/lib/color';
-import { customAccentColors, fonts, useColorMode, useThemeColors } from '@/lib/theme';
+import { customAccentColors, fonts, titleFont, useColorMode, useThemeColors } from '@/lib/theme';
 
 type Props = {
   initial: string;
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   card: { borderRadius: 20, padding: 18, gap: 14 },
-  title: { fontSize: 18, fontFamily: fonts.title },
+  title: { ...titleFont(18) },
   square: { height: 200, borderRadius: 12, overflow: 'hidden' },
   marker: {
     position: 'absolute',

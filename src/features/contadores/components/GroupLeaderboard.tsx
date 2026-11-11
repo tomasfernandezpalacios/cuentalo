@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, titleFont, useThemeColors } from '@/lib/theme';
 
 import type { LeaderboardPeriod } from '../api';
 import { useCounterList, useMyLastCounterId } from '../hooks';
@@ -101,5 +101,5 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
   chipText: { fontSize: 14, fontFamily: fonts.title },
   empty: { fontSize: 14, fontFamily: fonts.detail },
-  chartTitle: { fontSize: 16, fontFamily: fonts.title, marginTop: 8 },
+  chartTitle: { ...titleFont(16), marginTop: 8 },
 });

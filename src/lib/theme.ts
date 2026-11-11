@@ -61,31 +61,74 @@ const cinemaPalette = {
  * - detail: detalles y textos secundarios (clásico: Redaction; cine: Inter Regular).
  * - display: títulos de pantalla y cifras grandes (clásico: Ubuntu Bold; cine: Instrument
  *   Serif, el toque editorial).
+ * - prose: explicaciones largas y avisos (clásico: Redaction; cine: Instrument Serif itálica).
  */
 export const fonts = isCinema
   ? ({
       title: 'Inter_600SemiBold',
       detail: 'Inter_400Regular',
       display: 'InstrumentSerif_400Regular',
+      prose: 'InstrumentSerif_400Regular_Italic',
     } as const)
-  : ({ title: 'Ubuntu-Bold', detail: 'Redaction-Regular', display: 'Ubuntu-Bold' } as const);
+  : ({
+      title: 'Ubuntu-Bold',
+      detail: 'Redaction-Regular',
+      display: 'Ubuntu-Bold',
+      prose: 'Redaction-Regular',
+    } as const);
 
 /** Fondo de chips, campos y tarjetas anidadas en el estilo Cine (un escalón sobre las tarjetas). */
 export const CINEMA_ELEVATED_2 = '#1C1A17';
 
 /**
  * Colores de un chip (carpetas, opciones, periodos…). Clásico: el activo en el color de la app.
- * Cine: píldoras oscuras y la activa en blanco hueso con texto casi negro.
+ * Cine: píldoras oscuras y la activa en dorado suave (fondo dorado oscuro, borde y texto dorados).
  */
 export function chipColors(colors: ThemeColors, selected: boolean) {
   if (isCinema) {
     return selected
-      ? { backgroundColor: colors.text, borderColor: colors.text, color: colors.background }
+      ? { backgroundColor: colors.primarySoft, borderColor: colors.primary, color: colors.primary }
       : { backgroundColor: CINEMA_ELEVATED_2, borderColor: 'transparent', color: colors.text };
   }
   return selected
     ? { backgroundColor: colors.primary, borderColor: colors.primary, color: colors.onPrimary }
     : { backgroundColor: colors.background, borderColor: colors.border, color: colors.text };
+}
+
+/**
+ * Tipografía de los títulos (de pantalla, de sección, de avisos…). En Cine, la serif editorial;
+ * como su letra es más pequeña a igual tamaño, se agranda un 30 %.
+ */
+export function titleFont(size: number) {
+  return { fontFamily: fonts.display, fontSize: isCinema ? Math.round(size * 1.3) : size };
+}
+
+/**
+ * Tipografía de las explicaciones largas y de los avisos. En Cine, la serif de los títulos en
+ * itálica, un 20 % más grande (su letra es pequeña).
+ */
+export function proseFont(size: number, lineHeight?: number) {
+  const k = isCinema ? 1.2 : 1;
+  return {
+    fontFamily: fonts.prose,
+    fontSize: Math.round(size * k),
+    ...(lineHeight ? { lineHeight: Math.round(lineHeight * k) } : {}),
+  };
+}
+
+/**
+ * Recuadros que destacan sobre la pantalla (aviso de deshacer, dato de la gráfica, mensajes del
+ * tutorial). Clásico: invertidos (fondo del color del texto). Cine: nada de bloques blancos, un
+ * escalón más claro que las tarjetas con borde dorado suave.
+ */
+export function inverseColors(colors: ThemeColors) {
+  return isCinema
+    ? {
+        backgroundColor: CINEMA_ELEVATED_2,
+        borderColor: 'rgba(233,196,106,0.35)',
+        color: colors.text,
+      }
+    : { backgroundColor: colors.text, borderColor: colors.text, color: colors.background };
 }
 
 /**
@@ -98,7 +141,7 @@ export function headerOptions(colors: ThemeColors) {
         headerStyle: { backgroundColor: colors.background },
         headerShadowVisible: false,
         headerTintColor: colors.text,
-        headerTitleStyle: { fontFamily: fonts.display, fontSize: 26 },
+        headerTitleStyle: titleFont(20),
       }
     : {
         headerStyle: { backgroundColor: colors.surface },

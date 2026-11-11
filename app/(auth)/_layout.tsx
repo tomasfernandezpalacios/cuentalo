@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 
 import { BackButton } from '@/components/BackButton';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { titleFont, useThemeColors } from '@/lib/theme';
 
 export default function AuthLayout() {
   const colors = useThemeColors();
@@ -10,7 +10,7 @@ export default function AuthLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
-        headerTitleStyle: { fontFamily: fonts.title },
+        headerTitleStyle: titleFont(18),
         headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.background },
         headerBackButtonDisplayMode: 'minimal',

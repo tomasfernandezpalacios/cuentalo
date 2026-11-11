@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSyncExternalStore } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { fonts, useThemeColors } from '@/lib/theme';
+import { proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
 import { AppButton } from './AppButton';
 
@@ -142,8 +142,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 2,
   },
-  title: { fontSize: 20, fontFamily: fonts.title, textAlign: 'center' },
-  message: { fontSize: 15, fontFamily: fonts.detail, textAlign: 'center', lineHeight: 21 },
+  title: { ...titleFont(20), textAlign: 'center' },
+  message: { ...proseFont(15, 21), textAlign: 'center' },
   row: { flexDirection: 'row', gap: 10, alignSelf: 'stretch', marginTop: 6 },
   column: { gap: 10, alignSelf: 'stretch', marginTop: 6 },
   flex: { flex: 1 },

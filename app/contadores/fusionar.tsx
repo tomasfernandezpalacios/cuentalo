@@ -13,7 +13,7 @@ import { EmojiPicker } from '@/features/contadores/components/EmojiPicker';
 import { useCounterList, useMergeCounters } from '@/features/contadores/hooks';
 import { getErrorMessage } from '@/lib/errors';
 import { formatWithUnit } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, proseFont, titleFont, useThemeColors } from '@/lib/theme';
 import { LIMITS } from '@/lib/validation';
 
 /** Quita tildes y mayúsculas para buscar «cafe» y encontrar «Café». */
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   list: { padding: 16, paddingBottom: 24 },
   header: { gap: 12, marginBottom: 4 },
-  detail: { fontSize: 15, fontFamily: fonts.detail, lineHeight: 21 },
+  detail: { ...proseFont(15, 21) },
   small: { fontSize: 13, fontFamily: fonts.detail },
   search: {
     flexDirection: 'row',
@@ -230,6 +230,6 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 16, fontFamily: fonts.title },
   footer: { gap: 14, marginTop: 20 },
-  sectionTitle: { fontSize: 18, fontFamily: fonts.title },
+  sectionTitle: { ...titleFont(18) },
   bottom: { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
 });

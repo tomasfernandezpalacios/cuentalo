@@ -17,7 +17,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { AppButton } from '@/components/AppButton';
 import { getSettings } from '@/features/configuracion/settings';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, inverseColors, proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
 import { dimPath, type Hole, holeFor, lerpHole, placeBubble, type Rect } from './layout';
 import { stepKind, type Step } from './steps';
@@ -464,9 +464,19 @@ function Banner({ step }: { step: Step }) {
       <Blocker style={StyleSheet.absoluteFill} />
       <Animated.View
         pointerEvents="none"
-        style={[styles.banner, { backgroundColor: colors.text, opacity }]}
+        style={[
+          styles.banner,
+          {
+            backgroundColor: inverseColors(colors).backgroundColor,
+            borderColor: inverseColors(colors).borderColor,
+            borderWidth: 1,
+            opacity,
+          },
+        ]}
       >
-        <Text style={[styles.bannerText, { color: colors.background }]}>{step.title}</Text>
+        <Text style={[styles.bannerText, { color: inverseColors(colors).color }]}>
+          {step.title}
+        </Text>
       </Animated.View>
     </View>
   );
@@ -847,7 +857,7 @@ const styles = StyleSheet.create({
   logoText: { fontSize: 48, fontFamily: fonts.display },
   welcomeTitle: { fontSize: 30, fontFamily: fonts.display, textAlign: 'left' },
   welcomeSubtitle: { fontSize: 19, fontFamily: fonts.title, textAlign: 'left' },
-  welcomeText: { fontSize: 17, fontFamily: fonts.detail, textAlign: 'left', lineHeight: 24 },
+  welcomeText: { ...proseFont(17, 24), textAlign: 'left' },
   welcomeButtons: { gap: 8 },
   bannerLayer: { justifyContent: 'center', alignItems: 'center' },
   banner: {
@@ -880,8 +890,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
   },
-  title: { fontSize: 18, fontFamily: fonts.title },
-  text: { fontSize: 15, fontFamily: fonts.detail, lineHeight: 21 },
+  title: { ...titleFont(18) },
+  text: { ...proseFont(15, 21) },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -900,7 +910,7 @@ const styles = StyleSheet.create({
   finish: { paddingHorizontal: 24, zIndex: 1000, elevation: 1000 },
   finishBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   finishTitle: { fontSize: 34, fontFamily: fonts.display, textAlign: 'center' },
-  finishText: { fontSize: 18, fontFamily: fonts.detail, textAlign: 'center', lineHeight: 25 },
+  finishText: { ...proseFont(18, 25), textAlign: 'center' },
   finishBottom: { alignItems: 'center', gap: 12 },
   circle: { width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2 },
   print: {

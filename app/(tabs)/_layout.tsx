@@ -22,12 +22,38 @@ function tabIcon(name: IconName) {
   };
 }
 
-/** Botón de pestaña normal, marcado para que el tutorial pueda iluminarlo. */
-function tutorialTabButton(id: TargetId) {
-  return function TabButton(props: ComponentProps<typeof PlatformPressable>) {
+type TabButtonProps = ComponentProps<typeof PlatformPressable>;
+
+/**
+ * Botón de pestaña del estilo Cine: la librería pone el icono arriba y pinta la pestaña activa
+ * como un rectángulo, así que se dibuja aquí: icono centrado y, si está activa, una píldora de
+ * dorado suave (sin blanco).
+ */
+function CinemaTabButton({ style: _style, children, ...props }: TabButtonProps) {
+  const colors = useThemeColors();
+  const selected = props['aria-selected'] === true;
+  return (
+    <PlatformPressable
+      {...props}
+      android_ripple={{ color: 'transparent' }}
+      style={[
+        styles.cinemaTab,
+        selected && { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+      ]}
+    >
+      {children}
+    </PlatformPressable>
+  );
+}
+
+/** El botón de cada pestaña (clásico o Cine), marcado si el tutorial lo ilumina. */
+function tabButton(id?: TargetId) {
+  return function TabButton(props: TabButtonProps) {
+    const button = isCinema ? <CinemaTabButton {...props} /> : <PlatformPressable {...props} />;
+    if (!id) return button;
     return (
       <TutorialTarget id={id} style={styles.tabTarget}>
-        <PlatformPressable {...props} />
+        {button}
       </TutorialTarget>
     );
   };
@@ -35,15 +61,15 @@ function tutorialTabButton(id: TargetId) {
 
 /**
  * Barra del estilo Cine: una cápsula flotante separada de los bordes, sin textos, y la pestaña
- * activa como una píldora blanco hueso con el icono casi negro. No es «absolute»: ocupa su sitio
- * y así no tapa el final de las listas.
+ * activa como una píldora dorada suave con el icono dorado. No es «absolute»: ocupa su sitio y
+ * así no tapa el final de las listas.
  */
 function cinemaTabBar(colors: ThemeColors, bottomInset: number) {
   return {
     tabBarShowLabel: false,
-    tabBarActiveTintColor: colors.background,
+    tabBarActiveTintColor: colors.primary,
     tabBarInactiveTintColor: colors.textMuted,
-    tabBarActiveBackgroundColor: colors.text,
+    tabBarButton: tabButton(),
     tabBarStyle: {
       backgroundColor: colors.surface,
       borderTopWidth: 0,
@@ -51,12 +77,13 @@ function cinemaTabBar(colors: ThemeColors, bottomInset: number) {
       height: 64,
       paddingBottom: 0,
       paddingTop: 0,
-      paddingHorizontal: 6,
-      marginHorizontal: 20,
+      paddingHorizontal: 8,
+      marginHorizontal: 24,
       marginBottom: bottomInset + 12,
       elevation: 0,
+      shadowOpacity: 0,
     },
-    tabBarItemStyle: { borderRadius: 999, marginVertical: 7, marginHorizontal: 2 },
+    tabBarItemStyle: { marginVertical: 8, marginHorizontal: 4 },
   };
 }
 
@@ -90,7 +117,7 @@ export default function TabsLayout() {
           options={{
             title: 'Estadísticas',
             tabBarIcon: tabIcon('bar-chart-outline'),
-            tabBarButton: tutorialTabButton('tab-estadisticas'),
+            tabBarButton: tabButton('tab-estadisticas'),
             // «Generar resumen» (la primera vez) o el libro: abre el resumen de tu vida.
             headerRight: () => <SummaryButton />,
           }}
@@ -100,7 +127,7 @@ export default function TabsLayout() {
           options={{
             title: 'Amigos y grupos',
             tabBarIcon: tabIcon('people-outline'),
-            tabBarButton: tutorialTabButton('tab-social'),
+            tabBarButton: tabButton('tab-social'),
             tabBarBadge: inbox > 0 ? '' : undefined,
             tabBarBadgeStyle: {
               backgroundColor: colors.danger,
@@ -137,4 +164,12 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   tabTarget: { flex: 1 },
+  cinemaTab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
 });

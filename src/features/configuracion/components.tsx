@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
-import { chipColors, fonts, shape, useThemeColors } from '@/lib/theme';
+import { chipColors, fonts, proseFont, shape, titleFont, useThemeColors } from '@/lib/theme';
 
 /** Tarjeta que agrupa las filas de una sección de Configuración. */
 export function SettingsGroup({ title, children }: { title: string; children: ReactNode }) {
@@ -154,12 +154,12 @@ export function OptionChips<T extends string | number>({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   group: { gap: 8 },
-  groupTitle: { fontSize: 14, fontFamily: fonts.title, marginLeft: 4 },
+  groupTitle: { ...titleFont(14), marginLeft: 4 },
   card: { borderRadius: shape.card, borderWidth: 1, overflow: 'hidden' },
   row: { paddingHorizontal: 16, paddingVertical: 12, minHeight: 52, gap: 10 },
   rowTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   label: { fontSize: 16, fontFamily: fonts.title },
-  detail: { fontSize: 13, fontFamily: fonts.detail, marginTop: 2, lineHeight: 18 },
+  detail: { ...proseFont(13, 18), marginTop: 2 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     flexDirection: 'row',

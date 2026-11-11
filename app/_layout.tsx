@@ -1,5 +1,8 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif';
+import {
+  InstrumentSerif_400Regular,
+  InstrumentSerif_400Regular_Italic,
+} from '@expo-google-fonts/instrument-serif';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -119,6 +122,7 @@ export default function RootLayout() {
     'Ubuntu-Bold': require('../assets/fonts/Ubuntu-Bold.ttf'),
     'Redaction-Regular': require('../assets/fonts/Redaction-Regular.ttf'),
     InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,

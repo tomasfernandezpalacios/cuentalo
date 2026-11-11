@@ -3,7 +3,7 @@ import { type GestureResponderEvent, StyleSheet, Text, View } from 'react-native
 import { BarChart, LineChart } from 'react-native-gifted-charts';
 
 import { formatAmount } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, inverseColors, useThemeColors } from '@/lib/theme';
 
 export type ChartType = 'line' | 'bar';
 
@@ -60,24 +60,29 @@ function PointBubble({
   serie: ChartSeries;
   value: number;
 }) {
-  const colors = useThemeColors();
+  const inverse = inverseColors(useThemeColors());
   return (
     <View
-      style={[styles.bubble, { backgroundColor: colors.text }]}
+      style={[
+        styles.bubble,
+        {
+          backgroundColor: inverse.backgroundColor,
+          borderColor: inverse.borderColor,
+          borderWidth: 1,
+        },
+      ]}
       accessibilityLiveRegion="polite"
       accessibilityLabel={`${serie.name}, ${title}: ${formatAmount(value)}`}
     >
-      <Text style={[styles.bubbleTitle, { color: colors.background }]} numberOfLines={1}>
+      <Text style={[styles.bubbleTitle, { color: inverse.color }]} numberOfLines={1}>
         {title}
       </Text>
       <View style={styles.bubbleRow}>
         <View style={[styles.dot, { backgroundColor: serie.color }]} />
-        <Text style={[styles.bubbleName, { color: colors.background }]} numberOfLines={1}>
+        <Text style={[styles.bubbleName, { color: inverse.color }]} numberOfLines={1}>
           {serie.name}
         </Text>
-        <Text style={[styles.bubbleValue, { color: colors.background }]}>
-          {formatAmount(value)}
-        </Text>
+        <Text style={[styles.bubbleValue, { color: inverse.color }]}>{formatAmount(value)}</Text>
       </View>
     </View>
   );

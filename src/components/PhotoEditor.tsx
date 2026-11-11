@@ -26,7 +26,7 @@ import {
   type View as Pose,
 } from '@/lib/photoCrop';
 import { imageSize, localCopy, type PickedPhoto } from '@/lib/photos';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, titleFont, useThemeColors } from '@/lib/theme';
 
 type Props = {
   /** La foto a editar: local o el enlace de la guardada. */
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: 16, gap: 16 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
   back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
-  title: { flex: 1, fontSize: 20, fontFamily: fonts.title },
+  title: { flex: 1, ...titleFont(20) },
   rotate: {
     width: 44,
     height: 44,

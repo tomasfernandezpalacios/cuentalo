@@ -19,7 +19,7 @@ import {
 } from '@/features/perfil/birthDate';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount, formatWithUnit } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 
 /**
  * «Resumen vital» (botón del libro en Estadísticas). La primera vez pide la fecha de nacimiento
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   formContent: { padding: 24, gap: 18, alignItems: 'stretch' },
   formTitle: { fontSize: 26, fontFamily: fonts.display },
-  detail: { fontSize: 15, fontFamily: fonts.detail, lineHeight: 21 },
+  detail: { ...proseFont(15, 21) },
   dateText: { fontSize: 17, fontFamily: fonts.title },
   content: { padding: 16, gap: 18 },
   lines: { gap: 0 },

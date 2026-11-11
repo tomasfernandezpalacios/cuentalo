@@ -507,10 +507,16 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   Cine: siempre oscuro cálido (`cinemaPalette`: fondo `#0B0A09`, tarjetas `#141311`, chips
   `#1C1A17` = `CINEMA_ELEVATED_2`, texto `#F5F1E8`), un solo acento dorado `#E9C46A` con texto
   casi negro, Inter para la interfaz y **Instrument Serif** (`fonts.display`) para títulos de
-  cabecera y cifras grandes, tarjetas de radio 24 y botones/chips en píldora (`shape`), chip
-  activo blanco hueso (`chipColors`), cabeceras sin franja (`headerOptions`), barra de pestañas
-  en cápsula flotante sin textos con la activa en píldora blanca, y colores de gráfica apagados
-  (`CINEMA_COLORS`). En clásico, Tema y Color siguen como siempre (en Cine se ocultan). El estilo
+  cabecera y cifras grandes, tarjetas de radio 24 y botones/chips en píldora (`shape`).
+  Petición del usuario tras probarlo: **todos los títulos** con la serif (`titleFont(size)`,
+  un 30 % más grande en Cine), las **explicaciones largas y los avisos** con la misma serif en
+  **itálica** (`proseFont(size, lineHeight)`, `fonts.prose`), y **nada de bloques blancos**
+  (el texto blanco hueso sí): chip activo en dorado suave (`chipColors`: `primarySoft`, borde
+  y texto dorados), recuadros destacados (deshacer, dato de la gráfica, mensajes del tutorial)
+  con `inverseColors`. Cabeceras sin franja (`headerOptions`). Barra de pestañas en cápsula
+  flotante sin textos con botón propio (`CinemaTabButton`: la librería pone el icono arriba y la
+  activa rectangular), la activa en píldora dorada suave con icono dorado. Colores de gráfica
+  apagados (`CINEMA_COLORS`). En clásico, Tema y Color siguen como siempre (en Cine se ocultan). El estilo
   anterior está guardado en la etiqueta de Git `diseno-clasico`. Fuentes de
   `@expo-google-fonts/instrument-serif` e `@expo-google-fonts/inter`.
 

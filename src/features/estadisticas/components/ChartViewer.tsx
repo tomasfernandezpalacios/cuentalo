@@ -4,7 +4,7 @@ import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatAmount } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, titleFont, useThemeColors } from '@/lib/theme';
 
 import { ChartPlot, type ChartSeries, type ChartType, Y_AXIS_WIDTH } from './ChartPlot';
 
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: 16, gap: 14 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
   back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
-  title: { flex: 1, fontSize: 20, fontFamily: fonts.title },
+  title: { flex: 1, ...titleFont(20) },
   card: { borderRadius: 16, borderWidth: 1, padding: 12, overflow: 'hidden' },
   roundButton: {
     width: 44,

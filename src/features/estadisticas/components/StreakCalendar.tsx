@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, titleFont, useThemeColors } from '@/lib/theme';
 
 import { localToday } from '../periods';
 import { monthGrid } from '../streaks';
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
   },
-  title: { fontSize: 18, fontFamily: fonts.title },
+  title: { ...titleFont(18) },
   week: { flexDirection: 'row' },
   weekday: { flex: 1, textAlign: 'center', fontSize: 13, fontFamily: fonts.detail },
   cell: { flex: 1, alignItems: 'center', paddingVertical: 3 },

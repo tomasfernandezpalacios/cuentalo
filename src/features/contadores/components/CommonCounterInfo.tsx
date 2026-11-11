@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
 /** Botón ⓘ que abre una explicación de qué es un contador común. */
 export function CommonCounterInfo() {
@@ -53,6 +53,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   card: { borderRadius: 20, padding: 20, gap: 12 },
-  title: { fontSize: 20, fontFamily: fonts.title },
-  text: { fontSize: 15, fontFamily: fonts.detail, lineHeight: 21 },
+  title: { ...titleFont(20) },
+  text: { ...proseFont(15, 21) },
 });

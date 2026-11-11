@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Section } from '@/components/Section';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { proseFont, useThemeColors } from '@/lib/theme';
 
 // Resumen de qué datos guarda la app y quién los ve. La política de privacidad completa (la que
 // piden las tiendas) se redactará en la Fase 6.
@@ -52,5 +52,5 @@ export default function PrivacyScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 20, gap: 24 },
-  body: { fontSize: 15, fontFamily: fonts.detail, lineHeight: 22 },
+  body: { ...proseFont(15, 22) },
 });

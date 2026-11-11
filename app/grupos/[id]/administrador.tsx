@@ -9,7 +9,7 @@ import { useUserId } from '@/features/auth/AuthProvider';
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { useGroup, useTransferGroupAdmin } from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
 /** Confirmación para hacer líder del grupo a otro miembro (?usuario=id). */
 export default function TransferAdminScreen() {
@@ -97,8 +97,8 @@ export default function TransferAdminScreen() {
 const styles = StyleSheet.create({
   content: { padding: 20, gap: 20 },
   people: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
-  title: { fontSize: 22, fontFamily: fonts.title, textAlign: 'center' },
+  title: { ...titleFont(22), textAlign: 'center' },
   card: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   point: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  detail: { flex: 1, fontSize: 15, fontFamily: fonts.detail, lineHeight: 21 },
+  detail: { ...proseFont(15, 21), flex: 1 },
 });

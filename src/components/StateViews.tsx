@@ -1,7 +1,7 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { getErrorMessage } from '@/lib/errors';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
 import { AppButton } from './AppButton';
 
@@ -51,6 +51,6 @@ export function EmptyView({ title, description, actionTitle, onAction }: EmptyVi
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  title: { fontSize: 18, fontFamily: fonts.title, textAlign: 'center' },
-  description: { fontSize: 15, textAlign: 'center', fontFamily: fonts.detail },
+  title: { ...titleFont(18), textAlign: 'center' },
+  description: { ...proseFont(15), textAlign: 'center' },
 });

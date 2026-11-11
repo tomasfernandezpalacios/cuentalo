@@ -2,7 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, inverseColors, isCinema, proseFont, useThemeColors } from '@/lib/theme';
 
 // Aviso pequeño abajo con un botón «Deshacer» (p. ej. «+1 en Cafés · Deshacer»). Uno a la vez:
 // uno nuevo sustituye al anterior. Desaparece solo a los pocos segundos.
@@ -55,6 +55,7 @@ function ToastView({ toast }: { toast: Toast }) {
     Animated.timing(appear, { toValue: 1, duration: 180, useNativeDriver: true }).start();
   }, [appear]);
 
+  const inverse = inverseColors(colors);
   return (
     <View pointerEvents="box-none" style={[styles.layer, { bottom: insets.bottom + 64 }]}>
       <Animated.View
@@ -62,7 +63,9 @@ function ToastView({ toast }: { toast: Toast }) {
         style={[
           styles.toast,
           {
-            backgroundColor: colors.text,
+            backgroundColor: inverse.backgroundColor,
+            borderColor: inverse.borderColor,
+            borderWidth: 1,
             opacity: appear,
             transform: [
               { translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
@@ -70,7 +73,7 @@ function ToastView({ toast }: { toast: Toast }) {
           },
         ]}
       >
-        <Text style={[styles.text, { color: colors.background }]} numberOfLines={2}>
+        <Text style={[styles.text, { color: inverse.color }]} numberOfLines={2}>
           {toast.text}
         </Text>
         <Pressable
@@ -83,7 +86,9 @@ function ToastView({ toast }: { toast: Toast }) {
           hitSlop={10}
           style={styles.button}
         >
-          <Text style={[styles.undo, { color: colors.primarySoft }]}>Deshacer</Text>
+          <Text style={[styles.undo, { color: isCinema ? colors.primary : colors.primarySoft }]}>
+            Deshacer
+          </Text>
         </Pressable>
       </Animated.View>
     </View>
@@ -107,7 +112,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
-  text: { flex: 1, fontSize: 15, fontFamily: fonts.title },
+  text: { flex: 1, ...proseFont(15) },
   button: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 10 },
   undo: { fontSize: 15, fontFamily: fonts.title },
 });

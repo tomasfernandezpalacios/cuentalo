@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { fonts, useThemeColors } from '@/lib/theme';
+import { titleFont, useThemeColors } from '@/lib/theme';
 
 type Props = { title: string; children: ReactNode };
 
@@ -20,5 +20,5 @@ export function Section({ title, children }: Props) {
 
 const styles = StyleSheet.create({
   section: { gap: 12 },
-  title: { fontSize: 18, fontFamily: fonts.title },
+  title: { ...titleFont(18) },
 });

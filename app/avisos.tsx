@@ -20,7 +20,7 @@ import {
 } from '@/features/social/hooks';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount, formatDateTime } from '@/lib/format';
-import { fonts, useThemeColors } from '@/lib/theme';
+import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 
 function showError(error: unknown) {
   appAlert('Error', getErrorMessage(error));
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 13, fontFamily: fonts.title },
   tabDot: { position: 'absolute', top: 4, right: 8, width: 8, height: 8, borderRadius: 4 },
   card: { padding: 14, borderRadius: 16, borderWidth: 1, gap: 6 },
-  text: { fontSize: 15, fontFamily: fonts.detail, lineHeight: 21 },
+  text: { ...proseFont(15, 21) },
   muted: { fontSize: 13, fontFamily: fonts.detail },
   actions: { flexDirection: 'row', gap: 8, marginTop: 6 },
   flex: { flex: 1 },
