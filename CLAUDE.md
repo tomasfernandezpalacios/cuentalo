@@ -611,14 +611,14 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   foto > emoticono > inicial (`photoPath`, enlaces firmados de 1 h en `useCounterPhotoUrl`,
   fuera de `refreshAll`). El perfil de otros (RPC `get_user_counters`) aún no trae la foto.
 - **Barras de «Mis contadores» escondidas** (petición del usuario): la de carpetas (con el botón
-  de vista) y el buscador van en un panel plegado de serie. Se abre al tirar hacia abajo estando
-  arriba del todo (es el mismo gesto que refresca; en iOS también al pasar de −50) y se cierra al
-  volver a bajar por la lista. Siempre abiertas en el modo selección, con una carpeta elegida o
-  con algo escrito en el buscador.
-
-- Las barras de «Mis contadores» se abren solas al tirar hacia abajo estando arriba del todo:
-  se sigue el dedo (`onTouchMove`, 40 puntos desde que la lista llega arriba), sin depender de
-  recargar (en Android el desplazamiento no baja de 0). Recargar también las abre.
+  de vista) y el buscador van **dentro de la lista**, encima del primer contador. Al abrir, la
+  lista empieza justo debajo de ellas (`hideBarsInitially`, un `scrollTo` sin animar) y salen al
+  subir más allá del primer contador, al ritmo del dedo, sin recargar; al bajar se van con la
+  lista. Si se suelta a medias, terminan de salir o de esconderse (`settleBars`). El contenido
+  tiene `minHeight` = pantalla + barras para que siempre se puedan esconder. En el modo selección
+  la de carpetas va fija arriba (selección en masa). Se probaron antes un panel que se abría al
+  tirar (con la recarga o siguiendo el dedo) y no funcionaba bien: Android cancela los toques
+  de JS en cuanto la lista o la recarga toman el gesto.
 - Editar contador: «Guardar» va arriba a la derecha en la cabecera (`CounterForm
   submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón abajo.
 - Bloques de la cuadrícula: icono más grande (52); si hay línea de grupos, el nombre va en una

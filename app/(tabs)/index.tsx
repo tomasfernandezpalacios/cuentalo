@@ -1,10 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
+import { useCallback, useRef, useState, type ComponentProps, type ComponentRef } from 'react';
 import {
   Animated,
   BackHandler,
-  Easing,
   ScrollView,
   Pressable,
   RefreshControl,
@@ -13,7 +12,6 @@ import {
   TextInput,
   useWindowDimensions,
   View,
-  type GestureResponderEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
@@ -88,12 +86,14 @@ export default function CountersScreen() {
   const [revealAnim] = useState(() => new Animated.Value(0));
   // Barras de arriba (carpetas, vista y búsqueda): escondidas hasta tirar hacia abajo arriba del
   // todo. Siempre visibles en el modo selección, con una carpeta elegida o con algo buscado.
-  const [barsOpen, setBarsOpen] = useState(false);
+  // Barras de arriba (carpetas, vista y búsqueda) dentro de la propia lista, encima de los
+  // contadores: al abrir, la lista empieza justo debajo de ellas (escondidas) y salen solas al
+  // subir más allá del primer contador, al ritmo del dedo, como el resto de la lista.
   const [barsHeight, setBarsHeight] = useState(0);
-  const [barsAnim] = useState(() => new Animated.Value(0));
-  const lastOffset = useRef(0);
-  const pullStart = useRef<number | null>(null);
-  const scrollMetrics = useRef({ offset: 0, viewport: 0, content: 0, footer: 0, titleTop: 0 });
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const listRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const barsHiddenOnce = useRef(false);
+  const scrollMetrics = useRef({ offset: 0, viewport: 0, content: 0, titleTop: 0 });
   // Al abrir la app siempre se empieza en «Todos» y sin filtros.
   const [filters, setFilters] = useState<CounterFilters>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -149,18 +149,6 @@ export default function CountersScreen() {
         ...ordered.map((c) => c.id).filter((id) => !keys.includes(id)),
       ]),
   });
-
-  // --- Barras de arriba --------------------------------------------------------------------
-
-  const barsVisible = barsOpen || selecting || filters.folderId !== null || query !== '';
-  useEffect(() => {
-    Animated.timing(barsAnim, {
-      toValue: barsVisible ? 1 : 0,
-      duration: 280,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-  }, [barsVisible, barsAnim]);
 
   if (isPending) return <LoadingView />;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
@@ -308,12 +296,11 @@ export default function CountersScreen() {
    */
   function checkReveal() {
     const metrics = scrollMetrics.current;
-    const { offset, viewport, content, footer } = metrics;
-    if (!viewport || !content) return;
+    const { offset, viewport, content } = metrics;
+    if (!viewport || !content || !metrics.titleTop) return;
     // Dónde empieza «Ocultos»: solo se calcula con el desplegable cerrado. Al abrirlo, el título
     // no se mueve (lo nuevo sale debajo); antes se recalculaba con medidas a medio actualizar
     // (la lista ya más larga y el pie aún corto) y el desplegable se cerraba solo al tocarlo.
-    if (!showHidden) metrics.titleTop = content - LIST_PADDING - footer;
     const reveal = offset + viewport >= metrics.titleTop + REVEAL_MARGIN;
     if (reveal === revealHidden) return;
     setRevealHidden(reveal);
@@ -326,29 +313,26 @@ export default function CountersScreen() {
   }
 
   function onListScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const y = e.nativeEvent.contentOffset.y;
-    scrollMetrics.current.offset = y;
+    scrollMetrics.current.offset = e.nativeEvent.contentOffset.y;
     checkReveal();
-    // Al bajar por la lista, se esconden.
-    if (barsOpen && y > BARS_HIDE_AFTER && y > lastOffset.current) setBarsOpen(false);
-    lastOffset.current = y;
+  }
+
+  /** Al abrir: la lista empieza justo debajo de las barras (escondidas). Una vez. */
+  function hideBarsInitially() {
+    const { viewport, content } = scrollMetrics.current;
+    if (barsHiddenOnce.current || !barsHeight || !viewport) return;
+    if (content < viewport + barsHeight - 1) return;
+    barsHiddenOnce.current = true;
+    listRef.current?.scrollTo({ y: barsHeight, animated: false });
   }
 
   /**
-   * Abrir las barras sin recargar: se sigue el dedo (no el desplazamiento, que en Android no
-   * pasa de 0). En cuanto la lista está arriba del todo, se apunta dónde está el dedo; si desde
-   * ahí sigue bajando BARS_PULL puntos (tirando hacia abajo), salen las barras. Funciona aunque se
-   * llegue arriba en el mismo gesto.
+   * Al soltar a medio camino, las barras terminan de salir o de esconderse (nunca a medias).
+   * Con un movimiento rápido se deja que la lista siga su inercia y se ajusta al pararse.
    */
-  function onListTouchMove(e: GestureResponderEvent) {
-    if (barsOpen || drag.dragging) return;
-    const y = e.nativeEvent.pageY;
-    if (scrollMetrics.current.offset > 1) {
-      pullStart.current = null;
-      return;
-    }
-    if (pullStart.current === null) pullStart.current = y;
-    else if (y - pullStart.current > BARS_PULL) setBarsOpen(true);
+  function settleBars(y: number) {
+    if (!barsHeight || y <= 0 || y >= barsHeight) return;
+    listRef.current?.scrollTo({ y: y < barsHeight / 2 ? 0 : barsHeight, animated: true });
   }
 
   // --- Vista ------------------------------------------------------------------------------
@@ -536,38 +520,99 @@ export default function CountersScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <Stack.Screen options={selecting ? selectionOptions : normalOptions} />
-      {/* Barras de carpetas y de búsqueda: escondidas de serie. Salen al tirar hacia abajo
-          estando arriba del todo y se esconden al volver a bajar por la lista. */}
-      <Animated.View
-        style={[
-          styles.barsClip,
-          { height: barsAnim.interpolate({ inputRange: [0, 1], outputRange: [0, barsHeight] }) },
+      {selecting ? (
+        <FolderBar
+          folders={folderList}
+          selectedId={filters.folderId}
+          onSelect={(folderId) => setFilters({ ...filters, folderId })}
+          onLongPressFolder={folderOptions}
+          onNewFolder={() => router.push('/carpetas/nueva')}
+          layout={{
+            value: counterLayout,
+            onToggle: () => updateSettings({ counterLayout: grid ? 'list' : 'grid' }),
+          }}
+          selection={
+            selecting
+              ? {
+                  selectedIds,
+                  allIds: filtered.map((c) => c.id),
+                  onToggle: toggleMany,
+                }
+              : undefined
+          }
+        />
+      ) : null}
+      {/* Lista en un ScrollView (no FlatList): igual que los bloques de Estadísticas, así el
+          arrastre para reordenar va igual de fluido (sin celdas virtualizadas ni recortes). */}
+      <ScrollView
+        ref={listRef}
+        style={styles.flex}
+        // Siempre se puede subir hasta esconder las barras, aunque haya pocos contadores.
+        contentContainerStyle={[
+          styles.list,
+          { minHeight: viewportHeight ? viewportHeight + barsHeight : undefined },
         ]}
+        scrollEnabled={!drag.dragging}
+        onScroll={onListScroll}
+        scrollEventThrottle={16}
+        onScrollEndDrag={(e) => {
+          if (Math.abs(e.nativeEvent.velocity?.y ?? 0) < 0.2) {
+            settleBars(e.nativeEvent.contentOffset.y);
+          }
+        }}
+        onMomentumScrollEnd={(e) => settleBars(e.nativeEvent.contentOffset.y)}
+        onLayout={(e) => {
+          scrollMetrics.current.viewport = e.nativeEvent.layout.height;
+          setViewportHeight(e.nativeEvent.layout.height);
+          checkReveal();
+          hideBarsInitially();
+        }}
+        onContentSizeChange={(_w, h) => {
+          scrollMetrics.current.content = h;
+          checkReveal();
+          hideBarsInitially();
+        }}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            refreshing={isRefetching}
+            onRefresh={() => {
+              refetch();
+              folders.refetch();
+            }}
+          />
+        }
       >
+        {/* Barras dentro de la lista (ver barsHeight). En el modo selección, la de carpetas
+            va fija arriba para seleccionar en masa. */}
         <View
-          style={styles.barsInner}
+          style={styles.bars}
           onLayout={(e) => setBarsHeight(Math.ceil(e.nativeEvent.layout.height))}
         >
-          <FolderBar
-            folders={folderList}
-            selectedId={filters.folderId}
-            onSelect={(folderId) => setFilters({ ...filters, folderId })}
-            onLongPressFolder={folderOptions}
-            onNewFolder={() => router.push('/carpetas/nueva')}
-            layout={{
-              value: counterLayout,
-              onToggle: () => updateSettings({ counterLayout: grid ? 'list' : 'grid' }),
-            }}
-            selection={
-              selecting
-                ? {
-                    selectedIds,
-                    allIds: filtered.map((c) => c.id),
-                    onToggle: toggleMany,
-                  }
-                : undefined
-            }
-          />
+          {selecting ? null : (
+            <FolderBar
+              folders={folderList}
+              selectedId={filters.folderId}
+              onSelect={(folderId) => setFilters({ ...filters, folderId })}
+              onLongPressFolder={folderOptions}
+              onNewFolder={() => router.push('/carpetas/nueva')}
+              layout={{
+                value: counterLayout,
+                onToggle: () => updateSettings({ counterLayout: grid ? 'list' : 'grid' }),
+              }}
+              selection={
+                selecting
+                  ? {
+                      selectedIds,
+                      allIds: filtered.map((c) => c.id),
+                      onToggle: toggleMany,
+                    }
+                  : undefined
+              }
+            />
+          )}
           {showSearch ? (
             <View style={styles.searchWrap}>
               <View
@@ -601,41 +646,6 @@ export default function CountersScreen() {
             </View>
           ) : null}
         </View>
-      </Animated.View>
-      {/* Lista en un ScrollView (no FlatList): igual que los bloques de Estadísticas, así el
-          arrastre para reordenar va igual de fluido (sin celdas virtualizadas ni recortes). */}
-      <ScrollView
-        style={styles.flex}
-        contentContainerStyle={styles.list}
-        scrollEnabled={!drag.dragging}
-        onScroll={onListScroll}
-        onTouchMove={onListTouchMove}
-        onTouchEnd={() => (pullStart.current = null)}
-        onTouchCancel={() => (pullStart.current = null)}
-        scrollEventThrottle={32}
-        onLayout={(e) => {
-          scrollMetrics.current.viewport = e.nativeEvent.layout.height;
-          checkReveal();
-        }}
-        onContentSizeChange={(_w, h) => {
-          scrollMetrics.current.content = h;
-          checkReveal();
-        }}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-            refreshing={isRefetching}
-            onRefresh={() => {
-              // Tirar hacia abajo arriba del todo: además de refrescar, enseña las barras.
-              setBarsOpen(true);
-              refetch();
-              folders.refetch();
-            }}
-          />
-        }
-      >
         {shown.length === 0 ? (
           emptyView
         ) : grid ? (
@@ -651,7 +661,9 @@ export default function CountersScreen() {
           <View
             style={styles.hidden}
             onLayout={(e) => {
-              scrollMetrics.current.footer = e.nativeEvent.layout.height;
+              // Dónde empieza «Ocultos» en la lista (solo con el desplegable cerrado: al
+              // abrirlo, el título no se mueve).
+              if (!showHidden) scrollMetrics.current.titleTop = e.nativeEvent.layout.y;
               checkReveal();
             }}
           >
@@ -725,17 +737,13 @@ export default function CountersScreen() {
 const SEARCH_FROM = 6;
 
 const CARD_GAP = 10;
-/** Cuánto hay que tirar hacia abajo, ya arriba del todo, para que salgan las barras. */
-const BARS_PULL = 40;
-/** Cuánto hay que bajar por la lista para que se escondan. */
-const BARS_HIDE_AFTER = 24;
 const LIST_PADDING = 12;
 /** Cuánto del título «Ocultos» tiene que verse para que aparezca. */
 const REVEAL_MARGIN = 24;
 
 const styles = StyleSheet.create({
-  barsClip: { overflow: 'hidden' },
-  barsInner: { position: 'absolute', top: 0, left: 0, right: 0 },
+  // Las barras van de borde a borde aunque la lista tenga margen.
+  bars: { marginHorizontal: -LIST_PADDING, marginTop: -LIST_PADDING, paddingBottom: 2 },
   searchWrap: { paddingHorizontal: LIST_PADDING, paddingTop: 10 },
   search: {
     flexDirection: 'row',
