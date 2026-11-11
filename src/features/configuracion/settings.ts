@@ -6,7 +6,15 @@ import { useSyncExternalStore } from 'react';
 // elegido se aplica desde el primer fotograma.
 
 export type ThemeMode = 'system' | 'light' | 'dark';
-export type AccentName = 'dorado' | 'morado' | 'azul' | 'verde' | 'naranja' | 'rosa';
+export type AccentName = 'dorado' | 'burdeos' | 'verde' | 'azul' | 'terracota' | 'plata';
+export const ACCENT_NAMES: AccentName[] = [
+  'dorado',
+  'burdeos',
+  'verde',
+  'azul',
+  'terracota',
+  'plata',
+];
 /**
  * Estilo visual de toda la app: 'clasico' (el morado de siempre) o 'cine' (prueba: oscuro
  * cálido, dorado y tipografía editorial). Se aplica al arrancar la app.
@@ -14,16 +22,14 @@ export type AccentName = 'dorado' | 'morado' | 'azul' | 'verde' | 'naranja' | 'r
 export type VisualStyle = 'clasico' | 'cine';
 /** Cómo se ven los contadores en «Mis contadores»: filas (de serie) o bloques, dos por fila. */
 export type CounterLayout = 'list' | 'grid';
-/** Un color de serie o el personalizado (`customAccent`). */
-export type AccentChoice = AccentName | 'custom';
+/** El color de destaque elegido (ya no hay color personalizado). */
+export type AccentChoice = AccentName;
 
 export type Settings = {
   theme: ThemeMode;
   visualStyle: VisualStyle;
   counterLayout: CounterLayout;
   accent: AccentChoice;
-  /** Color elegido a mano ('#RRGGBB'), para accent = 'custom'. */
-  customAccent: string;
   /** Cantidades de los botones rápidos (de 1 a 3, ordenadas). */
   quickAmounts: number[];
   /** Pedir confirmación antes de restar 1. */
@@ -54,7 +60,6 @@ export const DEFAULT_SETTINGS: Settings = {
   visualStyle: 'clasico',
   counterLayout: 'list',
   accent: 'dorado',
-  customAccent: '#5B4BDB',
   quickAmounts: [1, 5],
   confirmRemove: false,
   haptics: true,
@@ -84,13 +89,13 @@ export function parseSettings(raw: string | null): Settings {
       ? {}
       : {
           cineDefaults: true,
-          accent: saved.accent === undefined || saved.accent === 'morado' ? 'dorado' : saved.accent,
           theme: saved.theme === undefined || saved.theme === 'system' ? 'dark' : saved.theme,
         };
+    const merged = { ...DEFAULT_SETTINGS, ...saved, ...migrated };
     return {
-      ...DEFAULT_SETTINGS,
-      ...saved,
-      ...migrated,
+      ...merged,
+      // Un color que ya no existe (el personalizado, el morado, el rosa…) vuelve al dorado.
+      accent: ACCENT_NAMES.includes(merged.accent) ? merged.accent : 'dorado',
       quickAmounts:
         amounts.length > 0
           ? [...new Set(amounts)].sort((a, b) => a - b).slice(0, MAX_QUICK_AMOUNTS)

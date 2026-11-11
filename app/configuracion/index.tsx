@@ -6,7 +6,6 @@ import { reloadAppAsync } from 'expo';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
@@ -18,7 +17,6 @@ import {
   SettingsRow,
   SwitchRow,
 } from '@/features/configuracion/components';
-import { ColorPickerDialog } from '@/features/configuracion/ColorPickerDialog';
 import { requestReminderPermission } from '@/features/configuracion/reminder';
 import {
   type AccentChoice,
@@ -39,7 +37,7 @@ import {
   type PrivacySettings,
 } from '@/features/perfil/api';
 import { getErrorMessage } from '@/lib/errors';
-import { accents, customAccentColors, fonts, useColorMode, useThemeColors } from '@/lib/theme';
+import { accents, fonts, useColorMode, useThemeColors } from '@/lib/theme';
 
 const THEMES: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'Automático' },
@@ -56,7 +54,6 @@ export default function SettingsScreen() {
   const colors = useThemeColors();
   const mode = useColorMode();
   const settings = useSettings();
-  const [pickingColor, setPickingColor] = useState(false);
   const userId = useUserId();
   const profile = useProfile(userId);
   const privacy = useUpdatePrivacy();
@@ -203,23 +200,13 @@ export default function SettingsScreen() {
             detail="Botones, pestañas y detalles de la app."
             below={
               <OptionChips<AccentChoice>
-                options={[
-                  ...(Object.keys(accents) as AccentName[]).map((name) => ({
-                    value: name as AccentChoice,
-                    label: accents[name].label,
-                    color: accents[name][mode].primary,
-                  })),
-                  // El último: un color elegido a mano en un recuadro.
-                  {
-                    value: 'custom',
-                    label: 'Personalizado',
-                    color: customAccentColors(settings.customAccent)[mode].primary,
-                  },
-                ]}
+                options={(Object.keys(accents) as AccentName[]).map((name) => ({
+                  value: name as AccentChoice,
+                  label: accents[name].label,
+                  color: accents[name][mode].primary,
+                }))}
                 isSelected={(v) => v === settings.accent}
-                onPress={(accent) =>
-                  accent === 'custom' ? setPickingColor(true) : updateSettings({ accent })
-                }
+                onPress={(accent) => updateSettings({ accent })}
               />
             }
           />
@@ -375,16 +362,6 @@ export default function SettingsScreen() {
           onPress={() => router.push('/configuracion/privacidad')}
         />
       </SettingsGroup>
-      {pickingColor ? (
-        <ColorPickerDialog
-          initial={settings.customAccent}
-          onCancel={() => setPickingColor(false)}
-          onDone={(hex) => {
-            setPickingColor(false);
-            updateSettings({ accent: 'custom', customAccent: hex });
-          }}
-        />
-      ) : null}
     </ScrollView>
   );
 }

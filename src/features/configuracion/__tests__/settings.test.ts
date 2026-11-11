@@ -24,10 +24,19 @@ describe('parseSettings', () => {
     expect(chosen.accent).toBe('azul');
     expect(chosen.theme).toBe('light');
     const after = parseSettings(
-      JSON.stringify({ accent: 'morado', theme: 'system', cineDefaults: true }),
+      JSON.stringify({ accent: 'burdeos', theme: 'system', cineDefaults: true }),
     );
-    expect(after.accent).toBe('morado');
+    expect(after.accent).toBe('burdeos');
     expect(after.theme).toBe('system');
+  });
+
+  it('un color que ya no existe (personalizado, morado…) vuelve al dorado', () => {
+    expect(parseSettings(JSON.stringify({ accent: 'custom', cineDefaults: true })).accent).toBe(
+      'dorado',
+    );
+    expect(parseSettings(JSON.stringify({ accent: 'rosa', cineDefaults: true })).accent).toBe(
+      'dorado',
+    );
   });
 
   it('limpia las cantidades rápidas: positivas, sin repetir, ordenadas y como mucho 3', () => {

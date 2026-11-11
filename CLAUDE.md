@@ -505,7 +505,7 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   en `theme.ts`. El estilo clásico (morado) sigue en las ramas `isCinema ? … : …` y entero en
   las etiquetas de Git `diseno-clasico` (antes de Cine) y `estilos-elegibles` (con los dos
   estilos elegibles). En Configuración ya no hay «Estilo»; sí **Tema** (automático, claro,
-  oscuro; de serie oscuro) y **Color** (dorado de serie, el resto de antes y personalizado). Cine
+  oscuro; de serie oscuro) y **Color** (seis colores sobrios, dorado de serie). Cine
   claro: papel cálido `#F3EEE4`, tarjetas `#FBF8F2`, tinta `#1A1714`, dorado oscuro `#8A6A1F`
   con texto blanco. `colors.elevated` (chips y botones secundarios) y `withAlpha` sustituyen a
   los colores fijos del oscuro. Quien tenía el morado y el tema del sistema de serie pasa una vez
@@ -593,6 +593,12 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 
 - Barra de pestañas de Cine: cápsula redondeada casi de borde a borde (`marginHorizontal: 6`).
 - Botones de sumar y restar: números más grandes (17 en la tarjeta, 22 en el detalle).
+
+- **Colores de destaque** (petición del usuario): seis clásicos y sobrios, sin personalizado:
+  Dorado (de serie), Burdeos, Verde inglés, Azul tinta, Terracota y Plata (`accents` en
+  `theme.ts`; un test comprueba contraste AA con el texto de los botones y sobre el fondo, en
+  claro y oscuro). Un color guardado que ya no existe vuelve al dorado. Se quitó
+  `ColorPickerDialog` (en Git si hiciera falta).
 
 ## Cambios estéticos pendientes
 

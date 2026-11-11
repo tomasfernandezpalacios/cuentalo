@@ -1,8 +1,7 @@
-import { useMemo } from 'react';
 import { Appearance, useColorScheme } from 'react-native';
 
 import { type AccentName, getSettings, useSettings } from '@/features/configuracion/settings';
-import { customAccent, normalizeHex, withAlpha } from '@/lib/color';
+import { withAlpha } from '@/lib/color';
 
 const palette = {
   light: {
@@ -57,7 +56,7 @@ const cinemaPalette = {
     text: '#1A1714',
     textMuted: '#6B655B',
     border: 'rgba(26,23,20,0.10)',
-    primary: '#8A6A1F',
+    primary: '#7E611B',
     primarySoft: '#EFE3C6',
     flame: '#C2551F',
     onPrimary: '#FFFFFF',
@@ -227,7 +226,7 @@ export type ThemeColors = typeof palette.light;
 type AccentColors = Pick<ThemeColors, 'primary' | 'primarySoft'>;
 
 /**
- * Colores de acento que se pueden elegir en Configuración (el dorado es el de serie). Todos
+ * Colores de destaque de Configuración: seis clásicos y sobrios (el dorado es el de serie). Todos
  * tienen un contraste de al menos 4,5:1 con el texto de los botones (AA) en su modo.
  */
 export const accents: Record<
@@ -239,30 +238,30 @@ export const accents: Record<
     light: { primary: cinemaPalette.light.primary, primarySoft: cinemaPalette.light.primarySoft },
     dark: { primary: cinemaPalette.dark.primary, primarySoft: cinemaPalette.dark.primarySoft },
   },
-  morado: {
-    label: 'Morado',
-    light: { primary: '#5B4BDB', primarySoft: '#ECE9FC' },
-    dark: { primary: '#8B7DFF', primarySoft: '#262240' },
-  },
-  azul: {
-    label: 'Azul',
-    light: { primary: '#1F6FD1', primarySoft: '#E3EEFC' },
-    dark: { primary: '#6EA8FF', primarySoft: '#1B2840' },
+  burdeos: {
+    label: 'Burdeos',
+    light: { primary: '#7A2333', primarySoft: '#F0DEDF' },
+    dark: { primary: '#D27A86', primarySoft: '#2E1A1D' },
   },
   verde: {
-    label: 'Verde',
-    light: { primary: '#13804B', primarySoft: '#E1F3E9' },
-    dark: { primary: '#4CC38A', primarySoft: '#17301F' },
+    label: 'Verde inglés',
+    light: { primary: '#2F5D46', primarySoft: '#DDE8DF' },
+    dark: { primary: '#8DBF9E', primarySoft: '#18261D' },
   },
-  naranja: {
-    label: 'Naranja',
-    light: { primary: '#B8500A', primarySoft: '#FCEADB' },
-    dark: { primary: '#FF9A4D', primarySoft: '#3A2414' },
+  azul: {
+    label: 'Azul tinta',
+    light: { primary: '#2C4A72', primarySoft: '#DCE3EE' },
+    dark: { primary: '#8FAFD6', primarySoft: '#17202D' },
   },
-  rosa: {
-    label: 'Rosa',
-    light: { primary: '#C2185B', primarySoft: '#FBE3EC' },
-    dark: { primary: '#FF7AA8', primarySoft: '#3A1A28' },
+  terracota: {
+    label: 'Terracota',
+    light: { primary: '#9E452B', primarySoft: '#F3E0D7' },
+    dark: { primary: '#E0896A', primarySoft: '#2D1B14' },
+  },
+  plata: {
+    label: 'Plata',
+    light: { primary: '#55565A', primarySoft: '#E3E2DE' },
+    dark: { primary: '#C8C6C0', primarySoft: '#232220' },
   },
 };
 
@@ -274,22 +273,10 @@ export function useColorMode(): 'light' | 'dark' {
   return system === 'dark' ? 'dark' : 'light';
 }
 
-/** Colores de los dos modos para un color elegido a mano (con contraste AA en los botones). */
-export function customAccentColors(hex: string) {
-  const base = isCinema ? cinemaPalette : palette;
-  return customAccent(normalizeHex(hex) ?? accents.dorado.light.primary, {
-    lightBackground: base.light.background,
-    darkBackground: base.dark.background,
-    lightOnPrimary: base.light.onPrimary,
-    darkOnPrimary: base.dark.onPrimary,
-  });
-}
-
 export function useThemeColors(): ThemeColors {
   const mode = useColorMode();
-  const { accent, customAccent: custom } = useSettings();
-  const customColors = useMemo(() => customAccentColors(custom), [custom]);
-  const chosen = accent === 'custom' ? customColors : (accents[accent] ?? accents.dorado);
+  const { accent } = useSettings();
+  const chosen = accents[accent] ?? accents.dorado;
   const base = isCinema ? cinemaPalette : palette;
   return { ...base[mode], ...chosen[mode] };
 }
