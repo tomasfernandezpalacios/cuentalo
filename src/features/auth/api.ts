@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import { normalizeUsername } from '@/lib/validation';
 
+import { recoveryRedirectUrl } from './recovery';
+
 export class UsernameTakenError extends Error {
   code = 'username_taken';
 }
@@ -74,32 +76,14 @@ export async function signUp({ email, password, username, displayName }: SignUpI
 }
 
 /**
- * «¿Olvidaste tu contraseña?»: Supabase manda un email con un código. Se pide con el email o
- * con el nombre de usuario… pero con el nombre no podemos saber el email sin la contraseña, así
- * que aquí solo vale el email.
+ * «¿Olvidaste tu contraseña?»: Supabase manda un correo con un enlace que vuelve a la app
+ * (`app/restablecer.tsx`), entra en la cuenta y lleva a elegir la contraseña nueva.
  */
 export async function sendPasswordReset(email: string): Promise<void> {
-  const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-  if (error) throw error;
-}
-
-/**
- * Con el código del email se entra en la cuenta y se pone la contraseña nueva en el mismo
- * paso (al entrar, la app pasa sola a la pantalla principal).
- */
-export async function resetPasswordWithCode(
-  email: string,
-  code: string,
-  newPassword: string,
-): Promise<void> {
-  const { error } = await supabase.auth.verifyOtp({
-    email: email.trim(),
-    token: code.trim(),
-    type: 'recovery',
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: recoveryRedirectUrl(),
   });
   if (error) throw error;
-  const updated = await supabase.auth.updateUser({ password: newPassword });
-  if (updated.error) throw updated.error;
 }
 
 export async function signOut(): Promise<void> {

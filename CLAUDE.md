@@ -632,13 +632,16 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   15 minutos para un usuario, se bloquea un rato. Los nombres de usuario son únicos
   (`profiles_username_key`) y en el registro se comprueba mientras se escribe
   (`is_username_available`, «Ese nombre de usuario ya está en uso») y no deja crear la cuenta.
-- **¿Olvidaste tu contraseña?** (`app/(auth)/recuperar.tsx`): pide el email,
-  `resetPasswordForEmail` manda un **código** y con él `verifyOtp({ type: 'recovery' })` +
-  `updateUser({ password })` en el mismo paso (al haber sesión, la app pasa sola a inicio). Con
-  código y no enlace para que funcione en Expo Go sin depender de la IP. **Requiere** que la
-  plantilla «Reset Password» de Supabase (Authentication → Emails) incluya `{{ .Token }}`. El
-  correo integrado de Supabase es gratis pero manda pocos emails por hora; para publicar hará
-  falta un SMTP propio (Fase 6).
+- **¿Olvidaste tu contraseña?** (`app/(auth)/recuperar.tsx`): pide el email y
+  `resetPasswordForEmail` manda un correo con un **enlace** (con el correo integrado, Supabase no
+  deja editar la plantilla para poner un código: haría falta un SMTP propio). El enlace vuelve a
+  la app (`redirectTo` = `Linking.createURL('/restablecer')`: `cuentalo://restablecer`, o
+  `exp://…/--/restablecer` en Expo Go) con la sesión en el fragmento; `app/restablecer.tsx`
+  (fuera de las zonas con y sin sesión) la lee (`parseRecoveryUrl`, con tests), hace
+  `setSession` y lleva a `app/nueva-contrasena.tsx` (`updateUser({ password })`). **Requiere**
+  en Supabase → Authentication → URL Configuration → Redirect URLs: `cuentalo://**` y
+  `exp://**`; si no, Supabase manda al Site URL y el enlace «no funciona». Para publicar hará
+  falta un SMTP propio (el integrado manda pocos correos por hora; Fase 6).
 
 - Calendario de rachas: además de las flechas, se cambia de mes **deslizando** los días con el
   dedo (`useMonthSwipe` en `StreakCalendar`, PanResponder solo para gestos claramente

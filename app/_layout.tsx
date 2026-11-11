@@ -108,6 +108,7 @@ function RootNavigator() {
           options={{ title: 'Gráfica de Estadísticas' }}
         />
         <Stack.Screen name="configuracion/privacidad" options={{ title: 'Privacidad y datos' }} />
+        <Stack.Screen name="nueva-contrasena" options={{ title: 'Nueva contraseña' }} />
         <Stack.Screen
           name="perfil/editar"
           options={{ title: 'Editar perfil', presentation: 'modal' }}
@@ -120,6 +121,8 @@ function RootNavigator() {
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack.Protected>
+      {/* Enlace del correo de recuperar contraseña: con o sin sesión. */}
+      <Stack.Screen name="restablecer" options={{ headerShown: false }} />
     </Stack>
   );
 }
