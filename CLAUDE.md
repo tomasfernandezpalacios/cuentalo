@@ -647,6 +647,13 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   siempre puestos (transparentes si no) y clave por fecha: en Android salían cuadrados al
   volver de otro mes.
 
+- **Fusionar en dos pasos** (petición del usuario): 1) elegir los contadores («Siguiente»);
+  2) «Contador resultante»: nombre e imagen ya rellenos con los del que se queda y editables
+  antes de fusionar (nombre obligatorio). Si queda un individual, emoticono o foto (como al
+  editar; la foto se aplica tras `merge_counters` con `applyCounterPhoto` en
+  `useMergeCounters`). Si queda uno de grupo, solo nombre y emoticono, personales (alias): la
+  foto cambiaría la de todo el grupo.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

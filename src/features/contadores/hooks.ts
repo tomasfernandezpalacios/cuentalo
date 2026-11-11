@@ -33,6 +33,8 @@ import {
 } from './api';
 import { refreshAll } from '@/lib/queryClient';
 
+import { applyCounterPhoto, type CounterPhotoChange } from './photos';
+
 export const counterKeys = {
   all: ['counters'] as const,
   list: () => [...counterKeys.all, 'list'] as const,
@@ -148,8 +150,24 @@ export function useCreateCounter() {
 export function useMergeCounters() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ ids, name, emoji }: { ids: string[]; name: string; emoji: string }) =>
-      mergeCounters(ids, name, emoji),
+    mutationFn: async ({
+      ids,
+      name,
+      emoji,
+      photo,
+      currentPhoto = null,
+    }: {
+      ids: string[];
+      name: string;
+      emoji: string;
+      /** Foto del contador resultante (solo individuales): nueva, quitarla o dejarla. */
+      photo?: CounterPhotoChange;
+      currentPhoto?: string | null;
+    }) => {
+      const id = await mergeCounters(ids, name, emoji);
+      if (photo) await applyCounterPhoto(id, currentPhoto, photo);
+      return id;
+    },
     // Cambian contadores y carpetas: refrescamos todo.
     onSuccess: () => refreshAll(queryClient),
   });
