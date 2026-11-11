@@ -19,6 +19,7 @@ export default function AuthLayout() {
     >
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="registro" options={{ title: 'Crear cuenta' }} />
+      <Stack.Screen name="recuperar" options={{ title: 'Recuperar contraseña' }} />
     </Stack>
   );
 }

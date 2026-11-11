@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
@@ -7,11 +7,13 @@ import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
-import { signUp } from '@/features/auth/api';
+import { isUsernameAvailable, signUp } from '@/features/auth/api';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 import {
   LIMITS,
+  normalizeUsername,
   validateEmail,
   validatePassword,
   validateRequiredText,
@@ -29,6 +31,17 @@ export default function RegisterScreen() {
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Mientras se escribe, se comprueba si el nombre de usuario está libre (es único).
+  const typedUsername = useDebouncedValue(normalizeUsername(username), 400);
+  const usernameCheck = useQuery({
+    queryKey: ['username-available', typedUsername],
+    queryFn: () => isUsernameAvailable(typedUsername),
+    enabled: validateUsername(typedUsername) === null,
+    staleTime: 30_000,
+  });
+  const usernameTaken =
+    typedUsername === normalizeUsername(username) && usernameCheck.data === false;
+
   const register = useMutation({
     mutationFn: () => signUp({ email, password, username, displayName }),
     onSuccess: ({ needsConfirmation }) => {
@@ -44,7 +57,9 @@ export default function RegisterScreen() {
   function handleSubmit() {
     const next: Errors = {
       displayName: validateRequiredText(displayName, 'El nombre', LIMITS.displayName),
-      username: validateUsername(username),
+      username:
+        validateUsername(username) ??
+        (usernameTaken ? 'Ese nombre de usuario ya está en uso. Elige otro.' : null),
       email: validateEmail(email),
       password: validatePassword(password),
     };
@@ -66,8 +81,14 @@ export default function RegisterScreen() {
       <TextField
         label="Nombre de usuario"
         value={username}
-        onChangeText={setUsername}
-        error={errors.username}
+        onChangeText={(value) => {
+          setUsername(value);
+          setErrors((e) => ({ ...e, username: null }));
+        }}
+        error={
+          errors.username ??
+          (usernameTaken ? 'Ese nombre de usuario ya está en uso. Elige otro.' : null)
+        }
         autoCapitalize="none"
         autoCorrect={false}
         placeholder="ej. tomas_88"
@@ -95,7 +116,12 @@ export default function RegisterScreen() {
         <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>{formError}</Text>
       ) : null}
 
-      <AppButton title="Crear cuenta" onPress={handleSubmit} loading={register.isPending} />
+      <AppButton
+        title="Crear cuenta"
+        onPress={handleSubmit}
+        loading={register.isPending}
+        disabled={usernameTaken}
+      />
     </FormScreen>
   );
 }

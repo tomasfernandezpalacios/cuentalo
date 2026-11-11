@@ -342,6 +342,10 @@ export type Database = {
         Args: { p_username: string };
         Returns: boolean;
       };
+      login_email_for_username: {
+        Args: { p_username: string; p_password: string };
+        Returns: string | null;
+      };
       can_log_to_counter: {
         Args: { p_counter_id: string };
         Returns: boolean;

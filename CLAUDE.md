@@ -624,6 +624,22 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - Bloques de la cuadrícula: icono más grande (52); si hay línea de grupos, el nombre va en una
   sola línea para que todo quepa en el cuadrado.
 
+- **Entrar con email o nombre de usuario** (petición del usuario; migración `20261213`): si lo
+  escrito no lleva @ es un nombre de usuario y la RPC `login_email_for_username` (SECURITY
+  DEFINER, la puede llamar `anon`) da el email **solo si la contraseña es la buena**
+  (`extensions.crypt` contra `auth.users.encrypted_password`), así nadie saca emails ajenos;
+  después se entra con email y contraseña como siempre. Fallos en `login_attempts`: con 10 en
+  15 minutos para un usuario, se bloquea un rato. Los nombres de usuario son únicos
+  (`profiles_username_key`) y en el registro se comprueba mientras se escribe
+  (`is_username_available`, «Ese nombre de usuario ya está en uso») y no deja crear la cuenta.
+- **¿Olvidaste tu contraseña?** (`app/(auth)/recuperar.tsx`): pide el email,
+  `resetPasswordForEmail` manda un **código** y con él `verifyOtp({ type: 'recovery' })` +
+  `updateUser({ password })` en el mismo paso (al haber sesión, la app pasa sola a inicio). Con
+  código y no enlace para que funcione en Expo Go sin depender de la IP. **Requiere** que la
+  plantilla «Reset Password» de Supabase (Authentication → Emails) incluya `{{ .Token }}`. El
+  correo integrado de Supabase es gratis pero manda pocos emails por hora; para publicar hará
+  falta un SMTP propio (Fase 6).
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

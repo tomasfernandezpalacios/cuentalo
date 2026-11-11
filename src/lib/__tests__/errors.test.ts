@@ -27,7 +27,7 @@ describe('getErrorMessage', () => {
       'No tienes permiso para hacer esto.',
     );
     expect(getErrorMessage({ code: 'invalid_credentials', message: 'x' })).toBe(
-      'Email o contraseña incorrectos.',
+      'El usuario o la contraseña no son correctos.',
     );
   });
 });

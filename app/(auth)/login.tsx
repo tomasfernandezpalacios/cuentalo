@@ -6,26 +6,32 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@/components/AppButton';
 import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
-import { signIn } from '@/features/auth/api';
+import { isEmailLogin, signIn } from '@/features/auth/api';
 import { getErrorMessage } from '@/lib/errors';
 import { displayFont, fonts, proseFont, useThemeColors } from '@/lib/theme';
-import { validateEmail } from '@/lib/validation';
+import { validateEmail, validateUsername } from '@/lib/validation';
+
+/** Lo escrito en «Email o nombre de usuario»: un email válido o un nombre de usuario válido. */
+function validateLogin(login: string): string | null {
+  if (login.trim() === '') return 'Escribe tu email o tu nombre de usuario.';
+  return isEmailLogin(login) ? validateEmail(login) : validateUsername(login);
+}
 
 export default function LoginScreen() {
   const colors = useThemeColors();
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
-  const login = useMutation({
-    mutationFn: () => signIn(email, password),
+  const signInMutation = useMutation({
+    mutationFn: () => signIn(login, password),
     onError: (error) => setFormError(getErrorMessage(error)),
   });
 
   function handleSubmit() {
-    const error = validateEmail(email) ?? (password === '' ? 'Escribe tu contraseña.' : null);
+    const error = validateLogin(login) ?? (password === '' ? 'Escribe tu contraseña.' : null);
     setFormError(error);
-    if (!error) login.mutate();
+    if (!error) signInMutation.mutate();
   }
 
   return (
@@ -40,13 +46,13 @@ export default function LoginScreen() {
       </View>
 
       <TextField
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
+        label="Email o nombre de usuario"
+        value={login}
+        onChangeText={setLogin}
         autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        textContentType="emailAddress"
+        autoCorrect={false}
+        autoComplete="username"
+        textContentType="username"
       />
       <TextField
         label="Contraseña"
@@ -61,8 +67,19 @@ export default function LoginScreen() {
         <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>{formError}</Text>
       ) : null}
 
-      <AppButton title="Entrar" onPress={handleSubmit} loading={login.isPending} />
+      <AppButton title="Entrar" onPress={handleSubmit} loading={signInMutation.isPending} />
 
+      <AppButton
+        title="¿Olvidaste tu contraseña?"
+        variant="ghost"
+        onPress={() =>
+          router.push({
+            pathname: '/recuperar',
+            // Si ya escribió su email, se lleva rellenado.
+            params: isEmailLogin(login) ? { email: login.trim() } : {},
+          })
+        }
+      />
       <AppButton
         title="¿No tienes cuenta? Regístrate"
         variant="ghost"

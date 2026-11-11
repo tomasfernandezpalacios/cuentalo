@@ -1,7 +1,10 @@
 // Traduce los errores de Supabase a mensajes comprensibles en español.
 
 const AUTH_MESSAGES: Record<string, string> = {
-  invalid_credentials: 'Email o contraseña incorrectos.',
+  invalid_credentials: 'El usuario o la contraseña no son correctos.',
+  wrong_login: 'El usuario o la contraseña no son correctos.',
+  otp_expired: 'El código no es correcto o ha caducado. Pide otro.',
+  same_password: 'La contraseña nueva tiene que ser distinta de la anterior.',
   user_already_exists: 'Ya existe una cuenta con ese email.',
   email_exists: 'Ya existe una cuenta con ese email.',
   weak_password: 'La contraseña es demasiado débil.',
@@ -10,7 +13,7 @@ const AUTH_MESSAGES: Record<string, string> = {
   over_request_rate_limit: 'Demasiados intentos. Espera unos minutos.',
   signup_disabled: 'El registro está desactivado.',
   validation_failed: 'Revisa los datos introducidos.',
-  username_taken: 'Ese nombre de usuario ya está cogido.',
+  username_taken: 'Ese nombre de usuario ya está en uso. Elige otro.',
 };
 
 const POSTGRES_MESSAGES: Record<string, string> = {
