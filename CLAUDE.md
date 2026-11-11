@@ -509,7 +509,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   casi negro, Inter para la interfaz y **Instrument Serif** (`fonts.display`) para títulos de
   cabecera y cifras grandes, tarjetas de radio 24 y botones/chips en píldora (`shape`).
   Petición del usuario tras probarlo: **todos los títulos** con la serif (`titleFont(size)`,
-  un 30 % más grande en Cine), las **explicaciones largas y los avisos** con la misma serif en
+  un 30 % más grande en Cine; los de cabecera de las pantallas, todos iguales a 34 con
+  `screenTitleFont`), las **explicaciones largas y los avisos** con la misma serif en
   **itálica** (`proseFont(size, lineHeight)`, `fonts.prose`), y **nada de bloques blancos**
   (el texto blanco hueso sí): chip activo en dorado suave (`chipColors`: `primarySoft`, borde
   y texto dorados), recuadros destacados (deshacer, dato de la gráfica, mensajes del tutorial)

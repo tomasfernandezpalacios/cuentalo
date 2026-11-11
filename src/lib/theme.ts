@@ -132,6 +132,17 @@ export function inverseColors(colors: ThemeColors) {
 }
 
 /**
+ * Título de cabecera de cada pantalla («Mis contadores», «Estadísticas»…): el mismo tamaño en
+ * todas. En Cine, grande y en la serif; en clásico, como siempre (la cabecera de «Mis contadores»
+ * es propia y usa 18).
+ */
+export function screenTitleFont() {
+  return isCinema
+    ? { fontFamily: fonts.display, fontSize: 34 }
+    : { fontFamily: fonts.title, fontSize: 18 };
+}
+
+/**
  * Cabeceras de las pantallas. Cine: sin franja ni sombra (se funden con el fondo) y el título en
  * la serif editorial; clásico: la franja de siempre.
  */
@@ -141,7 +152,7 @@ export function headerOptions(colors: ThemeColors) {
         headerStyle: { backgroundColor: colors.background },
         headerShadowVisible: false,
         headerTintColor: colors.text,
-        headerTitleStyle: titleFont(20),
+        headerTitleStyle: screenTitleFont(),
       }
     : {
         headerStyle: { backgroundColor: colors.surface },
