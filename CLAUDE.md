@@ -548,9 +548,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   «Descubrir más» → `app/amigos/descubrir.tsx` (buscador de cualquier usuario y hasta 100
   sugerencias). El número no se verifica: alguien podría poner uno ajeno (V1).
 
-- Cine, textos (petición del usuario): todo lo que no es título va en **Tinos** (libre, con las
-  mismas medidas que Times New Roman, que no se puede incluir; `fonts.title` = Tinos Bold,
-  `fonts.detail` = Tinos Regular). Explicaciones, pistas, textos vacíos y avisos en la serif
+- Cine, textos (petición del usuario): todo lo que no es título va en **Redaction 10**
+  (`assets/fonts/Redaction10-Regular.otf` y `-Bold.otf`, del paquete oficial de redaction.us,
+  licencia OFL; `fonts.title` = Bold, `fonts.detail` = Regular). Antes se probó Tinos (Times New
+  Roman) y el usuario prefirió Redaction 10. Explicaciones, pistas, textos vacíos y avisos en la serif
   itálica (`proseFont`). Títulos de cabecera: todos del mismo tamaño, el mayor que cabe en
   «Mis contadores» sin solaparse con la racha ni con los botones (`src/lib/screenTitle.tsx`:
   `TitleMeasurer` mide el texto a tamaño 100, la racha avisa de su ancho, `fitTitleSize` con
@@ -567,6 +568,11 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   los botones, y se reduce o corta con «…» si el nombre es largo): nunca pisa los botones.
 - «Ocultos» se cerraba solo al tocarlo (se recalculaba su posición con medidas a medio
   actualizar): ahora la posición del título solo se mide con el desplegable cerrado.
+- El total de cada tarjeta (filas y bloques) va dentro de un recuadro redondeado del color de
+  la app (`primarySoft` con borde) para que destaque (petición del usuario).
+- «Mis contadores» ya no usa FlatList sino un ScrollView con las tarjetas dentro, igual que
+  los bloques de Estadísticas: así el arrastre para reordenar es igual de fluido (sin celdas
+  virtualizadas, recortes ni capas por celda). Son pocos contadores, no hace falta virtualizar.
 
 ## Cambios estéticos pendientes
 

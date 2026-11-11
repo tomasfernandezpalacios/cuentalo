@@ -3,7 +3,6 @@ import {
   InstrumentSerif_400Regular,
   InstrumentSerif_400Regular_Italic,
 } from '@expo-google-fonts/instrument-serif';
-import { Tinos_400Regular, Tinos_400Regular_Italic, Tinos_700Bold } from '@expo-google-fonts/tinos';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -137,9 +136,8 @@ export default function RootLayout() {
     'Redaction-Regular': require('../assets/fonts/Redaction-Regular.ttf'),
     InstrumentSerif_400Regular,
     InstrumentSerif_400Regular_Italic,
-    Tinos_400Regular,
-    Tinos_400Regular_Italic,
-    Tinos_700Bold,
+    'Redaction10-Regular': require('../assets/fonts/Redaction10-Regular.otf'),
+    'Redaction10-Bold': require('../assets/fonts/Redaction10-Bold.otf'),
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,

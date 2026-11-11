@@ -95,6 +95,21 @@ export function CounterCard({
       {formatAmount(counter.displayTotal)}
     </Text>
   );
+  // El total, dentro de un recuadro del color de la app para que destaque (petición del usuario).
+  const totalBadge = (
+    <View
+      style={[
+        styles.badge,
+        grid && styles.gridBadge,
+        {
+          backgroundColor: colors.primarySoft,
+          borderColor: isCinema ? 'rgba(233,196,106,0.35)' : colors.primary,
+        },
+      ]}
+    >
+      {total}
+    </View>
+  );
   const unit = counter.unit ? (
     <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
       {counter.unit}
@@ -128,7 +143,7 @@ export function CounterCard({
             <View style={styles.gridTop}>
               <CounterAvatar emoji={counter.emoji} name={counter.name} size={36} />
               <View style={styles.gridTotalBox}>
-                {total}
+                {totalBadge}
                 {unit}
               </View>
             </View>
@@ -159,7 +174,7 @@ export function CounterCard({
             </View>
             {selectionMode ? check : quickAdd}
             <View style={styles.totalBox}>
-              {total}
+              {totalBadge}
               {unit}
             </View>
           </>
@@ -189,13 +204,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   gridTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  gridTotalBox: { flex: 1, alignItems: 'flex-end' },
+  gridTotalBox: { flex: 1, alignItems: 'flex-end', gap: 2 },
+  badge: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  gridBadge: { paddingHorizontal: 12, paddingVertical: 4, maxWidth: '100%' },
   gridTotal: { ...displayFont(isCinema ? 34 : 26) },
   gridName: { flex: 1, justifyContent: 'center', gap: 2 },
   gridCheck: { alignItems: 'flex-end' },
   name: { flex: 1, gap: 2 },
   nameText: { fontSize: 17, fontFamily: fonts.title },
-  totalBox: { alignItems: 'flex-end', minWidth: 36, maxWidth: 64 },
+  totalBox: { alignItems: 'center', minWidth: 40, maxWidth: 80, gap: 2 },
   total: { ...displayFont(isCinema ? 26 : 21) },
   unit: { fontSize: 12, fontFamily: fonts.detail },
 });

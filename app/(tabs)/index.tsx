@@ -1,18 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-  type ComponentProps,
-} from 'react';
+import { useCallback, useRef, useState, type ComponentProps } from 'react';
 import {
   Animated,
   BackHandler,
-  type ViewProps,
-  FlatList,
+  ScrollView,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -516,136 +508,124 @@ export default function CountersScreen() {
             : undefined
         }
       />
-      <DraggingKey.Provider value={drag.draggingKey}>
-        <View {...drag.containerProps} style={styles.flex}>
-          <FlatList
-            data={shown}
-            keyExtractor={(counter) => counter.id}
-            key={grid ? 'grid' : 'list'}
-            numColumns={grid ? 2 : 1}
-            columnWrapperStyle={grid ? styles.gridRow : undefined}
-            renderItem={({ item }) =>
+      {/* Lista en un ScrollView (no FlatList): igual que los bloques de Estadísticas, así el
+          arrastre para reordenar va igual de fluido (sin celdas virtualizadas ni recortes). */}
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.list}
+        scrollEnabled={!drag.dragging}
+        onScroll={onListScroll}
+        scrollEventThrottle={32}
+        onLayout={(e) => {
+          scrollMetrics.current.viewport = e.nativeEvent.layout.height;
+          checkReveal();
+        }}
+        onContentSizeChange={(_w, h) => {
+          scrollMetrics.current.content = h;
+          checkReveal();
+        }}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            refreshing={isRefetching}
+            onRefresh={() => {
+              refetch();
+              folders.refetch();
+            }}
+          />
+        }
+      >
+        {showSearch ? (
+          <View
+            style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          >
+            <Ionicons name="search" size={18} color={colors.textMuted} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Buscar contador"
+              placeholderTextColor={colors.textMuted}
+              accessibilityLabel="Buscar contador"
+              autoCorrect={false}
+              returnKeyType="search"
+              style={[styles.searchInput, { color: colors.text }]}
+            />
+            {query ? (
+              <Pressable
+                onPress={() => setQuery('')}
+                accessibilityRole="button"
+                accessibilityLabel="Borrar búsqueda"
+                hitSlop={10}
+              >
+                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : undefined}
+        {shown.length === 0 ? (
+          emptyView
+        ) : grid ? (
+          <View style={styles.gridWrap}>
+            {shown.map((item) => (
+              <View key={item.id} style={{ width: gridItemWidth }}>
+                {renderCard(item, item.id === tutorialCardId)}
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View {...drag.containerProps} style={styles.cards}>
+            {shown.map((item) => renderCard(item, item.id === tutorialCardId, true))}
+          </View>
+        )}
+        {hidden.length > 0 ? (
+          <View
+            style={styles.hidden}
+            onLayout={(e) => {
+              scrollMetrics.current.footer = e.nativeEvent.layout.height;
+              checkReveal();
+            }}
+          >
+            <Animated.View
+              style={{ opacity: revealAnim }}
+              pointerEvents={revealHidden ? 'auto' : 'none'}
+            >
+              {/* Sin bloque: un texto y la flecha para desplegar. */}
+              <Pressable
+                onPress={() => setShowHidden((v) => !v)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showHidden }}
+                accessibilityLabel={`Ocultos, ${hidden.length}`}
+                hitSlop={8}
+                style={({ pressed }) => [styles.hiddenToggle, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Text style={[styles.hiddenTitle, { color: colors.textMuted }]}>
+                  Ocultos ({hidden.length})
+                </Text>
+                <Ionicons
+                  name={showHidden ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color={colors.textMuted}
+                />
+              </Pressable>
+            </Animated.View>
+            {showHidden ? (
               grid ? (
-                <View style={{ width: gridItemWidth }}>
-                  {renderCard(item, item.id === tutorialCardId)}
+                <View style={styles.gridWrap}>
+                  {hidden.map((item) => (
+                    <View key={item.id} style={{ width: gridItemWidth }}>
+                      {renderCard(item)}
+                    </View>
+                  ))}
                 </View>
               ) : (
-                renderCard(item, item.id === tutorialCardId, true)
+                hidden.map((item) => renderCard(item))
               )
-            }
-            scrollEnabled={!drag.dragging}
-            onScroll={onListScroll}
-            scrollEventThrottle={32}
-            onLayout={(e) => {
-              scrollMetrics.current.viewport = e.nativeEvent.layout.height;
-              checkReveal();
-            }}
-            onContentSizeChange={(_w, h) => {
-              scrollMetrics.current.content = h;
-              checkReveal();
-            }}
-            // En Android la lista quita las vistas fuera de su celda: la tarjeta arrastrada
-            // desaparecía a ratos.
-            removeClippedSubviews={false}
-            // La tarjeta que se arrastra va por encima de las demás.
-            CellRendererComponent={grid ? undefined : DragCell}
-            keyboardShouldPersistTaps="handled"
-            ListHeaderComponent={
-              showSearch ? (
-                <View
-                  style={[
-                    styles.search,
-                    { backgroundColor: colors.surface, borderColor: colors.border },
-                  ]}
-                >
-                  <Ionicons name="search" size={18} color={colors.textMuted} />
-                  <TextInput
-                    value={query}
-                    onChangeText={setQuery}
-                    placeholder="Buscar contador"
-                    placeholderTextColor={colors.textMuted}
-                    accessibilityLabel="Buscar contador"
-                    autoCorrect={false}
-                    returnKeyType="search"
-                    style={[styles.searchInput, { color: colors.text }]}
-                  />
-                  {query ? (
-                    <Pressable
-                      onPress={() => setQuery('')}
-                      accessibilityRole="button"
-                      accessibilityLabel="Borrar búsqueda"
-                      hitSlop={10}
-                    >
-                      <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-                    </Pressable>
-                  ) : null}
-                </View>
-              ) : undefined
-            }
-            contentContainerStyle={styles.list}
-            refreshControl={
-              <RefreshControl
-                tintColor={colors.primary}
-                colors={[colors.primary]}
-                refreshing={isRefetching}
-                onRefresh={() => {
-                  refetch();
-                  folders.refetch();
-                }}
-              />
-            }
-            ListEmptyComponent={emptyView}
-            ListFooterComponent={
-              hidden.length > 0 ? (
-                <View
-                  style={styles.hidden}
-                  onLayout={(e) => {
-                    scrollMetrics.current.footer = e.nativeEvent.layout.height;
-                    checkReveal();
-                  }}
-                >
-                  <Animated.View
-                    style={{ opacity: revealAnim }}
-                    pointerEvents={revealHidden ? 'auto' : 'none'}
-                  >
-                    {/* Sin bloque: un texto y la flecha para desplegar. */}
-                    <Pressable
-                      onPress={() => setShowHidden((v) => !v)}
-                      accessibilityRole="button"
-                      accessibilityState={{ expanded: showHidden }}
-                      accessibilityLabel={`Ocultos, ${hidden.length}`}
-                      hitSlop={8}
-                      style={({ pressed }) => [styles.hiddenToggle, { opacity: pressed ? 0.6 : 1 }]}
-                    >
-                      <Text style={[styles.hiddenTitle, { color: colors.textMuted }]}>
-                        Ocultos ({hidden.length})
-                      </Text>
-                      <Ionicons
-                        name={showHidden ? 'chevron-up' : 'chevron-down'}
-                        size={18}
-                        color={colors.textMuted}
-                      />
-                    </Pressable>
-                  </Animated.View>
-                  {showHidden ? (
-                    grid ? (
-                      <View style={styles.gridWrap}>
-                        {hidden.map((item) => (
-                          <View key={item.id} style={{ width: gridItemWidth }}>
-                            {renderCard(item)}
-                          </View>
-                        ))}
-                      </View>
-                    ) : (
-                      hidden.map((item) => renderCard(item))
-                    )
-                  ) : null}
-                </View>
-              ) : undefined
-            }
-          />
-        </View>
-      </DraggingKey.Provider>
+            ) : null}
+          </View>
+        ) : undefined}
+      </ScrollView>
       <FilterMenu
         visible={filtersOpen}
         filters={filters}
@@ -681,15 +661,6 @@ const LIST_PADDING = 12;
 /** Cuánto del título «Ocultos» tiene que verse para que aparezca. */
 const REVEAL_MARGIN = 24;
 
-/** Qué tarjeta se está arrastrando (para la celda de la lista, que es un componente fijo). */
-const DraggingKey = createContext<string | null>(null);
-
-/** Celda de la lista: la tarjeta que se arrastra va por encima de las demás. */
-function DragCell({ item, style, ...rest }: ViewProps & { item: CounterWithTotal }) {
-  const dragging = useContext(DraggingKey);
-  return <View {...rest} style={[style, item.id === dragging && styles.draggingCell]} />;
-}
-
 const styles = StyleSheet.create({
   search: {
     flexDirection: 'row',
@@ -699,7 +670,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 10,
   },
   searchInput: { flex: 1, fontSize: 16, paddingVertical: 8 },
   flex: { flex: 1 },
@@ -707,9 +677,8 @@ const styles = StyleSheet.create({
   titleText: { ...screenTitleFont() },
   selectionText: { fontSize: 18, fontFamily: fonts.title },
   list: { padding: LIST_PADDING, gap: CARD_GAP, flexGrow: 1 },
-  gridRow: { gap: CARD_GAP },
+  cards: { gap: CARD_GAP },
   gridWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP },
-  draggingCell: { zIndex: 10, elevation: 10 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18, marginRight: 14 },
   selectionActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginRight: 14 },
   close: { marginHorizontal: 12 },

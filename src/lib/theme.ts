@@ -57,16 +57,16 @@ const cinemaPalette = {
 /**
  * Tipografías (cargadas en app/_layout.tsx). Con fuentes personalizadas no se usa
  * fontWeight: cada archivo ya es un peso concreto.
- * - title: títulos, nombres, cifras y botones (clásico: Ubuntu Bold; cine: Tinos Bold, la libre con las medidas de Times New Roman).
- * - detail: detalles y textos secundarios (clásico: Redaction; cine: Tinos, como Times New Roman).
+ * - title: títulos, nombres, cifras y botones (clásico: Ubuntu Bold; cine: Redaction 10 Bold).
+ * - detail: detalles y textos secundarios (clásico: Redaction; cine: Redaction 10).
  * - display: títulos de pantalla y cifras grandes (clásico: Ubuntu Bold; cine: Instrument
  *   Serif, el toque editorial).
  * - prose: explicaciones largas y avisos (clásico: Redaction; cine: Instrument Serif itálica).
  */
 export const fonts = isCinema
   ? ({
-      title: 'Tinos_700Bold',
-      detail: 'Tinos_400Regular',
+      title: 'Redaction10-Bold',
+      detail: 'Redaction10-Regular',
       display: 'InstrumentSerif_400Regular',
       prose: 'InstrumentSerif_400Regular_Italic',
     } as const)
