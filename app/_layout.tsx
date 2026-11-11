@@ -21,6 +21,7 @@ import { usePendingInvite } from '@/features/social/pendingInvite';
 import { TutorialHost } from '@/features/tutorial/TutorialHost';
 import { useTutorialAutoStart } from '@/features/tutorial/useTutorialAutoStart';
 import { queryClient } from '@/lib/queryClient';
+import { HeaderTitle } from '@/components/HeaderTitle';
 import { TitleMeasurer, useScreenTitleSize } from '@/lib/screenTitle';
 import { headerOptions, isCinema, useColorMode, useThemeColors } from '@/lib/theme';
 
@@ -50,6 +51,14 @@ function RootNavigator() {
     <Stack
       screenOptions={{
         ...headerOptions(colors, titleSize),
+        // Cine: el título nunca se solapa con los botones de la derecha (se reduce si es largo).
+        ...(isCinema
+          ? {
+              headerTitle: ({ children }: { children: string }) => (
+                <HeaderTitle>{children}</HeaderTitle>
+              ),
+            }
+          : {}),
         contentStyle: { backgroundColor: colors.background },
         headerBackButtonDisplayMode: 'minimal',
         // Misma flecha en todas las pantallas, también en las que se abren como ventana

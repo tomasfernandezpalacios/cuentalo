@@ -71,7 +71,7 @@ export function CounterCard({
       }
       onLongPressAdd={onCustomAdd}
       tutorialTarget={tutorialTarget}
-      maxAmounts={grid ? 1 : undefined}
+      stretch={grid}
     />
   );
   const check = (
@@ -124,23 +124,25 @@ export function CounterCard({
       >
         {grid ? (
           <>
+            {/* Arriba: icono y total. Debajo: nombre, sus grupos y los botones. */}
             <View style={styles.gridTop}>
               <CounterAvatar emoji={counter.emoji} name={counter.name} size={36} />
-              {selectionMode ? check : null}
+              <View style={styles.gridTotalBox}>
+                {total}
+                {unit}
+              </View>
             </View>
-            <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
-              {counter.name}
-            </Text>
-            <View style={styles.gridTotalRow}>
-              {total}
-              {unit}
-            </View>
-            {subtitle ? (
-              <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
-                {subtitle}
+            <View style={styles.gridName}>
+              <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={2}>
+                {counter.name}
               </Text>
-            ) : null}
-            {selectionMode ? null : quickAdd}
+              {subtitle ? (
+                <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
+            {selectionMode ? <View style={styles.gridCheck}>{check}</View> : quickAdd}
           </>
         ) : (
           <>
@@ -186,9 +188,11 @@ const styles = StyleSheet.create({
     gap: 4,
     justifyContent: 'space-between',
   },
-  gridTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  gridTotalRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
-  gridTotal: { ...displayFont(isCinema ? 38 : 30), flexShrink: 1 },
+  gridTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  gridTotalBox: { flex: 1, alignItems: 'flex-end' },
+  gridTotal: { ...displayFont(isCinema ? 34 : 26) },
+  gridName: { flex: 1, justifyContent: 'center', gap: 2 },
+  gridCheck: { alignItems: 'flex-end' },
   name: { flex: 1, gap: 2 },
   nameText: { fontSize: 17, fontFamily: fonts.title },
   totalBox: { alignItems: 'flex-end', minWidth: 36, maxWidth: 64 },

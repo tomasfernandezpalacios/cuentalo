@@ -28,6 +28,8 @@ type Props = {
   streak?: { days: number; todayDone: boolean } | null;
   /** Como mucho estos botones de sumar (en los bloques de la cuadrícula, uno). */
   maxAmounts?: number;
+  /** Versión compacta que ocupa todo el ancho (bloques de la cuadrícula): botones repartidos. */
+  stretch?: boolean;
 };
 
 /** Botones rápidos (+1 +5 por defecto), −1 y, opcionalmente, "Otra". */
@@ -42,6 +44,7 @@ export function QuickAddBar({
   tutorialTarget = false,
   streak = null,
   maxAmounts = Infinity,
+  stretch = false,
 }: Props) {
   const colors = useThemeColors();
   const { quickAmounts } = useSettings();
@@ -51,16 +54,22 @@ export function QuickAddBar({
   const amounts = showStreak
     ? quickAmounts.slice(0, 1)
     : quickAmounts.slice(0, Math.min(maxAmounts, quickAmounts.length));
+  const targetStyle = compact && !stretch ? undefined : styles.flexTarget;
+  const buttonSize = compact
+    ? stretch
+      ? styles.compactStretch
+      : styles.compact
+    : styles.largeInTarget;
   const flameColor = streak?.todayDone ? colors.flame : colors.textMuted;
 
   return (
-    <View style={[styles.row, compact && styles.compactRow]}>
+    <View style={[styles.row, compact && styles.compactRow, stretch && styles.stretchRow]}>
       {amounts.map((amount, index) => (
         <TutorialTarget
           key={amount}
           id="sumar"
           enabled={tutorialTarget && index === 0}
-          style={compact ? undefined : styles.flexTarget}
+          style={targetStyle}
         >
           <Pressable
             onPress={() => onAdd(amount)}
@@ -73,7 +82,7 @@ export function QuickAddBar({
             hitSlop={compact ? 4 : 0}
             style={({ pressed }) => [
               styles.button,
-              compact ? styles.compact : styles.largeInTarget,
+              buttonSize,
               { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 },
             ]}
           >
@@ -86,11 +95,7 @@ export function QuickAddBar({
           </Pressable>
         </TutorialTarget>
       ))}
-      <TutorialTarget
-        id="restar"
-        enabled={tutorialTarget}
-        style={compact ? undefined : styles.flexTarget}
-      >
+      <TutorialTarget id="restar" enabled={tutorialTarget} style={targetStyle}>
         <Pressable
           onPress={onRemoveOne}
           disabled={!canRemove}
@@ -101,7 +106,7 @@ export function QuickAddBar({
           hitSlop={compact ? 4 : 0}
           style={({ pressed }) => [
             styles.button,
-            compact ? styles.compact : styles.largeInTarget,
+            buttonSize,
             {
               backgroundColor: colors.surface,
               borderColor: colors.border,
@@ -138,7 +143,7 @@ export function QuickAddBar({
       ) : null}
       {showStreak && streak ? (
         <View
-          style={[styles.button, styles.streak]}
+          style={[styles.button, styles.streak, stretch && styles.streakStretch]}
           accessible
           accessibilityLabel={`Racha de ${streak.days} ${streak.days === 1 ? 'día' : 'días'}${streak.todayDone ? '' : ', hoy aún sin mantener'}`}
         >
@@ -162,6 +167,9 @@ const styles = StyleSheet.create({
   largeInTarget: { height: 60, borderRadius: 16 },
   // En la tarjeta: estrechos para que quepan, pero altos para pulsarlos con comodidad.
   compact: { width: 36, height: 48, borderRadius: 10 },
+  compactStretch: { height: 44, borderRadius: 10 },
+  stretchRow: { alignSelf: 'stretch' },
+  streakStretch: { flex: 1, height: 44 },
   streak: { flexDirection: 'row', height: 48, minWidth: 36, gap: 1, paddingHorizontal: 2 },
   largeLabel: { fontSize: 19, fontFamily: fonts.title },
   compactLabel: { fontSize: 14, fontFamily: fonts.title },

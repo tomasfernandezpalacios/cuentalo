@@ -558,6 +558,16 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - La vista de «Mis contadores» (filas o bloques) se guarda en el móvil y es la que sale al
   volver a abrir la app.
 
+- Bloques de la cuadrícula (petición del usuario): arriba icono y total; debajo el nombre y, si
+  es de grupo, sus grupos; abajo los botones de siempre repartidos a lo ancho
+  (`QuickAddBar stretch`): las cantidades y el −1, o en racha el primero, el −1 y la racha.
+- Cabeceras: solo los títulos de pantalla van con la letra de títulos. Textos de estado como
+  «1 seleccionado» van con la letra normal a 18. En Cine, las pantallas que se abren encima
+  usan `HeaderTitle` (mismo tamaño que las pestañas, `maxWidth` que deja sitio a la flecha y a
+  los botones, y se reduce o corta con «…» si el nombre es largo): nunca pisa los botones.
+- «Ocultos» se cerraba solo al tocarlo (se recalculaba su posición con medidas a medio
+  actualizar): ahora la posición del título solo se mide con el desplegable cerrado.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

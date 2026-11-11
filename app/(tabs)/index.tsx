@@ -92,7 +92,7 @@ export default function CountersScreen() {
   // «Ocultos» solo aparece al llegar al final de la lista y se recoge al volver a subir.
   const [revealHidden, setRevealHidden] = useState(false);
   const [revealAnim] = useState(() => new Animated.Value(0));
-  const scrollMetrics = useRef({ offset: 0, viewport: 0, content: 0, footer: 0 });
+  const scrollMetrics = useRef({ offset: 0, viewport: 0, content: 0, footer: 0, titleTop: 0 });
   // Al abrir la app siempre se empieza en «Todos» y sin filtros.
   const [filters, setFilters] = useState<CounterFilters>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -292,10 +292,14 @@ export default function CountersScreen() {
    * Si se vuelve a subir por encima, se recoge el desplegable y el título se esconde.
    */
   function checkReveal() {
-    const { offset, viewport, content, footer } = scrollMetrics.current;
+    const metrics = scrollMetrics.current;
+    const { offset, viewport, content, footer } = metrics;
     if (!viewport || !content) return;
-    const footerTop = content - LIST_PADDING - footer;
-    const reveal = offset + viewport >= footerTop + REVEAL_MARGIN;
+    // Dónde empieza «Ocultos»: solo se calcula con el desplegable cerrado. Al abrirlo, el título
+    // no se mueve (lo nuevo sale debajo); antes se recalculaba con medidas a medio actualizar
+    // (la lista ya más larga y el pie aún corto) y el desplegable se cerraba solo al tocarlo.
+    if (!showHidden) metrics.titleTop = content - LIST_PADDING - footer;
+    const reveal = offset + viewport >= metrics.titleTop + REVEAL_MARGIN;
     if (reveal === revealHidden) return;
     setRevealHidden(reveal);
     if (!reveal) setShowHidden(false);
@@ -371,7 +375,8 @@ export default function CountersScreen() {
       </Pressable>
     ),
     headerTitle: () => (
-      <Text style={[styles.titleText, { color: colors.text }]} numberOfLines={1}>
+      // No es un título: va con la letra normal y a tamaño de texto, sin pisar los botones.
+      <Text style={[styles.selectionText, { color: colors.text }]} numberOfLines={1}>
         {selectedIds.length === 1 ? '1 seleccionado' : `${selectedIds.length} seleccionados`}
       </Text>
     ),
@@ -700,6 +705,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   title: { flexDirection: 'row', alignItems: 'center', gap: isCinema ? TITLE_GAP : 24 },
   titleText: { ...screenTitleFont() },
+  selectionText: { fontSize: 18, fontFamily: fonts.title },
   list: { padding: LIST_PADDING, gap: CARD_GAP, flexGrow: 1 },
   gridRow: { gap: CARD_GAP },
   gridWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP },
