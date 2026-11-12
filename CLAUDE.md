@@ -709,6 +709,21 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   - «Tirar para refrescar» con `usePullRefresh`: el círculo solo sale al tirar el usuario
     (antes iba con `isRefetching` y salía tras cada cambio, como si recargara la pantalla).
 
+- **«Amigos y grupos» más rápida** (petición del usuario):
+  - Cabecera: llave (unirse con código → `app/grupos/unirse.tsx`, reutiliza `JoinByCode`),
+    buzón y + (crear grupo, el mismo + que en «Mis contadores»). «Crear grupo» y el campo del
+    código ya no están abajo.
+  - Deslizar de lado cambia entre Grupos y Amigos (`useTabSwipe` en `app/(tabs)/social.tsx`,
+    solo gestos claramente horizontales).
+  - «Tus grupos» ordenados por **mi** actividad (último día con algún registro mío en sus
+    contadores, de `useMyDailyTotals` + la lista de contadores; cada usuario ve su orden) y
+    cada grupo se precarga por detrás (`prefetchQuery` de su detalle): se abre al instante.
+  - Junto al nombre de cada amigo, su racha (🔥 N, en color si hoy la ha mantenido;
+    `useFriendsStreaks`, `PersonRow badge`).
+  - Mantener pulsado: un amigo → ver perfil, invitar a un grupo que lidero, eliminar; un grupo
+    → abrir, nuevo contador del grupo, compartir invitación (`shareInvite`).
+  - Pendiente de hablar con el usuario: recordar la última pestaña y contadores en el selector.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

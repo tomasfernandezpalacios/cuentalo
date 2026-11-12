@@ -25,6 +25,7 @@ export function GroupHeaderCard({
   photoPath,
   showCode,
   onPress,
+  onLongPress,
 }: Props & {
   emoji: string | null;
   photoPath: string | null;
@@ -32,6 +33,8 @@ export function GroupHeaderCard({
   showCode: boolean;
   /** En la lista de «Tus grupos»: toda la tarjeta abre el grupo (con una flecha junto al nombre). */
   onPress?: () => void;
+  /** Mantener pulsada la tarjeta: acciones rápidas del grupo. */
+  onLongPress?: () => void;
 }) {
   const colors = useThemeColors();
   const content = (
@@ -61,8 +64,10 @@ export function GroupHeaderCard({
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       accessibilityRole="button"
       accessibilityLabel={`Grupo ${groupName}`}
+      accessibilityHint={onLongPress ? 'Mantén pulsado para más opciones' : undefined}
       style={({ pressed }) => [
         styles.card,
         { backgroundColor: colors.primarySoft, opacity: pressed ? 0.85 : 1 },
@@ -71,6 +76,15 @@ export function GroupHeaderCard({
       {content}
     </Pressable>
   );
+}
+
+/** Comparte el enlace y el código de un grupo (desde la tarjeta o el menú del grupo). */
+export function shareInvite(groupName: string, code: string) {
+  Share.share({
+    message:
+      `Únete a «${groupName}» en Cuéntalo: ${buildInviteLink(code)}\n\n` +
+      `O escribe el código ${formatInviteCode(code)} en Amigos y grupos (con la llave de arriba).`,
+  });
 }
 
 /** Para los miembros activos: código del grupo, copiarlo, compartir el enlace y generar uno nuevo. */
@@ -92,12 +106,7 @@ function InviteCode({ groupId, groupName }: Props) {
   }
 
   function share(value: string) {
-    const formatted = formatInviteCode(value);
-    Share.share({
-      message:
-        `Únete a «${groupName}» en Cuéntalo: ${buildInviteLink(value)}\n\n` +
-        `O escribe el código ${formatted} en Amigos y grupos → Grupos.`,
-    });
+    shareInvite(groupName, value);
   }
 
   if (code.isPending) {

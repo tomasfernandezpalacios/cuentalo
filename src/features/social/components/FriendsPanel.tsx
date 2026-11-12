@@ -1,3 +1,5 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
@@ -6,14 +8,18 @@ import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { ErrorView } from '@/components/StateViews';
 import { TextField } from '@/components/TextField';
+import { useFriendsStreaks } from '@/features/estadisticas/api';
 import { getErrorMessage } from '@/lib/errors';
+import { refreshAll } from '@/lib/queryClient';
 import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
-import type { Friendship, PublicProfile } from '../api';
+import { inviteToGroup, type Friendship, type PublicProfile } from '../api';
+import { openProfile } from '../openProfile';
 import {
   useDeleteFriendship,
   useFriendships,
+  useMyGroups,
   useProfileSearch,
   useRespondFriendRequest,
   useSendFriendRequest,
@@ -37,6 +43,11 @@ export function FriendsPanel() {
   const respond = useRespondFriendRequest();
   const remove = useDeleteFriendship();
   const suggestions = useFriendSuggestions(SUGGESTIONS_PREVIEW);
+  const queryClient = useQueryClient();
+  const groups = useMyGroups();
+  // Racha actual de cada amigo (los que la ocultan no salen).
+  const friendStreaks = useFriendsStreaks();
+  const streakOf = new Map((friendStreaks.data ?? []).map((row) => [row.userId, row]));
 
   if (friendships.isError) {
     return <ErrorView error={friendships.error} onRetry={friendships.refetch} />;
@@ -56,6 +67,58 @@ export function FriendsPanel() {
         style: 'destructive',
         onPress: () => remove.mutate(friendship.id, { onError: showError }),
       },
+    ]);
+  }
+
+  /** Llama y días de racha junto al nombre (en color si hoy ya la ha mantenido). */
+  function streakBadge(friendId: string) {
+    const streak = streakOf.get(friendId);
+    if (!streak || streak.current <= 0) return undefined;
+    const color = streak.activeToday ? colors.flame : colors.textMuted;
+    return (
+      <View
+        style={styles.streak}
+        accessible
+        accessibilityLabel={`${streak.current} ${streak.current === 1 ? 'día' : 'días'} de racha`}
+      >
+        <Ionicons name="flame" size={16} color={color} />
+        <Text style={[styles.streakText, { color }]}>{streak.current}</Text>
+      </View>
+    );
+  }
+
+  /** Invitarle a uno de los grupos que lidero. */
+  function inviteMenu(friendship: Friendship) {
+    const led = (groups.data ?? []).filter((g) => g.status === 'active' && g.role === 'owner');
+    if (led.length === 0) {
+      appAlert(
+        'Invitar a un grupo',
+        'Solo el líder de un grupo puede invitar, y no lideras ninguno.',
+      );
+      return;
+    }
+    appAlert(`Invitar a ${friendship.other.display_name}`, '¿A qué grupo?', [
+      ...led.map((g) => ({
+        text: g.name,
+        onPress: () =>
+          inviteToGroup(g.id, friendship.other.id)
+            .then(() => {
+              refreshAll(queryClient);
+              appAlert('Invitación enviada', `Le has invitado a «${g.name}».`);
+            })
+            .catch(showError),
+      })),
+      { text: 'Cancelar', style: 'cancel' as const },
+    ]);
+  }
+
+  /** Mantener pulsado un amigo: acciones rápidas sin entrar en su perfil. */
+  function friendMenu(friendship: Friendship) {
+    appAlert(friendship.other.display_name, `@${friendship.other.username}`, [
+      { text: 'Ver perfil', onPress: () => openProfile(friendship.other.id) },
+      { text: 'Invitar a un grupo', onPress: () => inviteMenu(friendship) },
+      { text: 'Eliminar amigo', style: 'destructive', onPress: () => confirmRemove(friendship) },
+      { text: 'Cerrar', style: 'cancel' },
     ]);
   }
 
@@ -154,6 +217,8 @@ export function FriendsPanel() {
               <PersonRow
                 key={f.id}
                 profile={f.other}
+                badge={streakBadge(f.other.id)}
+                onLongPress={() => friendMenu(f)}
                 actions={
                   <AppButton
                     small
@@ -212,6 +277,8 @@ function Tag({ text }: { text: string }) {
 
 const styles = StyleSheet.create({
   container: { gap: 24 },
+  streak: { flexDirection: 'row', alignItems: 'center', gap: 1 },
+  streakText: { fontSize: 14, fontFamily: fonts.title },
   suggestions: { gap: 12 },
   muted: { ...proseFont(14), paddingVertical: 8 },
   tag: { fontSize: 14, fontFamily: fonts.detail },

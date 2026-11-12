@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
@@ -12,27 +13,95 @@ import { useUserId } from '@/features/auth/AuthProvider';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, shape, useThemeColors } from '@/lib/theme';
 
-import { normalizeInviteCode, type MyGroup } from '../api';
+import { useCounterList } from '@/features/contadores/hooks';
+import { useMyDailyTotals } from '@/features/estadisticas/api';
+
+import { fetchGroup, fetchInviteCode, normalizeInviteCode, type MyGroup } from '../api';
 import { GroupAvatar } from './GroupAvatar';
-import { GroupHeaderCard } from './GroupHeaderCard';
-import { useAcceptInvitation, useMyGroups, useRemoveMember } from '../hooks';
+import { GroupHeaderCard, shareInvite } from './GroupHeaderCard';
+import { socialKeys, useAcceptInvitation, useMyGroups, useRemoveMember } from '../hooks';
 
 function showError(error: unknown) {
   appAlert('Error', getErrorMessage(error));
 }
 
+/**
+ * Último día en que **yo** registré algo en cada grupo (en cualquiera de sus contadores), para
+ * ordenar «Tus grupos» por mi actividad: cada usuario ve su propio orden. Sale de datos que ya
+ * están cargados (mis totales diarios y la lista de contadores), sin pedir nada más.
+ */
+function useMyLastActivityByGroup(): Map<string, string> {
+  const counters = useCounterList();
+  const daily = useMyDailyTotals(useUserId());
+  const groupOf = new Map(
+    (counters.data ?? []).filter((c) => c.group_id).map((c) => [c.id, c.group_id as string]),
+  );
+  const last = new Map<string, string>();
+  for (const row of daily.data ?? []) {
+    const groupId = groupOf.get(row.counterId);
+    if (!groupId) continue;
+    const previous = last.get(groupId);
+    if (!previous || row.day > previous) last.set(groupId, row.day);
+  }
+  return last;
+}
+
 export function GroupsPanel() {
   const colors = useThemeColors();
   const userId = useUserId();
+  const queryClient = useQueryClient();
   const groups = useMyGroups();
   const accept = useAcceptInvitation();
   const decline = useRemoveMember();
-
-  if (groups.isError) return <ErrorView error={groups.error} onRetry={groups.refetch} />;
+  const lastActivity = useMyLastActivityByGroup();
 
   const all = groups.data ?? [];
   const invitations = all.filter((g) => g.status === 'invited');
-  const mine = all.filter((g) => g.status === 'active');
+  // Primero los grupos donde he registrado algo más recientemente; después, los demás.
+  const mine = all
+    .filter((g) => g.status === 'active')
+    .map((g, index) => ({ g, index, last: lastActivity.get(g.id) ?? '' }))
+    .sort((a, b) => (a.last === b.last ? a.index - b.index : a.last < b.last ? 1 : -1))
+    .map(({ g }) => g);
+
+  // Cada grupo se carga por detrás: al tocarlo se abre al instante, sin «cargando».
+  const mineIds = mine.map((g) => g.id).join(',');
+  useEffect(() => {
+    for (const id of mineIds.split(',').filter(Boolean)) {
+      void queryClient.prefetchQuery({
+        queryKey: socialKeys.group(id),
+        queryFn: () => fetchGroup(id),
+      });
+    }
+  }, [mineIds, queryClient]);
+
+  if (groups.isError) return <ErrorView error={groups.error} onRetry={groups.refetch} />;
+
+  /** Mantener pulsado un grupo: acciones rápidas sin entrar. */
+  function groupMenu(group: MyGroup) {
+    appAlert(group.name, undefined, [
+      {
+        text: 'Abrir el grupo',
+        onPress: () => router.push({ pathname: '/grupos/[id]', params: { id: group.id } }),
+      },
+      {
+        text: 'Nuevo contador del grupo',
+        onPress: () => router.push({ pathname: '/contadores/nuevo', params: { grupo: group.id } }),
+      },
+      {
+        text: 'Compartir invitación',
+        onPress: () =>
+          queryClient
+            .fetchQuery({
+              queryKey: socialKeys.inviteCode(group.id),
+              queryFn: () => fetchInviteCode(group.id),
+            })
+            .then((code) => shareInvite(group.name, code))
+            .catch(showError),
+      },
+      { text: 'Cerrar', style: 'cancel' },
+    ]);
+  }
 
   return (
     <View style={styles.container}>
@@ -74,7 +143,8 @@ export function GroupsPanel() {
           <ActivityIndicator color={colors.primary} />
         ) : mine.length === 0 ? (
           <Text style={[styles.detail, { color: colors.textMuted }]}>
-            Aún no estás en ningún grupo. Crea uno e invita a tus amigos.
+            Aún no estás en ningún grupo. Crea uno con el + de arriba o únete con un código (la
+            llave).
           </Text>
         ) : (
           // Bloques grandes, los mismos de la cabecera del grupo (con el código para unirse).
@@ -87,19 +157,17 @@ export function GroupsPanel() {
               photoPath={group.photo_path}
               showCode
               onPress={() => router.push({ pathname: '/grupos/[id]', params: { id: group.id } })}
+              onLongPress={() => groupMenu(group)}
             />
           ))
         )}
       </Section>
-
-      <AppButton title="Crear grupo" onPress={() => router.push('/grupos/nuevo')} />
-      <JoinByCode />
     </View>
   );
 }
 
 /** Campo para escribir un código de invitación; abre la vista previa del grupo. */
-function JoinByCode() {
+export function JoinByCode() {
   const [code, setCode] = useState('');
   const normalized = normalizeInviteCode(code);
 

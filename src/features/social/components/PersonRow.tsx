@@ -13,15 +13,20 @@ type Props = {
   note?: string;
   /** Botones a la derecha. */
   actions?: ReactNode;
+  /** Algo pequeño junto al nombre (p. ej. la racha de un amigo). */
+  badge?: ReactNode;
+  /** Mantener pulsada la fila: acciones rápidas. */
+  onLongPress?: () => void;
 };
 
 /** Fila de una persona. Tocar su foto o su nombre abre su perfil. */
-export function PersonRow({ profile, note, actions }: Props) {
+export function PersonRow({ profile, note, actions, badge, onLongPress }: Props) {
   const colors = useThemeColors();
   return (
     <View style={[styles.row, { borderBottomColor: colors.border }]}>
       <Pressable
         onPress={() => openProfile(profile.id)}
+        onLongPress={onLongPress}
         accessibilityRole="button"
         accessibilityLabel={`${profile.display_name}, @${profile.username}${note ? `, ${note}` : ''}`}
         accessibilityHint="Abre su perfil"
@@ -34,9 +39,12 @@ export function PersonRow({ profile, note, actions }: Props) {
           size={40}
         />
         <View style={styles.info}>
-          <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-            {profile.display_name}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+              {profile.display_name}
+            </Text>
+            {badge}
+          </View>
           <Text style={[styles.detail, { color: colors.textMuted }]} numberOfLines={1}>
             @{profile.username}
             {note ? ` · ${note}` : ''}
@@ -58,6 +66,7 @@ const styles = StyleSheet.create({
   },
   person: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   info: { flex: 1, gap: 2 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   name: { fontSize: 16, fontFamily: fonts.title },
   detail: { fontSize: 13, fontFamily: fonts.detail },
   actions: { flexDirection: 'row', gap: 6 },
