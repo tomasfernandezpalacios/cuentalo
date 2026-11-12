@@ -1,16 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { router, Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import {
-  Animated,
-  Easing,
-  PanResponder,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -26,87 +26,14 @@ const TABS: { value: Tab; label: string }[] = [
   { value: 'friends', label: 'Amigos' },
 ];
 
-/** Cuánto hay que deslizar de lado (puntos) para pasar de Grupos a Amigos o al revés. */
-const SWIPE_MIN = 60;
-
-/** Lo que el gesto necesita del último render (fuera de React, con métodos para cambiarlo). */
-function createSwipeState(initial: Tab) {
-  let tab = initial;
-  let change: (tab: Tab) => void = () => {};
-  return {
-    tab: () => tab,
-    change: (next: Tab) => change(next),
-    update: (value: Tab, onChange: (tab: Tab) => void) => {
-      tab = value;
-      change = onChange;
-    },
-  };
-}
-
-/**
- * Deslizar de lado para cambiar entre Grupos y Amigos (además del selector): el contenido sigue
- * un poco al dedo y el nuevo entra desde el lado contrario. Solo se queda con gestos claramente
- * horizontales; los verticales siguen moviendo la lista.
- */
-function useTabSwipe(tab: Tab, setTab: (tab: Tab) => void) {
-  const [offset] = useState(() => new Animated.Value(0));
-  const [state] = useState(() => createSwipeState(tab));
-  useEffect(() => {
-    state.update(tab, setTab);
-  });
-
-  function slide(toValue: number, done?: () => void) {
-    Animated.timing(offset, {
-      toValue,
-      duration: 170,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start(done);
-  }
-
-  const [responder] = useState(() =>
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_e, g) =>
-        Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.6,
-      onPanResponderMove: (_e, g) => {
-        // Hacia donde no hay pestaña, se mueve poco (para notar que no hay más).
-        const current = state.tab();
-        const blocked = (current === 'groups' && g.dx > 0) || (current === 'friends' && g.dx < 0);
-        offset.setValue(g.dx * (blocked ? 0.15 : 0.5));
-      },
-      onPanResponderRelease: (_e, g) => {
-        const current = state.tab();
-        const next =
-          current === 'groups' && g.dx <= -SWIPE_MIN
-            ? 'friends'
-            : current === 'friends' && g.dx >= SWIPE_MIN
-              ? 'groups'
-              : null;
-        if (!next) {
-          slide(0);
-          return;
-        }
-        const out = next === 'friends' ? -80 : 80;
-        slide(out, () => {
-          state.change(next);
-          offset.setValue(-out);
-          slide(0);
-        });
-      },
-      onPanResponderTerminate: () => slide(0),
-    }),
-  );
-
-  return { offset, panHandlers: responder.panHandlers };
-}
-
 export default function SocialScreen() {
   const colors = useThemeColors();
   const queryClient = useQueryClient();
+  const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>('groups');
   const [refreshing, setRefreshing] = useState(false);
   const inbox = useInboxCount();
-  const swipe = useTabSwipe(tab, setTab);
+  const pager = useRef<ComponentRef<typeof ScrollView>>(null);
 
   async function refresh() {
     setRefreshing(true);
@@ -114,20 +41,29 @@ export default function SocialScreen() {
     setRefreshing(false);
   }
 
+  /** Tocar el selector: la página se desliza a su sitio. */
+  function selectTab(next: Tab) {
+    setTab(next);
+    pager.current?.scrollTo({ x: next === 'groups' ? 0 : width, animated: true });
+  }
+
+  /** Al deslizar, el selector cambia en cuanto se pasa la mitad (sin esperar a que pare). */
+  function onPagerScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const next: Tab = e.nativeEvent.contentOffset.x > width / 2 ? 'friends' : 'groups';
+    if (next !== tab) setTab(next);
+  }
+
+  const refreshControl = (
+    <RefreshControl
+      tintColor={colors.primary}
+      colors={[colors.primary]}
+      refreshing={refreshing}
+      onRefresh={refresh}
+    />
+  );
+
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-      refreshControl={
-        <RefreshControl
-          tintColor={colors.primary}
-          colors={[colors.primary]}
-          refreshing={refreshing}
-          onRefresh={refresh}
-        />
-      }
-    >
+    <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           // collapsable={false}: con varios botones en la cabecera nativa de Android, sin él los
@@ -170,16 +106,47 @@ export default function SocialScreen() {
           ),
         }}
       />
-      <SegmentedControl options={TABS} value={tab} onChange={setTab} />
-      <Animated.View {...swipe.panHandlers} style={{ transform: [{ translateX: swipe.offset }] }}>
-        {tab === 'groups' ? <GroupsPanel /> : <FriendsPanel />}
-      </Animated.View>
-    </ScrollView>
+      <View style={styles.selector}>
+        <SegmentedControl options={TABS} value={tab} onChange={selectTab} />
+      </View>
+      {/* Grupos y Amigos, una al lado de la otra: se pasa de una a otra deslizando de lado como
+          en una galería (desplazamiento nativo, sigue al dedo y se asienta solo). Cada página
+          tiene su propio desplazamiento vertical. */}
+      <ScrollView
+        ref={pager}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={onPagerScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        style={styles.flex}
+      >
+        <ScrollView
+          style={{ width }}
+          contentContainerStyle={styles.page}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={refreshControl}
+        >
+          <GroupsPanel />
+        </ScrollView>
+        <ScrollView
+          style={{ width }}
+          contentContainerStyle={styles.page}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={refreshControl}
+        >
+          <FriendsPanel />
+        </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, gap: 20 },
+  flex: { flex: 1 },
+  selector: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
+  page: { padding: 16, paddingTop: 16, gap: 20 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18, marginRight: 14 },
   addButton: {
     width: 38,

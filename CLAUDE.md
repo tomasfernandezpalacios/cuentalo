@@ -713,8 +713,11 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   - Cabecera: llave (unirse con código → `app/grupos/unirse.tsx`, reutiliza `JoinByCode`),
     buzón y + (crear grupo, el mismo + que en «Mis contadores»). «Crear grupo» y el campo del
     código ya no están abajo.
-  - Deslizar de lado cambia entre Grupos y Amigos (`useTabSwipe` en `app/(tabs)/social.tsx`,
-    solo gestos claramente horizontales).
+  - Grupos y Amigos son **dos páginas** una al lado de otra en un ScrollView horizontal con
+    `pagingEnabled` (desplazamiento nativo: sigue al dedo y se asienta solo; cada página con su
+    propio scroll vertical y «tirar para refrescar»). El selector desliza a la página y cambia en
+    cuanto se pasa la mitad. Antes era un gesto hecho a mano que movía el contenido y lo
+    cambiaba de golpe (el usuario lo veía poco fluido).
   - «Tus grupos» ordenados por **mi** actividad (último día con algún registro mío en sus
     contadores, de `useMyDailyTotals` + la lista de contadores; cada usuario ve su orden) y
     cada grupo se precarga por detrás (`prefetchQuery` de su detalle): se abre al instante.
