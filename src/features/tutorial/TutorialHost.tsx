@@ -23,6 +23,7 @@ import {
   inverseColors,
   proseFont,
   titleFont,
+  useColorMode,
   useThemeColors,
 } from '@/lib/theme';
 
@@ -289,6 +290,8 @@ function haptic(style: Haptics.ImpactFeedbackStyle) {
  */
 function Finish({ step, index, total }: { step: Step; index: number; total: number }) {
   const colors = useThemeColors();
+  // La promesa y «Cuéntalo»: blanco puro en oscuro y negro puro en claro (petición del usuario).
+  const pureInk = useColorMode() === 'dark' ? '#FFFFFF' : '#000000';
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const opacity = useFadeIn();
@@ -442,7 +445,7 @@ function Finish({ step, index, total }: { step: Step; index: number; total: numb
             },
           ]}
         >
-          <Text style={[styles.promiseText, { color: colors.onPrimary }]}>
+          <Text style={[styles.promiseText, { color: pureInk, textShadowColor: pureInk }]}>
             &quot;Me comprometo a registrar mi vida&quot;
           </Text>
         </Animated.View>
@@ -461,7 +464,9 @@ function Finish({ step, index, total }: { step: Step; index: number; total: numb
             },
           ]}
         >
-          <Text style={[styles.brandText, { color: colors.onPrimary }]}>Cuéntalo</Text>
+          <Text style={[styles.brandText, { color: pureInk, textShadowColor: pureInk }]}>
+            Cuéntalo
+          </Text>
         </Animated.View>
       ) : null}
     </Animated.View>
