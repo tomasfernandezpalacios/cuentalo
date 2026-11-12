@@ -193,8 +193,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   registros de los demás. Doble confirmación en la app; después `signOut({ scope: 'local' })`.
 - Fase 5: perfil con nombre, @usuario, email (solo lo ve uno mismo), grupos, editar perfil,
   cerrar sesión y eliminar cuenta.
-- Fase 5: icono «+1» en Ubuntu Bold sobre `#5B4BDB`, generado con Pillow (script fuera del repo;
-  rehacerlo si cambia el color). Splash con `expo-splash-screen`: se mantiene hasta tener las
+- Icono «+1» en Instrument Serif dorado (`#E9C46A`) sobre negro cálido (`#0B0A09`), estilo
+  Cine; adaptativo de Android con fondo `#0B0A09` y la pantalla de carga en dorado medio sobre
+  `#F3EEE4` (claro) o `#0B0A09` (oscuro). Se genera con `python scripts/generar-icono.py`
+  (Pillow): rehacerlo si cambian colores o letra. (Antes: «+1» Ubuntu Bold sobre `#5B4BDB`.) Splash con `expo-splash-screen`: se mantiene hasta tener las
   fuentes y la sesión; fondo claro/oscuro según el sistema.
 - Fase 5: un enlace de invitación abierto sin sesión se recuerda (`usePendingInvite`) y se abre
   tras iniciar sesión.
@@ -729,6 +731,13 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
     la advertencia roja: `appAlert(…, { image })` (con `image`, nunca sale la advertencia;
     eliminar amigo ya pide confirmación aparte).
   - Pendiente de hablar con el usuario: recordar la última pestaña y contadores en el selector.
+
+- Selector Grupos / Amigos: la píldora iluminada **se desliza** siguiendo el desplazamiento de
+  las páginas (`SegmentedControl position`, una `Animated` del desplazamiento horizontal con
+  native driver), en vez de saltar al cambiar.
+- Fotos de contador en el perfil de otros (migración `20261215`): `get_user_counters` devuelve
+  `photo_path` y `can_see_counter_photo` deja ver también las de los contadores de grupos con
+  algún amigo dentro (los que enseña su perfil).
 
 ## Cambios estéticos pendientes
 

@@ -245,7 +245,12 @@ function CounterRow({ counter, theirName }: { counter: UserCounter; theirName?: 
   const colors = useThemeColors();
   return (
     <View style={[styles.counter, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <CounterAvatar emoji={counter.emoji} name={counter.name} size={38} />
+      <CounterAvatar
+        emoji={counter.emoji}
+        name={counter.name}
+        photoPath={counter.photoPath}
+        size={38}
+      />
       <View style={styles.flex}>
         <Text style={[styles.counterName, { color: colors.text }]} numberOfLines={1}>
           {counter.name}

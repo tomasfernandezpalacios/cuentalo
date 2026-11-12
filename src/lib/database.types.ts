@@ -460,6 +460,7 @@ export type Database = {
           kind: 'public' | 'common';
           their_total: number | null;
           my_total: number | null;
+          photo_path: string | null;
         }[];
       };
       delete_my_account: {

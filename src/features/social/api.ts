@@ -413,6 +413,8 @@ export type UserCounter = {
   /** null si oculta sus números a sus amigos (nunca en los contadores en común). */
   theirTotal: number | null;
   myTotal: number | null;
+  /** Foto del contador como icono (si tiene). */
+  photoPath: string | null;
 };
 
 export async function fetchPublicProfile(userId: string): Promise<PublicProfile> {
@@ -438,5 +440,6 @@ export async function fetchUserCounters(userId: string): Promise<UserCounter[]> 
     kind: c.kind,
     theirTotal: c.their_total,
     myTotal: c.my_total,
+    photoPath: c.photo_path,
   }));
 }

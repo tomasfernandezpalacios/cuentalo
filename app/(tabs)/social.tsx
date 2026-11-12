@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { router, Stack } from 'expo-router';
 import { useRef, useState, type ComponentRef } from 'react';
 import {
+  Animated,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -33,7 +34,14 @@ export default function SocialScreen() {
   const [tab, setTab] = useState<Tab>('groups');
   const [refreshing, setRefreshing] = useState(false);
   const inbox = useInboxCount();
-  const pager = useRef<ComponentRef<typeof ScrollView>>(null);
+  const pager = useRef<ComponentRef<typeof Animated.ScrollView>>(null);
+  // Desplazamiento de las páginas: la iluminación del selector lo sigue (se desliza, no salta).
+  const [scrollX] = useState(() => new Animated.Value(0));
+  const position = scrollX.interpolate({
+    inputRange: [0, Math.max(1, width)],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   async function refresh() {
     setRefreshing(true);
@@ -107,17 +115,20 @@ export default function SocialScreen() {
         }}
       />
       <View style={styles.selector}>
-        <SegmentedControl options={TABS} value={tab} onChange={selectTab} />
+        <SegmentedControl options={TABS} value={tab} onChange={selectTab} position={position} />
       </View>
       {/* Grupos y Amigos, una al lado de la otra: se pasa de una a otra deslizando de lado como
           en una galería (desplazamiento nativo, sigue al dedo y se asienta solo). Cada página
           tiene su propio desplazamiento vertical. */}
-      <ScrollView
+      <Animated.ScrollView
         ref={pager}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={onPagerScroll}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
+          useNativeDriver: true,
+          listener: onPagerScroll,
+        })}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
         style={styles.flex}
@@ -138,7 +149,7 @@ export default function SocialScreen() {
         >
           <FriendsPanel />
         </ScrollView>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }

@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { chipColors, isCinema, shape, fonts, useThemeColors } from '@/lib/theme';
 
@@ -8,13 +9,29 @@ type Props<T extends string> = {
   options: Option<T>[];
   value: T;
   onChange: (value: T) => void;
+  /**
+   * Posición de la iluminación en número de opción (0, 1, …), animada desde fuera: la píldora
+   * se desliza con ella (p. ej. siguiendo al dedo al pasar de página) en vez de saltar.
+   */
+  position?: Animated.AnimatedInterpolation<number>;
 };
 
-export function SegmentedControl<T extends string>({ options, value, onChange }: Props<T>) {
+const PADDING = 3;
+
+export function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+  position,
+}: Props<T>) {
   const colors = useThemeColors();
+  const [width, setWidth] = useState(0);
+  const segment = width > 0 ? (width - PADDING * 2) / options.length : 0;
+  const selectedChip = chipColors(colors, true);
   return (
     <View
       accessibilityRole="tablist"
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       style={[
         styles.container,
         {
@@ -23,6 +40,28 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
         },
       ]}
     >
+      {position && segment > 0 ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.indicator,
+            {
+              width: segment,
+              backgroundColor: selectedChip.backgroundColor,
+              borderColor: selectedChip.borderColor,
+              transform: [
+                {
+                  translateX: position.interpolate({
+                    inputRange: [0, Math.max(1, options.length - 1)],
+                    outputRange: [0, segment * Math.max(1, options.length - 1)],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+      ) : null}
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -33,7 +72,8 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
             accessibilityState={{ selected }}
             style={[
               styles.segment,
-              selected && { backgroundColor: chipColors(colors, true).backgroundColor },
+              // Con `position` la iluminación es la píldora que se desliza (no cada segmento).
+              selected && !position && { backgroundColor: selectedChip.backgroundColor },
             ]}
           >
             <Text
@@ -53,7 +93,15 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
 }
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', borderRadius: shape.button, borderWidth: 1, padding: 3 },
+  container: { flexDirection: 'row', borderRadius: shape.button, borderWidth: 1, padding: PADDING },
+  indicator: {
+    position: 'absolute',
+    top: PADDING,
+    bottom: PADDING,
+    left: PADDING,
+    borderRadius: shape.button,
+    borderWidth: 1,
+  },
   segment: {
     flex: 1,
     minHeight: 36,
