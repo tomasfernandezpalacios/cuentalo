@@ -85,7 +85,9 @@ describe('enrich', () => {
   it('común sin participar: enseña lo que lleva cada participante', () => {
     const participants = new Map([['c1', ['a', 'b']]]);
     const common = counter({ group_id: 'g1', is_common: true });
-    expect(enrich(common, totals, groups, ME, participants).displayTotal).toBe(5);
+    // El total del grupo ya cuenta cada suma una vez (no una por participante): es lo que lleva
+    // cada uno.
+    expect(enrich(common, totals, groups, ME, participants).displayTotal).toBe(10);
   });
 
   it('no común: ignora participantes', () => {

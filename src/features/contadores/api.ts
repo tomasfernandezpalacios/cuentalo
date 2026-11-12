@@ -187,10 +187,10 @@ export function enrich(
     linkedCounterIds: [counter.id],
     linkedGroups: group && isActive ? [{ counterId: counter.id, group, total: t?.total ?? 0 }] : [],
     linkedInto: null,
+    // Quien no participa en un común ve lo que lleva cada participante: el total del grupo, que
+    // ya cuenta cada suma una sola vez (migración 20261214).
     displayTotal:
-      counter.is_common && !participantIds.includes(myId) && participantIds.length > 0
-        ? (t?.total ?? 0) / participantIds.length
-        : (t?.my_total ?? 0),
+      counter.is_common && !participantIds.includes(myId) ? (t?.total ?? 0) : (t?.my_total ?? 0),
   };
 }
 

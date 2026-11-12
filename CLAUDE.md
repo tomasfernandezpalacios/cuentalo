@@ -682,6 +682,14 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   como siempre, también los tres primeros (petición del usuario). Tocar a
   otro abre su perfil.
 
+- **Total de un contador común = cada suma una vez** (petición del usuario; migración
+  `20261214`): un +N en un común sigue guardando una fila por participante (a cada uno le cuenta
+  en lo suyo), pero todas llevan la misma `entries.common_batch` y en el total del grupo («entre
+  todos») y en `entry_count` solo cuenta una fila por tanda (`my_counter_totals` y la vista
+  `counter_totals`, con `row_number()`). Antes +1 con dos participantes daba +2. Las sumas ya
+  guardadas se marcaron por `created_at`. En la app, la suma optimista es +N (no × participantes)
+  y quien no participa ve el total del grupo tal cual. Los bots comprueban la misma regla.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

@@ -276,8 +276,8 @@ function cachedCounter(queryClient: QueryClient, counterId: string) {
 }
 
 /**
- * Cuánto cambia el total visible y el mío al sumar `amount`. En un contador común se suma a cada
- * participante, así que el total del grupo cambia `amount × participantes`.
+ * Cuánto cambia el total visible y el mío al sumar `amount`. En un contador común se apunta a
+ * cada participante, pero el total del grupo («entre todos») cuenta cada suma una sola vez.
  */
 function applyAmount(c: CounterWithTotal, amount: number, userId: string): CounterWithTotal {
   if (!c.is_common) {
@@ -291,15 +291,14 @@ function applyAmount(c: CounterWithTotal, amount: number, userId: string): Count
       myEntryCount: c.myEntryCount + (amount > 0 ? 1 : 0),
     };
   }
-  const participants = c.participantIds.length;
   const iParticipate = c.participantIds.includes(userId);
   return {
     ...c,
-    total: c.total + amount * participants,
+    total: c.total + amount,
     myTotal: c.myTotal + (iParticipate ? amount : 0),
     myGroupTotal: c.myGroupTotal + (iParticipate ? amount : 0),
     displayTotal: c.displayTotal + amount,
-    entryCount: c.entryCount + (amount > 0 ? participants : 0),
+    entryCount: c.entryCount + (amount > 0 ? 1 : 0),
     myEntryCount: c.myEntryCount + (amount > 0 && iParticipate ? 1 : 0),
   };
 }

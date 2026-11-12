@@ -64,7 +64,7 @@ export async function checkBot(bot, world) {
     ? await all(() =>
         bot.db
           .from('entries')
-          .select('id, counter_id, user_id, amount, logged_at, personal_only, group_only')
+          .select('id, counter_id, user_id, amount, logged_at, personal_only, group_only, common_batch')
           .in('counter_id', ids)
           .order('id'),
       )
@@ -109,8 +109,19 @@ export async function checkBot(bot, world) {
   const totals = new Map(h.totals.map((t) => [t.counter_id, t]));
   for (const c of h.counters) {
     const es = entries.filter((e) => e.counter_id === c.id);
+    // En un común, cada suma (common_batch) cuenta una sola vez en el total del grupo.
+    const seenBatches = new Set();
+    const countsForGroup = (e) => {
+      if (!e.common_batch) return true;
+      if (seenBatches.has(e.common_batch)) return false;
+      seenBatches.add(e.common_batch);
+      return true;
+    };
     const expected = {
-      total: es.filter((e) => !e.personal_only).reduce((s, e) => s + Number(e.amount), 0),
+      total: es
+        .filter((e) => !e.personal_only)
+        .filter(countsForGroup)
+        .reduce((s, e) => s + Number(e.amount), 0),
       my_total: es
         .filter((e) => e.user_id === bot.id && !e.group_only)
         .reduce((s, e) => s + Number(e.amount), 0),

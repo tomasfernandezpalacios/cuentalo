@@ -98,6 +98,8 @@ export type Database = {
           personal_only: boolean;
           group_only: boolean;
           batch_id: string | null;
+          /** Misma marca en todas las filas de una suma de un contador común. */
+          common_batch: string | null;
         };
         Insert: {
           id?: string;
