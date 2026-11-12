@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, usePathname } from 'expo-router';
-import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Animated,
@@ -26,7 +26,14 @@ import {
   useThemeColors,
 } from '@/lib/theme';
 
-import { dimPath, type Hole, holeFor, lerpHole, placeBubble, type Rect } from './layout';
+import {
+  type BubblePlacement,
+  dimPath,
+  type Hole,
+  holeFor,
+  placeBubble,
+  type Rect,
+} from './layout';
 import { stepKind, type Step } from './steps';
 import {
   continueTutorial,
@@ -501,49 +508,154 @@ type SpotlightProps = {
 const MOVE_MS = 950;
 
 /**
- * El foco que se enseña: cuando el paso cambia de elemento, se desliza del anterior al nuevo
- * (posición y tamaño) en vez de saltar. Todo lo demás (oscurecido, anillo, flecha, bocadillo)
- * sigue a este foco, así se mueve todo junto y con calma.
+ * El foco se desliza de un elemento al siguiente (posición, tamaño y esquinas) y todo lo demás
+ * (anillo, flecha y bocadillo) lo acompaña.
+ *
+ * Para que vaya fluido, nada de esto pasa por React en cada fotograma: son valores animados que
+ * mueven las vistas directamente, y el oscurecido (un Path de SVG) se redibuja con setNativeProps
+ * una vez por fotograma. Antes cada fotograma volvía a pintar todo el tutorial y en el móvil iba a
+ * trompicones.
  */
-/** Diferencia de menos de un cuarto de píxel: a la vista, el mismo hueco. */
-function sameHole(a: Hole, b: Hole): boolean {
-  return (
-    Math.abs(a.x - b.x) < 0.25 &&
-    Math.abs(a.y - b.y) < 0.25 &&
-    Math.abs(a.width - b.width) < 0.25 &&
-    Math.abs(a.height - b.height) < 0.25
+type GlideValues = {
+  x: Animated.Value;
+  y: Animated.Value;
+  w: Animated.Value;
+  h: Animated.Value;
+  r: Animated.Value;
+  bubbleTop: Animated.Value;
+  arrowX: Animated.Value;
+  arrowY: Animated.Value;
+};
+
+type PathRef = { setNativeProps: (props: { d: string }) => void } | null;
+
+/**
+ * Lo que necesita el deslizamiento fuera de React: el hueco que se ve ahora (lo actualizan los
+ * valores animados), el Path del oscurecido y si ya se ha colocado alguna vez.
+ */
+function createGlideState() {
+  const shown = { x: 0, y: 0, width: 0, height: 0, radius: 0 };
+  let path: PathRef = null;
+  let size = { width: 0, height: 0 };
+  let placed = false;
+  let frame: number | null = null;
+  const redraw = () => {
+    frame = null;
+    path?.setNativeProps({ d: dimPath(size.width, size.height, shown) });
+  };
+  return {
+    setPath: (value: PathRef) => {
+      path = value;
+      if (value) redraw();
+    },
+    setSize: (width: number, height: number) => {
+      size = { width, height };
+    },
+    placed: () => placed,
+    markPlaced: () => {
+      placed = true;
+    },
+    shown: () => ({ ...shown }),
+    /** Cambia una medida del hueco y redibuja el oscurecido en el siguiente fotograma (una vez). */
+    set: (key: keyof Hole, value: number) => {
+      shown[key] = value;
+      if (frame === null) frame = requestAnimationFrame(redraw);
+    },
+    cancel: () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+    },
+  };
+}
+
+function distance(a: Hole, b: Hole): number {
+  return Math.max(
+    Math.abs(a.x - b.x),
+    Math.abs(a.y - b.y),
+    Math.abs(a.width - b.width),
+    Math.abs(a.height - b.height),
   );
 }
 
-function useGlidingHole(target: Hole | null): Hole | null {
-  const [shown, setShown] = useState<Hole | null>(null);
-  const [t] = useState(() => new Animated.Value(0));
-  const current = useRef<Hole | null>(null);
+function useGlide(
+  target: Hole | null,
+  place: BubblePlacement | null,
+  width: number,
+  height: number,
+) {
+  const [values] = useState<GlideValues>(() => ({
+    x: new Animated.Value(0),
+    y: new Animated.Value(0),
+    w: new Animated.Value(0),
+    h: new Animated.Value(0),
+    r: new Animated.Value(0),
+    bubbleTop: new Animated.Value(0),
+    arrowX: new Animated.Value(0),
+    arrowY: new Animated.Value(0),
+  }));
+  const [state] = useState(createGlideState);
 
-  useEffect(() => {
-    if (!target) return;
-    const from = current.current;
-    const id = t.addListener(({ value }) => {
-      const hole = from ? lerpHole(from, target, value) : target;
-      const last = current.current;
-      if (last && sameHole(last, hole)) return;
-      current.current = hole;
-      setShown(hole);
-    });
-    t.setValue(0);
-    Animated.timing(t, {
-      toValue: 1,
-      duration: from ? MOVE_MS : 1,
-      easing: Easing.inOut(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
+  // Cada medida del hueco avisa al oscurecido cuando cambia (antes que la colocación de abajo,
+  // para que también se redibuje al colocarlo la primera vez).
+  useLayoutEffect(() => {
+    const ids = (
+      [
+        ['x', values.x],
+        ['y', values.y],
+        ['width', values.w],
+        ['height', values.h],
+        ['radius', values.r],
+      ] as const
+    ).map(([key, value]) => ({
+      value,
+      id: value.addListener(({ value: v }) => state.set(key, v)),
+    }));
     return () => {
-      t.stopAnimation();
-      t.removeListener(id);
+      ids.forEach(({ value, id }) => value.removeListener(id));
+      state.cancel();
     };
-  }, [t, target]);
+  }, [values, state]);
 
-  return shown;
+  useLayoutEffect(() => {
+    state.setSize(width, height);
+  }, [state, width, height]);
+
+  useLayoutEffect(() => {
+    if (!target) return;
+    const to = {
+      x: target.x,
+      y: target.y,
+      w: target.width,
+      h: target.height,
+      r: target.radius,
+      bubbleTop: place?.top ?? 0,
+      arrowX: (place?.arrowX ?? 0) - 15,
+      arrowY: place?.arrowY ?? 0,
+    };
+    // La primera vez, directamente en su sitio (sin deslizar desde una esquina).
+    if (!state.placed()) {
+      state.markPlaced();
+      (Object.keys(to) as (keyof typeof to)[]).forEach((key) => values[key].setValue(to[key]));
+      return;
+    }
+    // Paso nuevo: deslizamiento largo y suave. Retoque pequeño (el elemento se ha movido un poco
+    // o el bocadillo ha cambiado de alto): corto, sin volver a arrancar despacio.
+    const far = distance(state.shown(), target) > 40;
+    const animation = Animated.parallel(
+      (Object.keys(to) as (keyof typeof to)[]).map((key) =>
+        Animated.timing(values[key], {
+          toValue: to[key],
+          duration: far ? MOVE_MS : 280,
+          easing: far ? Easing.inOut(Easing.cubic) : Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+      ),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [target, place, values, state]);
+
+  return { values, setPath: state.setPath };
 }
 
 function Spotlight({ step, index, total, origin, size }: SpotlightProps) {
@@ -561,11 +673,21 @@ function Spotlight({ step, index, total, origin, size }: SpotlightProps) {
   useAnnounce(step);
 
   const target = useMemo(() => (rect && !missing ? holeFor(rect) : null), [rect, missing]);
-  const hole = useGlidingHole(target);
-
-  const screen = { width, height, top: insets.top, bottom: insets.bottom };
-  const shownHole = missing ? null : hole;
-  const place = shownHole ? placeBubble(shownHole, bubbleHeight, screen) : null;
+  const place = useMemo(
+    () =>
+      target
+        ? placeBubble(target, bubbleHeight, {
+            width,
+            height,
+            top: insets.top,
+            bottom: insets.bottom,
+          })
+        : null,
+    [target, bubbleHeight, width, height, insets.top, insets.bottom],
+  );
+  const { values: glideValues, setPath: setDimPath } = useGlide(target, place, width, height);
+  // Las zonas que no se pueden tocar van ya al sitio final (no hace falta animarlas).
+  const shownHole = missing ? null : target;
   // Tocar el elemento iluminado: o se deja tocar la app (sumar, restar, el +…) o lo recoge el
   // propio tutorial (pestañas y racha: se sigue sin cambiar de pantalla).
   const passThrough = Boolean(step.action) && shownHole;
@@ -579,7 +701,13 @@ function Spotlight({ step, index, total, origin, size }: SpotlightProps) {
     <Animated.View style={[StyleSheet.absoluteFill, { opacity }]} pointerEvents="box-none">
       {shownHole ? (
         <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Path d={dimPath(width, height, shownHole)} fill={DIM} fillRule="evenodd" />
+          {/* El contorno lo pone useGlide fotograma a fotograma (setNativeProps). */}
+          <Path
+            ref={setDimPath as never}
+            d={`M0 0H${width}V${height}H0Z`}
+            fill={DIM}
+            fillRule="evenodd"
+          />
         </Svg>
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: DIM }]} pointerEvents="none" />
@@ -612,34 +740,42 @@ function Spotlight({ step, index, total, origin, size }: SpotlightProps) {
       )}
 
       {shownHole ? (
+        // Fuera: posición y tamaño (se deslizan). Dentro: el latido (en el hilo nativo).
         <Animated.View
           pointerEvents="none"
           style={[
-            styles.ring,
+            styles.ringBox,
             {
-              left: shownHole.x,
-              top: shownHole.y,
-              width: shownHole.width,
-              height: shownHole.height,
-              borderRadius: shownHole.radius,
-              borderColor: colors.primary,
-              opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] }),
-              transform: [
-                { scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) },
-              ],
+              left: glideValues.x,
+              top: glideValues.y,
+              width: glideValues.w,
+              height: glideValues.h,
             },
           ]}
-        />
+        >
+          <Animated.View
+            style={[
+              styles.ring,
+              {
+                borderRadius: shownHole.radius,
+                borderColor: colors.primary,
+                opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] }),
+                transform: [
+                  { scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) },
+                ],
+              },
+            ]}
+          />
+        </Animated.View>
       ) : null}
 
       {place ? (
         <Animated.View
           pointerEvents="none"
-          style={[
-            styles.arrow,
-            {
-              left: place.arrowX - 15,
-              top: place.arrowY,
+          style={[styles.arrow, { left: glideValues.arrowX, top: glideValues.arrowY }]}
+        >
+          <Animated.View
+            style={{
               transform: [
                 {
                   translateY: nudge.interpolate({
@@ -648,31 +784,36 @@ function Spotlight({ step, index, total, origin, size }: SpotlightProps) {
                   }),
                 },
               ],
-            },
-          ]}
-        >
-          <Ionicons
-            name={place.placement === 'below' ? 'arrow-up' : 'arrow-down'}
-            size={30}
-            color="#FFFFFF"
-          />
+            }}
+          >
+            <Ionicons
+              name={place.placement === 'below' ? 'arrow-up' : 'arrow-down'}
+              size={30}
+              color="#FFFFFF"
+            />
+          </Animated.View>
         </Animated.View>
       ) : null}
 
-      <View
-        onLayout={(event) => setBubbleHeight(event.nativeEvent.layout.height)}
+      <Animated.View
+        onLayout={(event) => {
+          const next = Math.round(event.nativeEvent.layout.height);
+          setBubbleHeight((old) => (Math.abs(old - next) < 2 ? old : next));
+        }}
         accessibilityLiveRegion="polite"
         style={[
           styles.bubble,
           {
-            top: place ? place.top : Math.max(insets.top + 16, (height - bubbleHeight) / 2),
+            top: place
+              ? glideValues.bubbleTop
+              : Math.max(insets.top + 16, (height - bubbleHeight) / 2),
             backgroundColor: colors.surface,
             borderColor: colors.border,
           },
         ]}
       >
         <BubbleContent step={step} index={index} total={total} showNext={!step.action || missing} />
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -880,7 +1021,8 @@ const styles = StyleSheet.create({
   bannerText: { fontSize: 22, fontFamily: fonts.title },
   layer: { zIndex: 1000, elevation: 1000 },
   blocker: { position: 'absolute' },
-  ring: { position: 'absolute', borderWidth: 3 },
+  ringBox: { position: 'absolute' },
+  ring: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 3 },
   arrow: { position: 'absolute', width: 30, alignItems: 'center' },
   bubbleText: { gap: 8 },
   bubble: {

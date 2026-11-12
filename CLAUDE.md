@@ -658,6 +658,14 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   `useMergeCounters`). Si queda uno de grupo, solo nombre y emoticono, personales (alias): la
   foto cambiaría la de todo el grupo.
 
+- **Tutorial fluido** (iba a trompicones): el foco ya no pasa por React en cada fotograma.
+  `useGlide` (en `TutorialHost`) mueve anillo, flecha y bocadillo con valores animados y
+  redibuja el oscurecido (Path de SVG) con `setNativeProps` una vez por fotograma
+  (`requestAnimationFrame`). Antes `useGlidingHole` hacía `setState` en cada fotograma y se
+  volvía a pintar todo el tutorial. Un cambio pequeño de posición (las medidas cada 250 ms)
+  hace un retoque corto en vez de reiniciar el deslizamiento largo. Latidos de anillo y flecha
+  siguen en el hilo nativo, en una vista interior (no se mezclan con los valores del hilo JS).
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)
