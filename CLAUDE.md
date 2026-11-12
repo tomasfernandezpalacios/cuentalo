@@ -675,7 +675,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - **Podio** (petición del usuario, con una imagen de ejemplo): en todas las clasificaciones
   (la de cada contador de grupo, en su detalle y en el grupo, y la de rachas con amigos) los
   tres primeros van en un podio encima de la lista (`src/components/Podium.tsx`): 2.º a la
-  izquierda, 1.º en el centro más alto y con corona 👑, 3.º a la derecha; foto o icono de cada
+  izquierda, 1.º en el centro más alto y con una corona lisa amarilla (`MaterialCommunityIcons` «crown»,
+  `#F2C230`, del estilo de la llama; no emoticono), 3.º a la derecha; foto o icono de cada
   uno sobre su escalón con el puesto en una insignia, nombre («Tú» si soy yo) y valor. Solo
   entran quienes tienen algo (total o racha > 0); la lista sigue desde el siguiente. Tocar a
   otro abre su perfil.

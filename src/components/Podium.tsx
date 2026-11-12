@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -15,6 +16,9 @@ export type PodiumEntry = {
   valueLabel: string;
   isMe: boolean;
 };
+
+/** Amarillo de la corona del 1.º (igual en claro y en oscuro). */
+const CROWN_COLOR = '#F2C230';
 
 // Orden de las columnas en pantalla: 2.º a la izquierda, 1.º en el centro y 3.º a la derecha.
 const COLUMN_ORDER = [1, 0, 2];
@@ -47,7 +51,15 @@ export function Podium({ entries }: { entries: PodiumEntry[] }) {
             accessibilityHint={entry.isMe ? undefined : 'Abre su perfil'}
             style={({ pressed }) => [styles.column, { opacity: pressed ? 0.7 : 1 }]}
           >
-            {first ? <Text style={styles.crown}>👑</Text> : null}
+            {/* Corona lisa y amarilla, del estilo de la llama de las rachas (no emoticono). */}
+            {first ? (
+              <MaterialCommunityIcons
+                name="crown"
+                size={30}
+                color={CROWN_COLOR}
+                style={styles.crown}
+              />
+            ) : null}
             <View>
               <View
                 style={[styles.avatarRing, { borderColor: first ? colors.primary : colors.border }]}
@@ -99,7 +111,7 @@ export function PodiumNumber({ children, color }: { children: ReactNode; color: 
 const styles = StyleSheet.create({
   podium: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingTop: 8 },
   column: { flex: 1, alignItems: 'center', gap: 6 },
-  crown: { fontSize: 24, marginBottom: -4 },
+  crown: { marginBottom: -6 },
   avatarRing: { borderWidth: 2, borderRadius: 999, padding: 2 },
   badge: {
     position: 'absolute',
