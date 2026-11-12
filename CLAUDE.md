@@ -668,8 +668,9 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 
 - Campos de texto (TextField, buscadores, emoticono propio) con `fonts.detail`, también el
   texto de ejemplo (petición del usuario). Unidad: «ej. cervezas, libros, km» (sin «déjalo
-  vacío…»). En crear/editar contador, la explicación de «🔥 Formato racha» va en un icono de
-  información que abre un aviso, no a simple vista.
+  vacío…»). En crear/editar contador, la explicación de «🔥 Formato racha» va en un ⓘ a la derecha
+  de la fila, del color de la app, igual que el de «Contador común» (`InfoButton` en
+  `CommonCounterInfo.tsx`: botón y ventana comunes; `StreakFormatInfo` y `CommonCounterInfo`).
 
 ## Cambios estéticos pendientes
 

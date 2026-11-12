@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { EditablePhoto } from '@/components/EditablePhoto';
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -19,7 +18,7 @@ import { LIMITS, validateOptionalText, validateRequiredText } from '@/lib/valida
 import type { CounterInput } from '../api';
 import { type CounterPhotoChange, useCounterPhotoUrl } from '../photos';
 
-import { CommonCounterInfo } from './CommonCounterInfo';
+import { CommonCounterInfo, StreakFormatInfo } from './CommonCounterInfo';
 import { CounterAvatar } from './CounterAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import { ParticipantsPicker } from './ParticipantsPicker';
@@ -365,40 +364,23 @@ export function CounterForm({
 
           {commonSection}
 
-          <Pressable
-            onPress={() => setStreakEnabled((value) => !value)}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: streakEnabled }}
-            style={styles.checkbox}
-          >
-            <Ionicons
-              name={streakEnabled ? 'checkbox' : 'square-outline'}
-              size={24}
-              color={streakEnabled ? colors.primary : colors.textMuted}
-            />
-            <View style={[styles.flexText, styles.titleWithInfo]}>
+          {/* Como «Contador común»: la casilla a la izquierda y el ⓘ a la derecha. */}
+          <View style={styles.commonRow}>
+            <Pressable
+              onPress={() => setStreakEnabled((value) => !value)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: streakEnabled }}
+              style={styles.checkbox}
+            >
+              <Ionicons
+                name={streakEnabled ? 'checkbox' : 'square-outline'}
+                size={24}
+                color={streakEnabled ? colors.primary : colors.textMuted}
+              />
               <Text style={[styles.optionTitle, { color: colors.text }]}>🔥 Formato racha</Text>
-              {/* La explicación, en el icono de información (no a simple vista). */}
-              <Pressable
-                onPress={() =>
-                  appAlert(
-                    '🔥 Formato racha',
-                    'Para cosas como «días sin fumar»: el contador suma como siempre y, además, ' +
-                      'lleva una racha de días seguidos en los que sumes +1 o más. Si un día no ' +
-                      'llegas, la racha vuelve a 0, pero el contador no. Se guarda tu récord.' +
-                      ((creating ? groupId !== null : Boolean(sharedGroupName))
-                        ? ' En un grupo, cada uno tiene su propia racha.'
-                        : ''),
-                  )
-                }
-                accessibilityRole="button"
-                accessibilityLabel="Qué es el formato racha"
-                hitSlop={12}
-              >
-                <Ionicons name="information-circle-outline" size={22} color={colors.textMuted} />
-              </Pressable>
-            </View>
-          </Pressable>
+            </Pressable>
+            <StreakFormatInfo inGroup={creating ? groupId !== null : Boolean(sharedGroupName)} />
+          </View>
         </>
       )}
 
@@ -468,7 +450,6 @@ function VisibilityOption({ title, description, selected, onPress }: OptionProps
 }
 
 const styles = StyleSheet.create({
-  titleWithInfo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   preview: { alignItems: 'center' },
   headerSave: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   headerSaveText: { fontSize: 17, fontFamily: fonts.title },

@@ -5,8 +5,19 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@/components/AppButton';
 import { proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
-/** Botón ⓘ que abre una explicación de qué es un contador común. */
-export function CommonCounterInfo() {
+type InfoProps = {
+  /** Lo que lee el lector de pantalla en el botón. */
+  label: string;
+  title: string;
+  /** Párrafos: el primero en el color del texto, los demás más suaves. */
+  paragraphs: string[];
+};
+
+/**
+ * Botón ⓘ (del color de la app) que abre una ventana con una explicación. Se usa a la derecha de
+ * las opciones del formulario de contador («Contador común», «Formato racha»).
+ */
+export function InfoButton({ label, title, paragraphs }: InfoProps) {
   const colors = useThemeColors();
   const [open, setOpen] = useState(false);
 
@@ -15,7 +26,7 @@ export function CommonCounterInfo() {
       <Pressable
         onPress={() => setOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel="¿Qué es un contador común?"
+        accessibilityLabel={label}
         hitSlop={10}
       >
         <Ionicons name="information-circle-outline" size={24} color={colors.primary} />
@@ -24,24 +35,54 @@ export function CommonCounterInfo() {
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <View style={[styles.card, { backgroundColor: colors.background }]}>
             <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-              👥 Contador común
+              {title}
             </Text>
-            <Text style={[styles.text, { color: colors.text }]}>
-              Sirve para cosas que hacéis juntos. Su administrador (quien lo crea) suma o resta a la
-              vez a todas las personas que elija; los demás le piden los cambios con una solicitud.
-            </Text>
-            <Text style={[styles.text, { color: colors.textMuted }]}>
-              Ejemplo: «✈️ Viajes». Marcas a quienes vais juntos y, al volver de cada viaje, con un
-              solo toque se apunta a todos. A cada uno le cuenta en sus estadísticas.
-            </Text>
-            <Text style={[styles.text, { color: colors.textMuted }]}>
-              Si no lo marcas, cada miembro suma solo lo suyo (por ejemplo, «🍺 Cervezas»).
-            </Text>
+            {paragraphs.map((text, index) => (
+              <Text
+                key={index}
+                style={[styles.text, { color: index === 0 ? colors.text : colors.textMuted }]}
+              >
+                {text}
+              </Text>
+            ))}
             <AppButton title="Entendido" onPress={() => setOpen(false)} />
           </View>
         </Pressable>
       </Modal>
     </>
+  );
+}
+
+/** ⓘ de qué es un contador común. */
+export function CommonCounterInfo() {
+  return (
+    <InfoButton
+      label="¿Qué es un contador común?"
+      title="👥 Contador común"
+      paragraphs={[
+        'Sirve para cosas que hacéis juntos. Su administrador (quien lo crea) suma o resta a la ' +
+          'vez a todas las personas que elija; los demás le piden los cambios con una solicitud.',
+        'Ejemplo: «✈️ Viajes». Marcas a quienes vais juntos y, al volver de cada viaje, con un ' +
+          'solo toque se apunta a todos. A cada uno le cuenta en sus estadísticas.',
+        'Si no lo marcas, cada miembro suma solo lo suyo (por ejemplo, «🍺 Cervezas»).',
+      ]}
+    />
+  );
+}
+
+/** ⓘ de qué es el formato racha. */
+export function StreakFormatInfo({ inGroup }: { inGroup: boolean }) {
+  return (
+    <InfoButton
+      label="¿Qué es el formato racha?"
+      title="🔥 Formato racha"
+      paragraphs={[
+        'Para cosas como «días sin fumar»: el contador suma como siempre y, además, lleva una ' +
+          'racha de días seguidos en los que sumes +1 o más.',
+        'Si un día no llegas, la racha vuelve a 0, pero el contador no. Se guarda tu récord.' +
+          (inGroup ? ' En un grupo, cada uno tiene su propia racha.' : ''),
+      ]}
+    />
   );
 }
 
