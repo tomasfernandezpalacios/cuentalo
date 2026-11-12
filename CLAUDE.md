@@ -510,7 +510,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   con texto blanco. `colors.elevated` (chips y botones secundarios) y `withAlpha` sustituyen a
   los colores fijos del oscuro. Quien tenía el morado y el tema del sistema de serie pasa una vez
   al dorado y al oscuro (`settings.cineDefaults`, con test). El engrosado de la serif usa el modo
-  con el que arrancó la app: al cambiar el tema se ofrece reiniciar. Historia: antes era una
+  con el que arrancó la app; al cambiar el tema ya **no** se ofrece reiniciar (el usuario vio
+  que no hacía falta y pidió quitarlo). Historia: antes era una
   prueba elegible (`settings.visualStyle`, que ya no se usa).
   Cine: siempre oscuro cálido (`cinemaPalette`: fondo `#0B0A09`, tarjetas `#141311`, chips
   `#1C1A17` = `CINEMA_ELEVATED_2`, texto `#F5F1E8`), un solo acento dorado `#E9C46A` con texto

@@ -2,7 +2,6 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { useStartTutorial } from '@/features/tutorial/useTutorialAutoStart';
 import { useMutation } from '@tanstack/react-query';
-import { reloadAppAsync } from 'expo';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -105,21 +104,9 @@ export default function SettingsScreen() {
     });
   }
 
-  /**
-   * Los colores cambian al momento, pero algunos detalles fijos (el engrosado de los títulos) se
-   * calculan al arrancar: se ofrece reiniciar para que todo quede perfecto.
-   */
+  /** El tema se aplica al momento, sin reiniciar (el usuario lo comprobó). */
   function changeTheme(theme: ThemeMode) {
-    if (theme === settings.theme) return;
-    updateSettings({ theme });
-    appAlert(
-      'Cambiar tema',
-      'Reinicia la app para que los títulos se vean bien en el nuevo tema.',
-      [
-        { text: 'Más tarde', style: 'cancel' },
-        { text: 'Reiniciar ahora', onPress: () => void reloadAppAsync('Cambio de tema') },
-      ],
-    );
+    if (theme !== settings.theme) updateSettings({ theme });
   }
 
   function confirmDelete() {
