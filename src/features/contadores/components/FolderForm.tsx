@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  searchInput: { flex: 1, fontSize: 16, paddingVertical: 8 },
+  searchInput: { flex: 1, fontSize: 16, paddingVertical: 8, fontFamily: fonts.detail },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

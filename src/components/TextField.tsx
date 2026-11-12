@@ -63,7 +63,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 14,
+    // La letra de la app también en lo que se escribe y en el texto de ejemplo (antes, la del
+    // sistema, que no pegaba con el resto).
     fontSize: 16,
+    fontFamily: fonts.detail,
   },
   withIcon: { paddingRight: 48 },
   eye: {

@@ -34,7 +34,7 @@ convenciones y decisiones; anota aquí cualquier decisión menor nueva.
 - Tipografías (petición del usuario): **Ubuntu Bold** (`fonts.title`) para títulos, nombres,
   cifras, botones, cabeceras y pestañas; **Redaction** (`fonts.detail`) para detalles y textos
   secundarios (fechas, notas, unidades, etiquetas, descripciones, errores). Los campos de texto
-  usan la fuente del sistema. No usar `fontWeight` con estas fuentes. Archivos en
+  usan `fonts.detail` (también el texto de ejemplo; antes la del sistema). No usar `fontWeight` con estas fuentes. Archivos en
   `assets/fonts/`, cargados con `useFonts` en `app/_layout.tsx`.
 - Avisos: nunca `Alert.alert`; usar `appAlert(título, mensaje, botones, { warning })` de
   `src/components/AppDialog.tsx` (estilo de la app; `DialogHost` montado en `app/_layout.tsx`).
@@ -665,6 +665,11 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   volvía a pintar todo el tutorial. Un cambio pequeño de posición (las medidas cada 250 ms)
   hace un retoque corto en vez de reiniciar el deslizamiento largo. Latidos de anillo y flecha
   siguen en el hilo nativo, en una vista interior (no se mezclan con los valores del hilo JS).
+
+- Campos de texto (TextField, buscadores, emoticono propio) con `fonts.detail`, también el
+  texto de ejemplo (petición del usuario). Unidad: «ej. cervezas, libros, km» (sin «déjalo
+  vacío…»). En crear/editar contador, la explicación de «🔥 Formato racha» va en un icono de
+  información que abre un aviso, no a simple vista.
 
 ## Cambios estéticos pendientes
 

@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  searchInput: { flex: 1, fontSize: 16, paddingVertical: 8 },
+  searchInput: { flex: 1, fontSize: 16, paddingVertical: 8, fontFamily: fonts.detail },
   flex: { flex: 1 },
   title: { flexDirection: 'row', alignItems: 'center', gap: isCinema ? TITLE_GAP : 24 },
   titleText: { ...screenTitleFont() },

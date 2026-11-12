@@ -84,5 +84,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emoji: { fontSize: 22 },
-  input: { minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, fontSize: 20 },
+  input: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 20,
+    fontFamily: fonts.detail,
+  },
 });
