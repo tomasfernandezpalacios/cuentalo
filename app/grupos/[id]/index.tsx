@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
+import { usePullRefresh } from '@/lib/usePullRefresh';
 import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
@@ -34,6 +35,7 @@ export default function GroupScreen() {
   const colors = useThemeColors();
   const userId = useUserId();
   const group = useGroup(id);
+  const pull = usePullRefresh(() => group.refetch());
   const removeMember = useRemoveMember();
   const deleteGroup = useDeleteGroup();
   const leaveGroup = useLeaveGroup();
@@ -264,8 +266,8 @@ export default function GroupScreen() {
         <RefreshControl
           tintColor={colors.primary}
           colors={[colors.primary]}
-          refreshing={group.isRefetching}
-          onRefresh={() => void group.refetch()}
+          refreshing={pull.refreshing}
+          onRefresh={pull.onRefresh}
         />
       }
     >

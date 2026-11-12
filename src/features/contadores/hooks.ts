@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 
 import { useUserId } from '@/features/auth/AuthProvider';
 
@@ -31,7 +37,7 @@ import {
   type EntryInput,
   type LeaderboardPeriod,
 } from './api';
-import { refreshAll } from '@/lib/queryClient';
+import { optimistic, optimisticHandlers, refreshAll, type Undo } from '@/lib/queryClient';
 
 import { applyCounterPhoto, type CounterPhotoChange } from './photos';
 
@@ -51,6 +57,31 @@ export const counterKeys = {
 // en pantalla; el resto se marca como antiguo y se pide al abrirlas.
 function invalidateCounters(queryClient: QueryClient) {
   return refreshAll(queryClient);
+}
+
+/**
+ * Cambia al momento los contadores `ids` en la lista y en su detalle (`patch` devuelve el
+ * contador cambiado, o null para quitarlo de la lista). Devuelve cómo deshacerlo.
+ */
+async function patchCounters(
+  queryClient: QueryClient,
+  ids: string[],
+  patch: (counter: CounterWithTotal) => CounterWithTotal | null,
+): Promise<Undo[]> {
+  const set = new Set(ids);
+  const undoList = await optimistic<CounterWithTotal[]>(queryClient, counterKeys.list(), (list) =>
+    list.flatMap((c) => {
+      if (!set.has(c.id)) return [c];
+      const next = patch(c);
+      return next ? [next] : [];
+    }),
+  );
+  const undoDetails = await Promise.all(
+    ids.map((id) =>
+      optimistic<CounterWithTotal>(queryClient, counterKeys.detail(id), (c) => patch(c) ?? c),
+    ),
+  );
+  return [undoList, ...undoDetails];
 }
 
 // --- Consultas --------------------------------------------------------------
@@ -92,6 +123,7 @@ export function useEntries(counterId: string, counterIds: string[] | undefined) 
     queryKey: [...counterKeys.entries(counterId), ...(counterIds ?? [])],
     queryFn: () => fetchEntries(counterIds ?? [counterId], userId),
     enabled: userId !== '' && counterIds !== undefined,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -101,6 +133,7 @@ export function useGroupCounterDaily(counterId: string) {
     // Cuelga de la clasificación: se refresca igual al registrar.
     queryKey: [...counterKeys.leaderboard(counterId, 'all'), 'daily'],
     queryFn: () => fetchGroupCounterDaily(counterId),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -117,6 +150,8 @@ export function useLeaderboard(counterId: string, period: LeaderboardPeriod, ena
     queryKey: counterKeys.leaderboard(counterId, period),
     queryFn: () => fetchLeaderboard(counterId, period),
     enabled,
+    // Al cambiar de periodo se sigue viendo el anterior hasta que llega el nuevo (sin parpadeo).
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -126,6 +161,7 @@ export function useMyLastCounterId(counterIds: string[]) {
     queryKey: counterKeys.lastUsed(counterIds),
     queryFn: () => fetchMyLastCounterId(counterIds, userId),
     enabled: userId !== '' && counterIds.length > 0,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -185,7 +221,28 @@ export function useUpdateCounter(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (patch: Partial<CounterInput>) => updateCounter(id, patch),
-    onSuccess: () => invalidateCounters(queryClient),
+    // El nombre, la unidad y el emoticono nuevos se ven al instante en la lista y el detalle.
+    ...optimisticHandlers(queryClient, (patch: Partial<CounterInput>) =>
+      patchCounters(queryClient, [id], (c) => {
+        // Con un alias personal, lo que veo es el alias: solo cambia el nombre compartido.
+        const hasAliasName = c.name !== c.sharedName;
+        const hasAliasEmoji = c.emoji !== c.sharedEmoji;
+        const name = patch.name?.trim();
+        const emoji = patch.emoji === undefined ? undefined : patch.emoji.trim() || null;
+        return {
+          ...c,
+          ...(name ? { sharedName: name, name: hasAliasName ? c.name : name } : {}),
+          ...(emoji !== undefined
+            ? { sharedEmoji: emoji, emoji: hasAliasEmoji ? c.emoji : emoji }
+            : {}),
+          ...(patch.unit !== undefined ? { unit: patch.unit.trim() || null } : {}),
+          ...(patch.streakEnabled !== undefined ? { streak_enabled: patch.streakEnabled } : {}),
+          ...(patch.hiddenFromFriends !== undefined
+            ? { hidden_from_friends: patch.hiddenFromFriends }
+            : {}),
+        };
+      }),
+    ),
   });
 }
 
@@ -196,11 +253,20 @@ export function useDeleteCounters() {
     mutationFn: async (counters: Pick<CounterWithTotal, 'id' | 'group_id'>[]) => {
       for (const counter of counters) await deleteCounter(counter);
     },
+    // Desaparecen de la lista al instante; si falla, vuelven.
+    onMutate: async (counters: Pick<CounterWithTotal, 'id' | 'group_id'>[]) => ({
+      undo: [
+        await optimistic<CounterWithTotal[]>(queryClient, counterKeys.list(), (list) =>
+          list.filter((c) => !counters.some((d) => d.id === c.id)),
+        ),
+      ],
+    }),
+    onError: (_error, _counters, context) => context?.undo.forEach((undo) => undo()),
     onSuccess: (_result, counters) => {
       for (const c of counters) queryClient.removeQueries({ queryKey: counterKeys.detail(c.id) });
-      // También cambian carpetas y estadísticas.
-      return refreshAll(queryClient);
     },
+    // También cambian carpetas y estadísticas: por detrás.
+    onSettled: () => refreshAll(queryClient),
   });
 }
 
@@ -208,7 +274,9 @@ export function useSetHidden() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ ids, hidden }: { ids: string[]; hidden: boolean }) => setHidden(ids, hidden),
-    onSuccess: () => invalidateCounters(queryClient),
+    ...optimisticHandlers(queryClient, ({ ids, hidden }: { ids: string[]; hidden: boolean }) =>
+      patchCounters(queryClient, ids, (c) => ({ ...c, hidden })),
+    ),
   });
 }
 
@@ -226,7 +294,9 @@ export function useSetRemovedFromHome() {
   return useMutation({
     mutationFn: ({ ids, removed }: { ids: string[]; removed: boolean }) =>
       setRemovedFromHome(ids, removed),
-    onSuccess: () => invalidateCounters(queryClient),
+    ...optimisticHandlers(queryClient, ({ ids, removed }: { ids: string[]; removed: boolean }) =>
+      patchCounters(queryClient, ids, (c) => ({ ...c, removedFromHome: removed })),
+    ),
   });
 }
 

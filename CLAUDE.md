@@ -690,6 +690,25 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   guardadas se marcaron por `created_at`. En la app, la suma optimista es +N (no × participantes)
   y quien no participa ve el total del grupo tal cual. Los bots comprueban la misma regla.
 
+- **Todo al instante** (petición del usuario: «primero que se vea, luego se guarda por
+  detrás»):
+  - `refreshAll` ya **no devuelve la promesa**: antes los `onSuccess` la devolvían y TanStack
+    Query esperaba a volver a pedir todas las consultas antes de dar el cambio por hecho
+    (botones girando, pantallas que no se cerraban). Igual en `useUpdateProfile`.
+  - Cambios **optimistas** con `optimistic` / `optimisticHandlers` (`src/lib/queryClient.ts`:
+    aplicar ya, deshacer si falla, refrescar por detrás al acabar): ocultar/mostrar, quitar de
+    inicio, borrar contadores, editar contador (`patchCounters`, lista y detalle; respeta los
+    alias), carpetas (crear, editar, añadir, borrar), amistades (aceptar/rechazar, borrar,
+    enviar solicitud quita de sugerencias) y avisos leídos. Editar contador, ocultar, guardar
+    carpeta y «Otra cantidad» cierran al instante; si falla, aviso y vuelta atrás.
+  - `placeholderData: keepPreviousData` en consultas que cambian con un filtro (clasificación
+    por periodo, gráfica del grupo, historial, último usado, búsqueda de usuarios, sugerencias):
+    se sigue viendo lo anterior hasta que llega lo nuevo, sin parpadeo ni «cargando».
+  - `usePrefetchMain` (`src/lib/prefetch.ts`, en `app/_layout.tsx`): al entrar se cargan por
+    detrás las pestañas principales; cambiar de pestaña es instantáneo.
+  - «Tirar para refrescar» con `usePullRefresh`: el círculo solo sale al tirar el usuario
+    (antes iba con `isRefetching` y salía tras cada cambio, como si recargara la pantalla).
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

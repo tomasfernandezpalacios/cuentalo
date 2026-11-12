@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import { TextField } from '@/components/TextField';
+import { appAlert } from '@/components/AppDialog';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useThemeColors } from '@/lib/theme';
 import { LIMITS, validateRequiredText } from '@/lib/validation';
@@ -86,7 +87,12 @@ export function FolderForm({ folder, initialCounterIds = [] }: Props) {
     const error = validateRequiredText(name, 'El nombre', LIMITS.folderName);
     setNameError(error);
     if (error) return;
-    save.mutate({ name, counterIds: selected }, { onSuccess: () => router.back() });
+    // La carpeta ya se ve en la barra (optimista): se cierra al instante y se guarda por detrás.
+    save.mutate(
+      { name, counterIds: selected },
+      { onError: (error) => appAlert('No se ha podido guardar', getErrorMessage(error)) },
+    );
+    router.back();
   }
 
   return (

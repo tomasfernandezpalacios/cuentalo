@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Animated, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
+import { usePullRefresh } from '@/lib/usePullRefresh';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import { useUserId } from '@/features/auth/AuthProvider';
@@ -44,6 +45,7 @@ export default function StatsScreen() {
   const colors = useThemeColors();
   const counters = useCounterList();
   const daily = useMyDailyTotals(useUserId());
+  const pull = usePullRefresh(() => Promise.all([counters.refetch(), daily.refetch()]));
   const selection = useStatsSelection();
   const [period, setPeriod] = useState<Period>('week');
   const [chartType, setChartType] = useState<ChartType>('line');
@@ -158,11 +160,8 @@ export default function StatsScreen() {
         <RefreshControl
           tintColor={colors.primary}
           colors={[colors.primary]}
-          refreshing={daily.isRefetching}
-          onRefresh={() => {
-            counters.refetch();
-            daily.refetch();
-          }}
+          refreshing={pull.refreshing}
+          onRefresh={pull.onRefresh}
         />
       }
     >

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useUserId } from '@/features/auth/AuthProvider';
 
@@ -31,8 +31,10 @@ import {
   markNoticesRead,
   fetchPublicProfile,
   fetchUserCounters,
+  type Friendship,
+  type Notice,
 } from './api';
-import { refreshAll } from '@/lib/queryClient';
+import { optimistic, optimisticHandlers, refreshAll } from '@/lib/queryClient';
 
 export const socialKeys = {
   all: ['social'] as const,
@@ -74,6 +76,8 @@ export function useProfileSearch(query: string) {
   return useQuery({
     queryKey: socialKeys.search(term),
     queryFn: () => searchProfiles(term, userId),
+    // Mientras se escribe, se siguen viendo los resultados anteriores (sin parpadeos).
+    placeholderData: keepPreviousData,
     enabled: userId !== '' && term.length >= 2,
   });
 }
@@ -93,18 +97,53 @@ export function useGroup(groupId: string) {
 
 // --- Amistades --------------------------------------------------------------------------------
 
+/** Al enviarla, la persona sale al momento de las sugerencias; se guarda por detrás. */
 export function useSendFriendRequest() {
-  return useSocialMutation(sendFriendRequest);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: sendFriendRequest,
+    ...optimisticHandlers(queryClient, async (addresseeId: string) => {
+      const key = [...socialKeys.all, 'suggestions'];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueriesData<{ id: string }[]>({ queryKey: key });
+      queryClient.setQueriesData<{ id: string }[]>({ queryKey: key }, (old) =>
+        old?.filter((s) => s.id !== addresseeId),
+      );
+      return [() => previous.forEach(([k, data]) => queryClient.setQueryData(k, data))];
+    }),
+  });
 }
 
+/** Aceptar o rechazar se ve al instante en la lista de amigos y en el buzón. */
 export function useRespondFriendRequest() {
-  return useSocialMutation(({ id, status }: { id: string; status: 'accepted' | 'rejected' }) =>
-    respondFriendRequest(id, status),
-  );
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'accepted' | 'rejected' }) =>
+      respondFriendRequest(id, status),
+    ...optimisticHandlers(
+      queryClient,
+      async ({ id, status }: { id: string; status: 'accepted' | 'rejected' }) => [
+        await optimistic<Friendship[]>(queryClient, socialKeys.friendships(userId), (list) =>
+          list.map((f) => (f.id === id ? { ...f, status } : f)),
+        ),
+      ],
+    ),
+  });
 }
 
+/** Dejar de ser amigos o cancelar una solicitud: desaparece al instante. */
 export function useDeleteFriendship() {
-  return useSocialMutation(deleteFriendship);
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: deleteFriendship,
+    ...optimisticHandlers(queryClient, async (id: string) => [
+      await optimistic<Friendship[]>(queryClient, socialKeys.friendships(userId), (list) =>
+        list.filter((f) => f.id !== id),
+      ),
+    ]),
+  });
 }
 
 // --- Grupos -----------------------------------------------------------------------------------
@@ -226,8 +265,21 @@ export function useDecideCounterRequest() {
   });
 }
 
+/** Al abrir el buzón, los avisos dejan de contar como nuevos al instante (adiós punto rojo). */
 export function useMarkNoticesRead() {
-  return useSocialMutation(markNoticesRead);
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: markNoticesRead,
+    ...optimisticHandlers(queryClient, async () => {
+      const now = new Date().toISOString();
+      return [
+        await optimistic<Notice[]>(queryClient, socialKeys.notices(userId), (list) =>
+          list.map((n) => (n.read_at ? n : { ...n, read_at: now })),
+        ),
+      ];
+    }),
+  });
 }
 
 /**

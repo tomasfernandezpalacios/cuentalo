@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useUserId } from '@/features/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { refreshAll } from '@/lib/queryClient';
+import { optimistic, optimisticHandlers } from '@/lib/queryClient';
 
 export type Folder = { id: string; name: string; counterIds: string[] };
 
@@ -50,31 +50,59 @@ export function useFolders() {
   });
 }
 
+/** La carpeta nueva o cambiada se ve al instante en la barra; se guarda por detrás. */
 export function useSaveFolder(id: string | null) {
   const queryClient = useQueryClient();
+  const userId = useUserId();
   return useMutation({
     mutationFn: (input: FolderInput) => saveFolder(id, input),
-    onSuccess: () => refreshAll(queryClient),
+    ...optimisticHandlers(queryClient, async (input: FolderInput) => [
+      await optimistic<Folder[]>(queryClient, folderKeys.all(userId), (folders) => {
+        const folder = {
+          id: id ?? `nueva-${Date.now()}`,
+          name: input.name.trim(),
+          counterIds: input.counterIds,
+        };
+        return id ? folders.map((f) => (f.id === id ? folder : f)) : [...folders, folder];
+      }),
+    ]),
   });
 }
 
 /** Añade contadores a una carpeta que ya existe (sin quitar los que tenía). */
 export function useAddToFolder() {
   const queryClient = useQueryClient();
+  const userId = useUserId();
   return useMutation({
     mutationFn: ({ folder, counterIds }: { folder: Folder; counterIds: string[] }) =>
       saveFolder(folder.id, {
         name: folder.name,
         counterIds: [...new Set([...folder.counterIds, ...counterIds])],
       }),
-    onSuccess: () => refreshAll(queryClient),
+    ...optimisticHandlers(
+      queryClient,
+      async ({ folder, counterIds }: { folder: Folder; counterIds: string[] }) => [
+        await optimistic<Folder[]>(queryClient, folderKeys.all(userId), (folders) =>
+          folders.map((f) =>
+            f.id === folder.id
+              ? { ...f, counterIds: [...new Set([...f.counterIds, ...counterIds])] }
+              : f,
+          ),
+        ),
+      ],
+    ),
   });
 }
 
 export function useDeleteFolder() {
   const queryClient = useQueryClient();
+  const userId = useUserId();
   return useMutation({
     mutationFn: deleteFolder,
-    onSuccess: () => refreshAll(queryClient),
+    ...optimisticHandlers(queryClient, async (id: string) => [
+      await optimistic<Folder[]>(queryClient, folderKeys.all(userId), (folders) =>
+        folders.filter((f) => f.id !== id),
+      ),
+    ]),
   });
 }

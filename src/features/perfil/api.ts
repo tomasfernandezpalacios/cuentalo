@@ -121,8 +121,11 @@ export function useUpdateProfile(current: Profile | undefined) {
       if (!current) throw new Error('Perfil no cargado');
       return updateProfile(userId, current, input);
     },
-    // El nombre sale también en grupos y clasificaciones: refrescamos todo.
-    onSuccess: () => queryClient.invalidateQueries(),
+    // El nombre sale también en grupos y clasificaciones: refrescamos todo, por detrás (sin
+    // devolver la promesa, para no esperar a que llegue todo antes de dar el cambio por hecho).
+    onSuccess: () => {
+      void queryClient.invalidateQueries();
+    },
   });
 }
 

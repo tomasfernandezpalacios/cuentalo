@@ -19,6 +19,7 @@ import { useTimeZoneSync } from '@/features/perfil/useTimeZoneSync';
 import { usePendingInvite } from '@/features/social/pendingInvite';
 import { TutorialHost } from '@/features/tutorial/TutorialHost';
 import { useTutorialAutoStart } from '@/features/tutorial/useTutorialAutoStart';
+import { usePrefetchMain } from '@/lib/prefetch';
 import { queryClient } from '@/lib/queryClient';
 import { HeaderTitle } from '@/components/HeaderTitle';
 import { TitleMeasurer, useScreenTitleSize } from '@/lib/screenTitle';
@@ -39,6 +40,8 @@ function RootNavigator() {
   useReminderSync(isSignedIn);
   useTutorialAutoStart(isSignedIn);
   useTimeZoneSync(isSignedIn);
+  // Las pestañas principales, cargadas por detrás: cambiar de pestaña es instantáneo.
+  usePrefetchMain(isSignedIn);
 
   useEffect(() => {
     if (!isLoading) SplashScreen.hideAsync();

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { usePullRefresh } from '@/lib/usePullRefresh';
 import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
@@ -17,6 +18,7 @@ export default function ProfileScreen() {
   const { session } = useAuth();
   const profile = useProfile(useUserId());
   const groups = useMyGroups();
+  const pull = usePullRefresh(() => Promise.all([profile.refetch(), groups.refetch()]));
 
   if (profile.isPending) return <LoadingView />;
   if (profile.isError) return <ErrorView error={profile.error} onRetry={profile.refetch} />;
@@ -31,11 +33,8 @@ export default function ProfileScreen() {
         <RefreshControl
           tintColor={colors.primary}
           colors={[colors.primary]}
-          refreshing={profile.isRefetching}
-          onRefresh={() => {
-            profile.refetch();
-            groups.refetch();
-          }}
+          refreshing={pull.refreshing}
+          onRefresh={pull.onRefresh}
         />
       }
     >

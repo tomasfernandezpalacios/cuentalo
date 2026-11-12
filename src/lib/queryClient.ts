@@ -1,14 +1,18 @@
-import { focusManager, QueryClient } from '@tanstack/react-query';
+import { focusManager, QueryClient, type QueryKey } from '@tanstack/react-query';
 import { AppState } from 'react-native';
 
 /**
- * Tras cualquier cambio se refresca todo lo que está en pantalla (así se ve al instante), menos
- * lo que no depende de los datos: los enlaces firmados de las fotos (duran 1 h), las fotos y
- * emoticonos de otras personas en las clasificaciones y los códigos de grupo (son fijos). Volver a pedirlos con cada +1 solo
- * gastaba conexión. (Al editar el perfil sí se refresca todo, ver useUpdateProfile.)
+ * Tras cualquier cambio se refresca todo lo que está en pantalla, menos lo que no depende de los
+ * datos: los enlaces firmados de las fotos (duran 1 h), las fotos y emoticonos de otras personas
+ * en las clasificaciones y los códigos de grupo (son fijos).
+ *
+ * **Por detrás y sin esperar** (petición del usuario: «primero que se vea, luego se guarda por
+ * detrás»): no devuelve la promesa. Antes los `onSuccess` la devolvían y TanStack Query esperaba
+ * a que se volvieran a pedir todas las consultas antes de dar el cambio por hecho: los botones
+ * seguían girando y las pantallas tardaban en cerrarse.
  */
-export function refreshAll(client: QueryClient = queryClient) {
-  return client.invalidateQueries({
+export function refreshAll(client: QueryClient = queryClient): void {
+  void client.invalidateQueries({
     predicate: (query) => {
       const [first, second] = query.queryKey;
       if (
@@ -27,6 +31,42 @@ export function refreshAll(client: QueryClient = queryClient) {
       return true;
     },
   });
+}
+
+/** Deshace un cambio optimista (vuelve a dejar la caché como estaba). */
+export type Undo = () => void;
+
+/**
+ * Cambio optimista: se aplica ya a lo que hay en caché (se ve al instante) y devuelve cómo
+ * deshacerlo si el servidor dice que no. Para en seco cualquier petición en vuelo de esa consulta,
+ * así una respuesta antigua no pisa el cambio.
+ */
+export async function optimistic<T>(
+  client: QueryClient,
+  queryKey: QueryKey,
+  update: (old: T) => T,
+): Promise<Undo> {
+  await client.cancelQueries({ queryKey });
+  const previous = client.getQueryData<T>(queryKey);
+  if (previous !== undefined) client.setQueryData<T>(queryKey, update(previous));
+  return () => client.setQueryData(queryKey, previous);
+}
+
+/**
+ * Las tres partes de una mutación optimista: aplicar al momento, deshacer si falla y, al acabar,
+ * refrescar por detrás para quedar igual que el servidor.
+ */
+export function optimisticHandlers<TVariables>(
+  client: QueryClient,
+  apply: (variables: TVariables) => Promise<Undo[]>,
+) {
+  return {
+    onMutate: async (variables: TVariables) => ({ undo: await apply(variables) }),
+    onError: (_error: unknown, _variables: TVariables, context?: { undo: Undo[] }) => {
+      context?.undo.forEach((undo) => undo());
+    },
+    onSettled: () => refreshAll(client),
+  };
 }
 
 export const queryClient = new QueryClient({

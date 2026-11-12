@@ -38,13 +38,12 @@ export default function EditCounterScreen() {
 
   // Ocultar es personal: lo manda al desplegable «Ocultos» del final de mi lista.
   function toggleHidden() {
+    // Al instante (optimista): se cierra ya y se guarda por detrás.
     setHiddenMutation.mutate(
       { ids: [id], hidden: !hidden },
-      {
-        onSuccess: () => router.back(),
-        onError: (error) => appAlert('Error', getErrorMessage(error)),
-      },
+      { onError: (error) => appAlert('Error', getErrorMessage(error)) },
     );
+    router.back();
   }
 
   function confirmDelete() {
@@ -75,14 +74,14 @@ export default function EditCounterScreen() {
       error={update.error ?? setParticipants.error}
       sharedGroupId={group?.id}
       initialParticipantIds={is_common ? participantIds : null}
-      onSubmit={async (input, _groupId, newParticipants) => {
-        try {
-          await update.mutateAsync(input);
-          if (newParticipants) await setParticipants.mutateAsync(newParticipants);
-          router.back();
-        } catch {
-          // El error se muestra en el formulario (update.error / setParticipants.error).
-        }
+      // Se cierra al instante: el cambio ya se ve en la lista y el detalle (optimista) y se
+      // guarda por detrás. Si falla, se avisa y se vuelve a lo de antes.
+      onSubmit={(input, _groupId, newParticipants) => {
+        const onError = (error: unknown) =>
+          appAlert('No se ha podido guardar', getErrorMessage(error));
+        update.mutate(input, { onError });
+        if (newParticipants) setParticipants.mutate(newParticipants, { onError });
+        router.back();
       }}
       footer={
         <View style={styles.footer}>

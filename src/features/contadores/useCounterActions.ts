@@ -85,14 +85,14 @@ export function useCounterActions() {
     addEntry.mutate(
       { counterId: counter.id, input },
       {
-        onSuccess: () => {
-          // Hoy ya hay registro: el recordatorio de la racha de hoy sobra.
-          markActiveToday();
-          onSuccess?.();
-        },
+        // Hoy ya hay registro: el recordatorio de la racha de hoy sobra.
+        onSuccess: () => markActiveToday(),
         onError: showError,
       },
     );
+    // La suma ya se ve (optimista): la ventana de «Otra cantidad» se cierra al instante, sin
+    // esperar al servidor.
+    onSuccess?.();
   }
 
   function doSubtract(counter: CounterWithTotal) {

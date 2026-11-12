@@ -1,5 +1,6 @@
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 
+import { usePullRefresh } from '@/lib/usePullRefresh';
 import { Section } from '@/components/Section';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import { useStreak } from '@/features/estadisticas/api';
@@ -12,6 +13,7 @@ import { useThemeColors } from '@/lib/theme';
 export default function StreakScreen() {
   const colors = useThemeColors();
   const streak = useStreak();
+  const pull = usePullRefresh(() => streak.refetch());
 
   if (streak.isPending) return <LoadingView />;
   if (streak.isError) return <ErrorView error={streak.error} onRetry={streak.refetch} />;
@@ -24,8 +26,8 @@ export default function StreakScreen() {
         <RefreshControl
           tintColor={colors.primary}
           colors={[colors.primary]}
-          refreshing={streak.isRefetching}
-          onRefresh={() => void streak.refetch()}
+          refreshing={pull.refreshing}
+          onRefresh={pull.onRefresh}
         />
       }
     >

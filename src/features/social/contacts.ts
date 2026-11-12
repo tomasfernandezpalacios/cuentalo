@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 // La API «legacy» de expo-contacts es la que tiene permisos y lectura de la agenda estables.
 import * as Contacts from 'expo-contacts/legacy';
@@ -77,6 +77,7 @@ export function useFriendSuggestions(limit: number) {
   return useQuery({
     queryKey: keys.suggestions(userId, limit, contactHashes.length),
     enabled: userId !== '' && !hashes.isPending,
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<Suggestion[]> => {
       const { data, error } = await supabase.rpc('get_friend_suggestions', {
         p_contact_hashes: contactHashes,

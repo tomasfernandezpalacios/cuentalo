@@ -16,6 +16,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 
+import { usePullRefresh } from '@/lib/usePullRefresh';
 import { appAlert } from '@/components/AppDialog';
 import { updateSettings, useSettings } from '@/features/configuracion/settings';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
@@ -67,8 +68,10 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 
 export default function CountersScreen() {
   const colors = useThemeColors();
-  const { data, error, isPending, isRefetching, refetch } = useCounterList();
+  const { data, error, isPending, refetch } = useCounterList();
   const folders = useFolders();
+  // El círculo de recarga solo sale al tirar (no con cada refresco por detrás).
+  const pull = usePullRefresh(() => Promise.all([refetch(), folders.refetch()]));
   const deleteFolder = useDeleteFolder();
   const deleteCounters = useDeleteCounters();
   const setHidden = useSetHidden();
@@ -577,11 +580,8 @@ export default function CountersScreen() {
           <RefreshControl
             tintColor={colors.primary}
             colors={[colors.primary]}
-            refreshing={isRefetching}
-            onRefresh={() => {
-              refetch();
-              folders.refetch();
-            }}
+            refreshing={pull.refreshing}
+            onRefresh={pull.onRefresh}
           />
         }
       >
