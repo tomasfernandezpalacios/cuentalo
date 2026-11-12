@@ -39,9 +39,10 @@ export function FriendsStreaks() {
 
   // Posición con empates: quien tiene la misma racha actual comparte puesto.
   const positioned = withPositions(rows, (r) => r.current);
-  // Los tres primeros (con racha), en el podio; el resto, en la lista.
+  // Los tres primeros (con racha), también en el podio.
   const podium = positioned.slice(0, 3).filter((row) => row.current > 0);
-  const rest = positioned.slice(podium.length);
+  // Debajo del podio, la clasificación entera en filas, como antes (también los tres primeros).
+  const rest = positioned;
   return (
     <View style={styles.board}>
       <Podium

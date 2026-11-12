@@ -678,7 +678,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   izquierda, 1.º en el centro más alto y con una corona lisa amarilla (`MaterialCommunityIcons` «crown»,
   `#F2C230`, del estilo de la llama; no emoticono), 3.º a la derecha; foto o icono de cada
   uno sobre su escalón con el puesto en una insignia, nombre («Tú» si soy yo) y valor. Solo
-  entran quienes tienen algo (total o racha > 0); la lista sigue desde el siguiente. Tocar a
+  entran quienes tienen algo (total o racha > 0). Debajo, la clasificación **entera** en filas
+  como siempre, también los tres primeros (petición del usuario). Tocar a
   otro abre su perfil.
 
 ## Cambios estéticos pendientes

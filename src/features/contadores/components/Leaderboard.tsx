@@ -50,7 +50,8 @@ export function Leaderboard({
   const streakDays = new Map((streaks.data ?? []).map((row) => [row.userId, row.total]));
   const rows = leaderboard.data ?? [];
   const podium = rows.slice(0, 3).filter((row) => row.total > 0);
-  const rest = rows.slice(podium.length);
+  // Debajo del podio, la clasificación entera en filas, como antes (también los tres primeros).
+  const rest = rows;
 
   return (
     <View style={styles.container}>
@@ -63,7 +64,7 @@ export function Leaderboard({
         </Text>
       ) : (
         <View style={styles.board}>
-          {/* Los tres primeros (con algo sumado), en el podio; el resto, en la lista. */}
+          {/* Los tres primeros (con algo sumado), también en el podio. */}
           <Podium
             entries={podium.map((row) => ({
               userId: row.userId,
