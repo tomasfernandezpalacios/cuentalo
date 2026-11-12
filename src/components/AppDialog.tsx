@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore, type ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { proseFont, titleFont, useThemeColors } from '@/lib/theme';
@@ -22,6 +22,8 @@ type Dialog = {
   message?: string;
   buttons: DialogButton[];
   warning: boolean;
+  /** Imagen arriba (p. ej. la foto de un amigo en su menú); va en lugar de la advertencia. */
+  image?: ReactNode;
 };
 
 let queue: Dialog[] = [];
@@ -42,10 +44,14 @@ export function appAlert(
   title: string,
   message?: string,
   buttons: DialogButton[] = [{ text: 'Aceptar' }],
-  options: { warning?: boolean } = {},
+  options: { warning?: boolean; image?: ReactNode } = {},
 ) {
-  const warning = options.warning ?? buttons.some((b) => b.style === 'destructive');
-  queue = [...queue, { id: nextId++, title, message, buttons, warning }];
+  // Con imagen propia no sale la advertencia (un menú no es una acción peligrosa en sí).
+  const warning =
+    options.image !== undefined
+      ? false
+      : (options.warning ?? buttons.some((b) => b.style === 'destructive'));
+  queue = [...queue, { id: nextId++, title, message, buttons, warning, image: options.image }];
   emit();
 }
 
@@ -89,6 +95,7 @@ export function DialogHost() {
           style={[styles.card, { backgroundColor: colors.background, borderColor: colors.border }]}
           accessibilityViewIsModal
         >
+          {dialog.image ? <View style={styles.image}>{dialog.image}</View> : null}
           {dialog.warning ? (
             <View
               style={[styles.icon, { backgroundColor: colors.danger }]}
@@ -142,6 +149,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 2,
   },
+  image: { marginBottom: 2 },
   title: { ...titleFont(20), textAlign: 'center' },
   message: { ...proseFont(15, 21), textAlign: 'center' },
   row: { flexDirection: 'row', gap: 10, alignSelf: 'stretch', marginTop: 6 },

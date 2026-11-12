@@ -9,6 +9,7 @@ import { Section } from '@/components/Section';
 import { ErrorView } from '@/components/StateViews';
 import { TextField } from '@/components/TextField';
 import { useFriendsStreaks } from '@/features/estadisticas/api';
+import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { getErrorMessage } from '@/lib/errors';
 import { refreshAll } from '@/lib/queryClient';
 import { fonts, proseFont, useThemeColors } from '@/lib/theme';
@@ -114,12 +115,27 @@ export function FriendsPanel() {
 
   /** Mantener pulsado un amigo: acciones rápidas sin entrar en su perfil. */
   function friendMenu(friendship: Friendship) {
-    appAlert(friendship.other.display_name, `@${friendship.other.username}`, [
-      { text: 'Ver perfil', onPress: () => openProfile(friendship.other.id) },
-      { text: 'Invitar a un grupo', onPress: () => inviteMenu(friendship) },
-      { text: 'Eliminar amigo', style: 'destructive', onPress: () => confirmRemove(friendship) },
-      { text: 'Cerrar', style: 'cancel' },
-    ]);
+    appAlert(
+      friendship.other.display_name,
+      `@${friendship.other.username}`,
+      [
+        { text: 'Ver perfil', onPress: () => openProfile(friendship.other.id) },
+        { text: 'Invitar a un grupo', onPress: () => inviteMenu(friendship) },
+        { text: 'Eliminar amigo', style: 'destructive', onPress: () => confirmRemove(friendship) },
+        { text: 'Cerrar', style: 'cancel' },
+      ],
+      // Arriba, su foto o icono de perfil (no la advertencia: eliminar ya pide confirmación).
+      {
+        image: (
+          <PersonAvatar
+            name={friendship.other.display_name}
+            emoji={friendship.other.emoji}
+            photoPath={friendship.other.photo_path}
+            size={64}
+          />
+        ),
+      },
+    );
   }
 
   // Botón de cada resultado de búsqueda según la relación que ya tengamos.

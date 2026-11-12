@@ -725,6 +725,9 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
     `useFriendsStreaks`, `PersonRow badge`).
   - Mantener pulsado: un amigo → ver perfil, invitar a un grupo que lidero, eliminar; un grupo
     → abrir, nuevo contador del grupo, compartir invitación (`shareInvite`).
+  - Los menús de mantener pulsado llevan arriba la foto o icono del amigo / del grupo en vez de
+    la advertencia roja: `appAlert(…, { image })` (con `image`, nunca sale la advertencia;
+    eliminar amigo ya pide confirmación aparte).
   - Pendiente de hablar con el usuario: recordar la última pestaña y contadores en el selector.
 
 ## Cambios estéticos pendientes

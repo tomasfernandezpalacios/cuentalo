@@ -79,28 +79,34 @@ export function GroupsPanel() {
 
   /** Mantener pulsado un grupo: acciones rápidas sin entrar. */
   function groupMenu(group: MyGroup) {
-    appAlert(group.name, undefined, [
-      {
-        text: 'Abrir el grupo',
-        onPress: () => router.push({ pathname: '/grupos/[id]', params: { id: group.id } }),
-      },
-      {
-        text: 'Nuevo contador del grupo',
-        onPress: () => router.push({ pathname: '/contadores/nuevo', params: { grupo: group.id } }),
-      },
-      {
-        text: 'Compartir invitación',
-        onPress: () =>
-          queryClient
-            .fetchQuery({
-              queryKey: socialKeys.inviteCode(group.id),
-              queryFn: () => fetchInviteCode(group.id),
-            })
-            .then((code) => shareInvite(group.name, code))
-            .catch(showError),
-      },
-      { text: 'Cerrar', style: 'cancel' },
-    ]);
+    appAlert(
+      group.name,
+      undefined,
+      [
+        {
+          text: 'Abrir el grupo',
+          onPress: () => router.push({ pathname: '/grupos/[id]', params: { id: group.id } }),
+        },
+        {
+          text: 'Nuevo contador del grupo',
+          onPress: () =>
+            router.push({ pathname: '/contadores/nuevo', params: { grupo: group.id } }),
+        },
+        {
+          text: 'Compartir invitación',
+          onPress: () =>
+            queryClient
+              .fetchQuery({
+                queryKey: socialKeys.inviteCode(group.id),
+                queryFn: () => fetchInviteCode(group.id),
+              })
+              .then((code) => shareInvite(group.name, code))
+              .catch(showError),
+        },
+        { text: 'Cerrar', style: 'cancel' },
+      ],
+      { image: <GroupAvatar emoji={group.emoji} photoPath={group.photo_path} size={64} /> },
+    );
   }
 
   return (
