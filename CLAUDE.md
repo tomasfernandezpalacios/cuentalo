@@ -739,6 +739,18 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   `photo_path` y `can_see_counter_photo` deja ver también las de los contadores de grupos con
   algún amigo dentro (los que enseña su perfil).
 
+- **Sin conexión** (petición del usuario; `src/lib/offline.ts`): `onlineManager` de TanStack
+  Query con `@react-native-community/netinfo`. Sin internet, los +N y −1 no fallan: quedan en
+  pausa (ya se ven sumados, optimistas) y se envían solos al volver. Los pendientes se guardan
+  en el móvil (`PersistQueryClientProvider` + `@react-native-async-storage/async-storage`, solo
+  las mutaciones en pausa, nunca datos ni la sesión) y se reanudan al abrir la app
+  (`resumePausedMutations`); por eso cada tipo tiene su clave y su función registrada
+  (`setMutationDefaults`: `entryAddKey` / `entryRemoveKey`, `sendAddEntry` / `sendRemoveOne`).
+  La hora del registro es la del toque (la fecha vuelve como texto de AsyncStorage y se
+  convierte; test). El −1 y el día de la racha usan la hora del envío. En «Mis contadores» sale
+  «Sin conexión: lo que sumes se enviará al volver» (`useIsOnline`). Tras cerrar la app sin
+  conexión, el número optimista no se ve hasta que se envía.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

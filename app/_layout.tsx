@@ -1,4 +1,4 @@
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import {
   InstrumentSerif_400Regular,
   InstrumentSerif_400Regular_Italic,
@@ -20,6 +20,7 @@ import { usePendingInvite } from '@/features/social/pendingInvite';
 import { TutorialHost } from '@/features/tutorial/TutorialHost';
 import { useTutorialAutoStart } from '@/features/tutorial/useTutorialAutoStart';
 import { usePrefetchMain } from '@/lib/prefetch';
+import { offlinePersister, setupOffline } from '@/lib/offline';
 import { queryClient } from '@/lib/queryClient';
 import { HeaderTitle } from '@/components/HeaderTitle';
 import { TitleMeasurer, useScreenTitleSize } from '@/lib/screenTitle';
@@ -27,6 +28,9 @@ import { headerOptions, isCinema, useColorMode, useThemeColors } from '@/lib/the
 
 // La pantalla de carga (icono sobre fondo liso, ver app.json) se mantiene hasta tener las
 // fuentes y saber si hay sesión, para no enseñar un parpadeo de pantallas a medio cargar.
+// Sin conexión: los +N/−1 esperan y se envían al volver (src/lib/offline.ts).
+setupOffline(queryClient);
+
 SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ fade: true, duration: 200 });
 
@@ -157,7 +161,20 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <QueryClientProvider client={queryClient}>
+    // Los cambios hechos sin conexión se guardan en el móvil y se envían al volver (offline.ts).
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: offlinePersister,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        dehydrateOptions: {
+          // Solo lo pendiente de enviar (no los datos: esos se piden al abrir).
+          shouldDehydrateQuery: () => false,
+          shouldDehydrateMutation: (mutation) => mutation.state.isPaused,
+        },
+      }}
+      onSuccess={() => void queryClient.resumePausedMutations()}
+    >
       <AuthProvider>
         <RootNavigator />
         <UndoToastHost />
@@ -166,6 +183,6 @@ export default function RootLayout() {
         {isCinema ? <TitleMeasurer /> : null}
         <ThemedStatusBar />
       </AuthProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

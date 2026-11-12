@@ -83,7 +83,7 @@ export function useCounterActions() {
     // Paso «Suma con un toque» del tutorial (si está en marcha).
     tutorialEvent('entry-added');
     addEntry.mutate(
-      { counterId: counter.id, input },
+      { counterId: counter.id, input, common: counter.is_common },
       {
         // Hoy ya hay registro: el recordatorio de la racha de hoy sobra.
         onSuccess: () => markActiveToday(),
@@ -99,13 +99,16 @@ export function useCounterActions() {
     tap();
     // Paso «Resta 1» del tutorial (si está en marcha).
     tutorialEvent('entry-removed');
-    removeOne.mutate(counter.id, {
-      onSuccess: () => {
-        markActiveToday();
-        offerUndo(counter, '−1');
+    removeOne.mutate(
+      { counterId: counter.id, common: counter.is_common },
+      {
+        onSuccess: () => {
+          markActiveToday();
+          offerUndo(counter, '−1');
+        },
+        onError: showError,
       },
-      onError: showError,
-    });
+    );
   }
 
   function subtractOne(counter: CounterWithTotal) {

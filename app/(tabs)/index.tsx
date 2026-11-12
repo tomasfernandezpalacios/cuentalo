@@ -16,6 +16,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 
+import { useIsOnline } from '@/lib/offline';
 import { usePullRefresh } from '@/lib/usePullRefresh';
 import { appAlert } from '@/components/AppDialog';
 import { updateSettings, useSettings } from '@/features/configuracion/settings';
@@ -71,6 +72,7 @@ export default function CountersScreen() {
   const { data, error, isPending, refetch } = useCounterList();
   const folders = useFolders();
   // El círculo de recarga solo sale al tirar (no con cada refresco por detrás).
+  const online = useIsOnline();
   const pull = usePullRefresh(() => Promise.all([refetch(), folders.refetch()]));
   const deleteFolder = useDeleteFolder();
   const deleteCounters = useDeleteCounters();
@@ -523,6 +525,15 @@ export default function CountersScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <Stack.Screen options={selecting ? selectionOptions : normalOptions} />
+      {/* Sin conexión: lo que se sume se ve ya y se envía solo al volver. */}
+      {online ? null : (
+        <View style={[styles.offline, { backgroundColor: colors.elevated }]}>
+          <Ionicons name="cloud-offline-outline" size={16} color={colors.textMuted} />
+          <Text style={[styles.offlineText, { color: colors.textMuted }]}>
+            Sin conexión: lo que sumes se enviará al volver
+          </Text>
+        </View>
+      )}
       {selecting ? (
         <FolderBar
           folders={folderList}
@@ -742,6 +753,15 @@ const LIST_PADDING = 12;
 const REVEAL_MARGIN = 24;
 
 const styles = StyleSheet.create({
+  offline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  offlineText: { fontSize: 13, fontFamily: fonts.detail },
   // Las barras van de borde a borde aunque la lista tenga margen.
   bars: { marginHorizontal: -LIST_PADDING, marginTop: -LIST_PADDING, paddingBottom: 2 },
   searchWrap: { paddingHorizontal: LIST_PADDING, paddingTop: 10 },

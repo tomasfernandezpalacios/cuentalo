@@ -9,9 +9,7 @@ import {
 import { useUserId } from '@/features/auth/AuthProvider';
 
 import {
-  addToCommonCounter,
   createCounter,
-  createEntry,
   deleteCounter,
   deleteEntry,
   fetchCounter,
@@ -22,8 +20,6 @@ import {
   fetchStreakLeaderboard,
   fetchMyLastCounterId,
   mergeCounters,
-  removeOne,
-  removeOneFromCommonCounter,
   requestCommonChange,
   setHidden,
   setRemovedFromHome,
@@ -38,6 +34,15 @@ import {
   type LeaderboardPeriod,
 } from './api';
 import { optimistic, optimisticHandlers, refreshAll, type Undo } from '@/lib/queryClient';
+
+import {
+  entryAddKey,
+  entryRemoveKey,
+  sendAddEntry,
+  sendRemoveOne,
+  type AddEntryVariables,
+  type RemoveOneVariables,
+} from '@/lib/offline';
 
 import { applyCounterPhoto, type CounterPhotoChange } from './photos';
 
@@ -335,16 +340,6 @@ async function applyOptimistic(queryClient: QueryClient, counterId: string, chan
 
 type OptimisticContext = Awaited<ReturnType<typeof applyOptimistic>>;
 
-/** El contador tal y como está en la caché (detalle o lista), para saber si es común. */
-function cachedCounter(queryClient: QueryClient, counterId: string) {
-  return (
-    queryClient.getQueryData<CounterWithTotal>(counterKeys.detail(counterId)) ??
-    queryClient
-      .getQueryData<CounterWithTotal[]>(counterKeys.list())
-      ?.find((c) => c.id === counterId)
-  );
-}
-
 /**
  * Cuánto cambia el total visible y el mío al sumar `amount`. En un contador común se apunta a
  * cada participante, pero el total del grupo («entre todos») cuenta cada suma una sola vez.
@@ -408,17 +403,17 @@ function scheduleRefreshAfterEntry(queryClient: QueryClient) {
   }, REFRESH_DELAY_MS);
 }
 
-/** +N. En un contador común se suma a todos sus participantes. */
+/**
+ * +N. En un contador común se suma a todos sus participantes. Sin conexión no falla: se queda
+ * en pausa (ya se ve sumado) y se envía al volver (ver src/lib/offline.ts).
+ */
 export function useAddEntry() {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
-    mutationKey: entryMutationKey,
-    mutationFn: ({ counterId, input }: { counterId: string; input: EntryInput }) =>
-      cachedCounter(queryClient, counterId)?.is_common
-        ? addToCommonCounter(counterId, input)
-        : createEntry(counterId, input),
-    onMutate: ({ counterId, input }) => {
+    mutationKey: entryAddKey,
+    mutationFn: sendAddEntry,
+    onMutate: ({ counterId, input }: AddEntryVariables) => {
       cancelScheduledRefresh();
       return applyOptimistic(queryClient, counterId, (c) => applyAmount(c, input.amount, userId));
     },
@@ -435,15 +430,9 @@ export function useRemoveOne() {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
-    mutationKey: entryMutationKey,
-    mutationFn: async (counterId: string) => {
-      if (cachedCounter(queryClient, counterId)?.is_common) {
-        await removeOneFromCommonCounter(counterId);
-      } else {
-        await removeOne(counterId);
-      }
-    },
-    onMutate: (counterId) => {
+    mutationKey: entryRemoveKey,
+    mutationFn: sendRemoveOne,
+    onMutate: ({ counterId }: RemoveOneVariables) => {
       cancelScheduledRefresh();
       return applyOptimistic(queryClient, counterId, (c) =>
         c.is_common
@@ -453,7 +442,7 @@ export function useRemoveOne() {
             : applyAmount(c, -1, userId),
       );
     },
-    onError: (_error, _counterId, context) => rollback(queryClient, context),
+    onError: (_error, _variables, context) => rollback(queryClient, context),
     onSettled: () => scheduleRefreshAfterEntry(queryClient),
   });
 }
