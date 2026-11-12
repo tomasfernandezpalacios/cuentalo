@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Podium, PodiumNumber } from '@/components/Podium';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { getErrorMessage } from '@/lib/errors';
@@ -47,6 +48,9 @@ export function Leaderboard({
   const leaderboard = useLeaderboard(counterId, period, true);
   const streaks = useStreakLeaderboard(counterId, streak);
   const streakDays = new Map((streaks.data ?? []).map((row) => [row.userId, row.total]));
+  const rows = leaderboard.data ?? [];
+  const podium = rows.slice(0, 3).filter((row) => row.total > 0);
+  const rest = rows.slice(podium.length);
 
   return (
     <View style={styles.container}>
@@ -58,46 +62,63 @@ export function Leaderboard({
           {getErrorMessage(leaderboard.error)}
         </Text>
       ) : (
-        <View>
-          {leaderboard.data.map((row) => {
-            const isMe = row.userId === userId;
-            const medal = row.total > 0 ? MEDALS[row.position - 1] : undefined;
-            return (
-              // Tocar a otra persona abre su perfil.
-              <Pressable
-                key={row.userId}
-                onPress={() => openProfile(row.userId)}
-                disabled={isMe}
-                accessibilityRole={isMe ? undefined : 'button'}
-                accessibilityLabel={`Posición ${row.position}: ${isMe ? 'tú' : row.displayName}, ${formatWithUnit(row.total, unit)}`}
-                accessibilityHint={isMe ? undefined : 'Abre su perfil'}
-                style={({ pressed }) => [
-                  styles.row,
-                  { borderBottomColor: colors.border, opacity: pressed ? 0.7 : 1 },
-                  isMe && { backgroundColor: colors.primarySoft },
-                ]}
-              >
-                <Text style={[styles.position, { color: colors.textMuted }]}>
-                  {medal ?? row.position}
-                </Text>
-                <UserAvatar userId={row.userId} name={row.displayName} size={34} />
-                <View style={styles.info}>
-                  <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-                    {isMe ? `${row.displayName} (tú)` : row.displayName}
-                  </Text>
-                  <Text style={[styles.muted, { color: colors.textMuted }]} numberOfLines={1}>
-                    @{row.username}
-                    {streak && streakDays.has(row.userId)
-                      ? ` · 🔥 ${pluralize(streakDays.get(row.userId) ?? 0, 'día', 'días')}`
-                      : ''}
-                  </Text>
-                </View>
-                <Text style={[styles.total, { color: colors.text }]} numberOfLines={1}>
+        <View style={styles.board}>
+          {/* Los tres primeros (con algo sumado), en el podio; el resto, en la lista. */}
+          <Podium
+            entries={podium.map((row) => ({
+              userId: row.userId,
+              name: row.displayName,
+              position: row.position,
+              isMe: row.userId === userId,
+              valueLabel: formatWithUnit(row.total, unit),
+              value: (
+                <PodiumNumber color={colors.primary}>
                   {formatWithUnit(row.total, unit)}
-                </Text>
-              </Pressable>
-            );
-          })}
+                </PodiumNumber>
+              ),
+            }))}
+          />
+          <View>
+            {rest.map((row) => {
+              const isMe = row.userId === userId;
+              const medal = row.total > 0 ? MEDALS[row.position - 1] : undefined;
+              return (
+                // Tocar a otra persona abre su perfil.
+                <Pressable
+                  key={row.userId}
+                  onPress={() => openProfile(row.userId)}
+                  disabled={isMe}
+                  accessibilityRole={isMe ? undefined : 'button'}
+                  accessibilityLabel={`Posición ${row.position}: ${isMe ? 'tú' : row.displayName}, ${formatWithUnit(row.total, unit)}`}
+                  accessibilityHint={isMe ? undefined : 'Abre su perfil'}
+                  style={({ pressed }) => [
+                    styles.row,
+                    { borderBottomColor: colors.border, opacity: pressed ? 0.7 : 1 },
+                    isMe && { backgroundColor: colors.primarySoft },
+                  ]}
+                >
+                  <Text style={[styles.position, { color: colors.textMuted }]}>
+                    {medal ?? row.position}
+                  </Text>
+                  <UserAvatar userId={row.userId} name={row.displayName} size={34} />
+                  <View style={styles.info}>
+                    <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+                      {isMe ? `${row.displayName} (tú)` : row.displayName}
+                    </Text>
+                    <Text style={[styles.muted, { color: colors.textMuted }]} numberOfLines={1}>
+                      @{row.username}
+                      {streak && streakDays.has(row.userId)
+                        ? ` · 🔥 ${pluralize(streakDays.get(row.userId) ?? 0, 'día', 'días')}`
+                        : ''}
+                    </Text>
+                  </View>
+                  <Text style={[styles.total, { color: colors.text }]} numberOfLines={1}>
+                    {formatWithUnit(row.total, unit)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       )}
     </View>
@@ -106,6 +127,7 @@ export function Leaderboard({
 
 const styles = StyleSheet.create({
   container: { gap: 12 },
+  board: { gap: 12 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

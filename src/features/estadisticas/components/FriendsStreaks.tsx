@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Podium, PodiumNumber } from '@/components/Podium';
 import { useUserId } from '@/features/auth/AuthProvider';
 import { getErrorMessage } from '@/lib/errors';
 import { UserAvatar } from '@/features/perfil/PersonAvatar';
@@ -37,55 +38,86 @@ export function FriendsStreaks() {
   }
 
   // Posición con empates: quien tiene la misma racha actual comparte puesto.
+  const positioned = withPositions(rows, (r) => r.current);
+  // Los tres primeros (con racha), en el podio; el resto, en la lista.
+  const podium = positioned.slice(0, 3).filter((row) => row.current > 0);
+  const rest = positioned.slice(podium.length);
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      {withPositions(rows, (r) => r.current).map((row, index) => {
-        const { position } = row;
-        const isMe = row.userId === userId;
-        const medal = row.current > 0 ? MEDALS[position - 1] : undefined;
-        // En color solo si hoy ya ha mantenido la racha.
-        const flameColor = row.activeToday ? colors.flame : colors.textMuted;
-        return (
-          // Tocar a un amigo abre su perfil.
-          <Pressable
-            key={row.userId}
-            onPress={() => openProfile(row.userId)}
-            disabled={isMe}
-            accessibilityRole={isMe ? undefined : 'button'}
-            accessibilityLabel={`Posición ${position}: ${isMe ? 'tú' : row.displayName}, ${row.current} ${row.current === 1 ? 'día' : 'días'} de racha`}
-            accessibilityHint={isMe ? undefined : 'Abre su perfil'}
-            style={({ pressed }) => [
-              styles.row,
-              { opacity: pressed ? 0.7 : 1 },
-              index > 0 && {
-                borderTopColor: colors.border,
-                borderTopWidth: StyleSheet.hairlineWidth,
-              },
-              isMe && { backgroundColor: colors.primarySoft },
-            ]}
-          >
-            <Text style={[styles.position, { color: colors.textMuted }]}>{medal ?? position}</Text>
-            <UserAvatar userId={row.userId} name={row.displayName} size={34} />
-            <View style={styles.info}>
-              <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-                {isMe ? `${row.displayName} (tú)` : row.displayName}
-              </Text>
-              <Text style={[styles.detail, { color: colors.textMuted }]} numberOfLines={1}>
-                Mejor racha: {row.best}
-              </Text>
-            </View>
-            <View style={styles.streak}>
-              <Ionicons name="flame" size={20} color={flameColor} />
-              <Text style={[styles.number, { color: flameColor }]}>{row.current}</Text>
-            </View>
-          </Pressable>
-        );
-      })}
+    <View style={styles.board}>
+      <Podium
+        entries={podium.map((row) => {
+          const flameColor = row.activeToday ? colors.flame : colors.textMuted;
+          return {
+            userId: row.userId,
+            name: row.displayName,
+            position: row.position,
+            isMe: row.userId === userId,
+            valueLabel: `${row.current} ${row.current === 1 ? 'día' : 'días'} de racha`,
+            value: (
+              <>
+                <Ionicons name="flame" size={18} color={flameColor} />
+                <PodiumNumber color={flameColor}>{row.current}</PodiumNumber>
+              </>
+            ),
+          };
+        })}
+      />
+      {rest.length > 0 ? (
+        <View
+          style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        >
+          {rest.map((row, index) => {
+            const { position } = row;
+            const isMe = row.userId === userId;
+            const medal = row.current > 0 ? MEDALS[position - 1] : undefined;
+            // En color solo si hoy ya ha mantenido la racha.
+            const flameColor = row.activeToday ? colors.flame : colors.textMuted;
+            return (
+              // Tocar a un amigo abre su perfil.
+              <Pressable
+                key={row.userId}
+                onPress={() => openProfile(row.userId)}
+                disabled={isMe}
+                accessibilityRole={isMe ? undefined : 'button'}
+                accessibilityLabel={`Posición ${position}: ${isMe ? 'tú' : row.displayName}, ${row.current} ${row.current === 1 ? 'día' : 'días'} de racha`}
+                accessibilityHint={isMe ? undefined : 'Abre su perfil'}
+                style={({ pressed }) => [
+                  styles.row,
+                  { opacity: pressed ? 0.7 : 1 },
+                  index > 0 && {
+                    borderTopColor: colors.border,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                  },
+                  isMe && { backgroundColor: colors.primarySoft },
+                ]}
+              >
+                <Text style={[styles.position, { color: colors.textMuted }]}>
+                  {medal ?? position}
+                </Text>
+                <UserAvatar userId={row.userId} name={row.displayName} size={34} />
+                <View style={styles.info}>
+                  <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+                    {isMe ? `${row.displayName} (tú)` : row.displayName}
+                  </Text>
+                  <Text style={[styles.detail, { color: colors.textMuted }]} numberOfLines={1}>
+                    Mejor racha: {row.best}
+                  </Text>
+                </View>
+                <View style={styles.streak}>
+                  <Ionicons name="flame" size={20} color={flameColor} />
+                  <Text style={[styles.number, { color: flameColor }]}>{row.current}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  board: { gap: 12 },
   card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
   position: { width: 28, textAlign: 'center', fontSize: 18, fontFamily: fonts.title },
