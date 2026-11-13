@@ -498,8 +498,8 @@ export default function CountersScreen() {
               { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
             ]}
           >
-            {/* «+» grueso (petición del usuario). */}
-            <MaterialCommunityIcons name="plus-thick" size={30} color={colors.background} />
+            {/* «+» algo grueso, pero no tanto como «plus-thick» (petición del usuario). */}
+            <MaterialCommunityIcons name="plus" size={32} color={colors.background} />
           </Pressable>
         </TutorialTarget>
       </View>
