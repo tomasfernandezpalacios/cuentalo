@@ -14,20 +14,21 @@ const MAX_SIZE = 30;
 const MIN_SIZE = 20;
 const REFERENCE = 100;
 /**
- * Ancho de los botones de la derecha de «Mis contadores» sin contar la racha (que avisa de su
- * ancho aparte). Se deja como cuando había tres botones: el usuario quiere ese tamaño de títulos.
+ * Ancho de los botones de la derecha de «Mis contadores» (filtros, hueco de 12, el + de 46 y el
+ * margen de 14). Antes se reservaba también sitio para una racha y un tercer botón que ya no
+ * están ahí, y con la Editorial (Fraunces, muy ancha) los títulos se quedaban en 20–22: el usuario
+ * los quiere grandes (30, el tamaño de diseño).
  */
-export const HEADER_RIGHT_WIDTH = 139;
+export const HEADER_RIGHT_WIDTH = 26 + 12 + 46 + 14;
 /** Hueco entre el título y la racha. */
 export const TITLE_GAP = 12;
 /** Margen izquierdo de la cabecera, hueco entre título y racha y un poco de aire. */
 const HEADER_SPACING = 16 + TITLE_GAP + 16;
 
 let textWidthAtReference = 0;
-// Sitio que se deja para la racha al calcular el tamaño de los títulos. Fijo (el de la racha
-// pequeña): la racha ya no está junto al título que manda y el usuario quiere este tamaño, así
-// que no cambia aunque la racha cambie de sitio o de tamaño.
-let badgeWidth = 55;
+// Sitio que se deja para la racha junto al título que manda: ninguno, la racha ya no está en
+// «Mis contadores».
+let badgeWidth = 0;
 const listeners = new Set<() => void>();
 let version = 0;
 

@@ -20,12 +20,8 @@ import { headerOptions, screenTitleFont, useThemeColors } from '@/lib/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
-/**
- * Opciones de cada página: las del deslizador, las de la cabecera (que se pinta aquí), el icono
- * de la barra y, si no tiene botón propio, la pestaña de la barra que la representa.
- */
-type PageOptions = MaterialTopTabNavigationOptions &
-  HeaderOptions & { icon?: IconName; tabOf?: string };
+/** Opciones de cada página: las del deslizador, las de la cabecera (que se pinta aquí) y el icono. */
+type PageOptions = MaterialTopTabNavigationOptions & HeaderOptions & { icon?: IconName };
 
 function pageOptions(options: PageOptions): MaterialTopTabNavigationOptions {
   return options;
@@ -39,8 +35,7 @@ const TUTORIAL_TARGETS: Record<string, TargetId> = {
 
 /**
  * Barra del estilo Cine: una cápsula flotante sin textos. La píldora dorada suave de la pestaña
- * activa se desliza siguiendo al dedo mientras se pasa de una página a otra (`position`). Amigos
- * no tiene botón propio: es una página de «Social» (`tabOf`).
+ * activa se desliza siguiendo al dedo mientras se pasa de una página a otra (`position`).
  */
 function CinemaTabBar({
   state,
@@ -52,22 +47,14 @@ function CinemaTabBar({
   const colors = useThemeColors();
   const [width, setWidth] = useState(0);
   const optionsOf = (key: string) => descriptors[key]?.options as PageOptions | undefined;
-  const buttons = state.routes.filter((route) => !optionsOf(route.key)?.tabOf);
+  const buttons = state.routes;
   const slot = buttons.length > 0 ? width / buttons.length : 0;
-  // Hueco de la barra de cada página (en orden), para mover la píldora con el deslizador.
-  const slots = state.routes.map((route) => {
-    const name = optionsOf(route.key)?.tabOf ?? route.name;
-    return Math.max(
-      0,
-      buttons.findIndex((b) => b.name === name),
-    );
-  });
-  const activeSlot = slots[state.index] ?? 0;
+  const activeSlot = state.index;
   const translateX =
     state.routes.length > 1
       ? position.interpolate({
           inputRange: state.routes.map((_, i) => i),
-          outputRange: slots.map((s) => s * slot),
+          outputRange: state.routes.map((_, i) => i * slot),
           extrapolate: 'clamp',
         })
       : 0;
@@ -133,7 +120,7 @@ function CinemaTabBar({
  * Las pestañas grandes son páginas una al lado de otra (petición del usuario): la página sigue
  * al dedo y, si se suelta a medias, se ven las dos hasta que termina de asentarse, igual que una
  * galería (react-native-tab-view con el deslizador nativo de react-native-pager-view). Orden:
- * Mis contadores, Estadísticas, Grupos, Amigos y Mi perfil. La cabecera de cada página se pinta
+ * Mis contadores, Estadísticas, Social (con Grupos y Amigos dentro) y Mi perfil. La cabecera de cada página se pinta
  * aquí con la de React Navigation y las mismas opciones de siempre.
  */
 export default function TabsLayout() {
@@ -201,7 +188,6 @@ export default function TabsLayout() {
                 : undefined,
           })}
         />
-        <TopTabs.Screen name="amigos" options={pageOptions({ title: 'Social', tabOf: 'social' })} />
         <TopTabs.Screen
           name="perfil"
           options={pageOptions({

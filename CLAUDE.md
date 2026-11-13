@@ -805,16 +805,20 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - **Racha en Estadísticas** (petición del usuario): sale de «Mis contadores» y va a la derecha
   del título «Estadísticas», en tamaño normal (`headerTitle` propio en `app/(tabs)/_layout.tsx`);
   el paso de la racha del tutorial va a Estadísticas para enseñarla (`screen: '/estadisticas'`).
-  El tamaño común de los títulos ya **no** depende de la racha: se reserva un ancho fijo (55,
-  el de la racha pequeña) en `screenTitle.tsx`, porque el usuario quiere ese tamaño. El botón
+  El tamaño común de los títulos ya **no** depende de la racha. **Títulos grandes** (petición del
+  usuario, que se quejó dos veces de que salían pequeños): solo se reserva lo que hay de verdad a
+  la derecha de «Mis contadores» (filtros y +, `HEADER_RIGHT_WIDTH` = 98) y nada para la racha;
+  con Fraunces ExtraBold sale 30 (28–29 en móviles estrechos). Antes se reservaban 139 + 55 y
+  salía 20–22. El botón
   del resumen vuelve a ser solo el libro (con «Resumen vital» la primera vez).
 - **Pestañas como páginas** (petición del usuario: deslizar suave, siguiendo al dedo; a medias
   se ven las dos): `app/(tabs)/_layout.tsx` usa `TopTabs` de `expo-router/js-top-tabs`
   (react-native-tab-view + react-native-pager-view, incluido en Expo Go) con `tabBarPosition:
-  'bottom'`. Páginas: Mis contadores, Estadísticas, Grupos (`social`), Amigos (`amigos`) y Mi
-  perfil. Grupos y Amigos son dos páginas del deslizador principal (`SocialPage`), así de Grupos
-  se pasa a Estadísticas y de Amigos a Mi perfil; su selector y la píldora de la barra siguen la
-  posición del deslizador (`useTabAnimation`). Amigos no tiene botón (`tabOf: 'social'`). La
+  'bottom'`. Páginas: Mis contadores, Estadísticas, Social y Mi perfil. Grupos y Amigos van
+  **dentro de la misma pestaña** Social, con su deslizador propio como antes (petición del
+  usuario; se probaron como dos páginas del deslizador principal y no le gustó): Social tiene
+  `swipeEnabled: false` y, desde los bordes, deslizar a la derecha en Grupos lleva a
+  Estadísticas y a la izquierda en Amigos a Mi perfil (`onTouchEnd`). La
   barra Cine es propia (`CinemaTabBar`) y la cabecera de cada página la pinta `screenLayout` con
   el `Header` de React Navigation y las opciones de siempre (`Stack.Screen` en las pantallas
   sigue funcionando). Todas las páginas se dibujan desde el principio (`lazy: false`) y la
