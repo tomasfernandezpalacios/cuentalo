@@ -59,12 +59,13 @@ function RootNavigator() {
   useReminderSync(isSignedIn);
   useTutorialAutoStart(isSignedIn);
   useTimeZoneSync(isSignedIn);
-  // Las pestañas principales, cargadas por detrás: cambiar de pestaña es instantáneo.
-  usePrefetchMain(isSignedIn);
+  // Las pestañas principales, cargadas por detrás mientras sigue la pantalla de carga: al
+  // entrar, todas tienen ya sus datos y están dibujadas (cambiar de pestaña es instantáneo).
+  const mainReady = usePrefetchMain(isSignedIn && !isLoading);
 
   useEffect(() => {
-    if (!isLoading) SplashScreen.hideAsync();
-  }, [isLoading]);
+    if (!isLoading && mainReady) SplashScreen.hideAsync();
+  }, [isLoading, mainReady]);
 
   if (isLoading) return null;
 

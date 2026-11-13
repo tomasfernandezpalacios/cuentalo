@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useUserId } from '@/features/auth/AuthProvider';
 import { fetchCounters } from '@/features/contadores/api';
@@ -21,9 +21,18 @@ import { socialKeys } from '@/features/social/hooks';
  * usan sus pantallas. Así, al cambiar de pestaña ya está todo y se ve al instante, sin
  * «cargando». Si algo falla aquí no pasa nada: la pantalla lo vuelve a pedir al abrirse.
  */
-export function usePrefetchMain(isSignedIn: boolean) {
+/** Lo más que se espera a los datos antes de quitar la pantalla de carga (milisegundos). */
+const MAX_WAIT_MS = 4000;
+
+/**
+ * Devuelve si ya ha terminado (o se ha esperado bastante): mientras tanto sigue la pantalla de
+ * carga y, detrás, se dibujan todas las pestañas con sus datos, así al entrar no sale nada en
+ * blanco (petición del usuario).
+ */
+export function usePrefetchMain(isSignedIn: boolean): boolean {
   const queryClient = useQueryClient();
   const userId = useUserId();
+  const [readyFor, setReadyFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isSignedIn || userId === '') return;
@@ -47,6 +56,19 @@ export function usePrefetchMain(isSignedIn: boolean) {
       { queryKey: profileKeys.detail(userId), queryFn: () => fetchProfile(userId) },
       { queryKey: folderKeys.all(userId), queryFn: fetchFolders },
     ];
-    for (const query of prefetch) void queryClient.prefetchQuery(query);
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      setReadyFor(userId);
+    };
+    const timer = setTimeout(finish, MAX_WAIT_MS);
+    void Promise.allSettled(prefetch.map((query) => queryClient.prefetchQuery(query))).then(finish);
+    return () => {
+      done = true;
+      clearTimeout(timer);
+    };
   }, [isSignedIn, userId, queryClient]);
+
+  return !isSignedIn || userId === '' || readyFor === userId;
 }

@@ -158,10 +158,9 @@ export default function TabsLayout() {
         )}
         screenOptions={pageOptions({
           ...headerOptions(colors, titleSize),
-          // Primero la página que se abre y enseguida todas las demás, para que al deslizar la
-          // de al lado ya esté dibujada (sin huecos ni destellos).
-          lazy: true,
-          lazyPreloadDistance: 4,
+          // Todas las páginas se dibujan desde el principio (detrás de la pantalla de carga): al
+          // deslizar o cambiar de pestaña, la otra ya está lista, nunca en blanco.
+          lazy: false,
         })}
       >
         <TopTabs.Screen

@@ -817,7 +817,9 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   posición del deslizador (`useTabAnimation`). Amigos no tiene botón (`tabOf: 'social'`). La
   barra Cine es propia (`CinemaTabBar`) y la cabecera de cada página la pinta `screenLayout` con
   el `Header` de React Navigation y las opciones de siempre (`Stack.Screen` en las pantallas
-  sigue funcionando). Carga perezosa con `lazyPreloadDistance: 4`. Mientras se arrastra una
+  sigue funcionando). Todas las páginas se dibujan desde el principio (`lazy: false`) y la
+  pantalla de carga sigue hasta que `usePrefetchMain` tiene los datos de todas (máx. 4 s), para
+  que al entrar ninguna pestaña salga en blanco (petición del usuario). Mientras se arrastra una
   tarjeta en «Mis contadores», `swipeEnabled: false`. (Antes: Tabs abajo + un gesto que
   cambiaba de golpe, «brusco».)
 - Al crear un contador, la unidad se propone ya escrita con la primera palabra del nombre en
