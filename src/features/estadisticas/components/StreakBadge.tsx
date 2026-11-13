@@ -7,10 +7,11 @@ import { fonts, useThemeColors } from '@/lib/theme';
 import { useStreak } from '../api';
 
 /**
- * Rectángulo con el fuego y los días de racha, junto al título de «Mis contadores». En color si
- * hoy ya se ha mantenido; en gris si aún no. Abre la pantalla de racha.
+ * Rectángulo con el fuego y los días de racha, en la cabecera de «Mis contadores» (junto a las
+ * herramientas de la derecha, en tamaño compacto). En color si hoy ya se ha mantenido; en gris
+ * si aún no. Abre la pantalla de racha.
  */
-export function StreakBadge() {
+export function StreakBadge({ compact = false }: { compact?: boolean }) {
   const colors = useThemeColors();
   const streak = useStreak();
   const days = streak.data?.current ?? 0;
@@ -26,6 +27,7 @@ export function StreakBadge() {
       hitSlop={8}
       style={({ pressed }) => [
         styles.badge,
+        compact && styles.compact,
         {
           backgroundColor: done ? `${colors.flame}1F` : colors.background,
           borderColor: done ? colors.flame : colors.border,
@@ -33,8 +35,11 @@ export function StreakBadge() {
         },
       ]}
     >
-      <Ionicons name="flame" size={26} color={color} />
-      <Text style={[styles.number, { color }]} maxFontSizeMultiplier={1.3}>
+      <Ionicons name="flame" size={compact ? 18 : 26} color={color} />
+      <Text
+        style={[styles.number, compact && styles.compactNumber, { color }]}
+        maxFontSizeMultiplier={1.3}
+      >
         {days}
       </Text>
     </Pressable>
@@ -53,4 +58,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   number: { fontSize: 20, fontFamily: fonts.title },
+  // Más pequeño (petición del usuario), para ir junto a los botones de la cabecera.
+  compact: { gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, borderWidth: 1 },
+  compactNumber: { fontSize: 15 },
 });

@@ -447,26 +447,28 @@ export default function CountersScreen() {
 
   const normalOptions = {
     headerLeft: undefined,
-    // Título con el fuego de la racha a su derecha.
     headerTitle: () => (
       <View style={styles.title}>
         <Text
           style={[styles.titleText, { color: colors.text }, isCinema && { fontSize: titleSize }]}
           numberOfLines={1}
         >
-          Contadores
+          Mis contadores
         </Text>
-        {/* Su ancho decide el tamaño de todos los títulos (para que nada se solape). */}
-        <View onLayout={(e) => reportBadgeWidth(e.nativeEvent.layout.width)}>
-          <TutorialTarget id="racha">
-            <StreakBadge />
-          </TutorialTarget>
-        </View>
       </View>
     ),
     headerRight: () => (
       // Fusionar ya no está aquí: solo en el modo selección (al mantener pulsado un contador).
-      <View style={styles.headerActions}>
+      // collapsable={false}: con varios botones en la cabecera de Android, si no, los toques
+      // pueden no llegar.
+      <View collapsable={false} style={styles.headerActions}>
+        {/* La racha, pequeña y junto a las herramientas (petición del usuario). Su ancho cuenta
+            para el tamaño de todos los títulos (para que nada se solape). */}
+        <View onLayout={(e) => reportBadgeWidth(e.nativeEvent.layout.width)}>
+          <TutorialTarget id="racha">
+            <StreakBadge compact />
+          </TutorialTarget>
+        </View>
         <Pressable
           onPress={() => setFiltersOpen(true)}
           accessibilityRole="button"

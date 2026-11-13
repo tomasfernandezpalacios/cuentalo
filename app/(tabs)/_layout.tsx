@@ -113,7 +113,7 @@ export default function TabsLayout() {
       >
         <Tabs.Screen
           name="index"
-          options={{ title: 'Contadores', tabBarIcon: tabIcon('add-circle-outline') }}
+          options={{ title: 'Mis contadores', tabBarIcon: tabIcon('add-circle-outline') }}
         />
         <Tabs.Screen
           name="estadisticas"

@@ -14,8 +14,8 @@ const MAX_SIZE = 30;
 const MIN_SIZE = 20;
 const REFERENCE = 100;
 /**
- * Ancho de los botones de la derecha de «Contadores». Se deja como cuando había tres botones
- * (también fusionar): el usuario quiere el tamaño de títulos de entonces.
+ * Ancho de los botones de la derecha de «Mis contadores» sin contar la racha (que avisa de su
+ * ancho aparte). Se deja como cuando había tres botones: el usuario quiere ese tamaño de títulos.
  */
 export const HEADER_RIGHT_WIDTH = 139;
 /** Hueco entre el título y la racha. */
@@ -81,8 +81,6 @@ export function TitleMeasurer() {
           emit();
         }}
       >
-        {/* Se sigue midiendo con «Mis contadores» aunque la pestaña se llame «Contadores»: el
-            usuario prefiere el tamaño de títulos que salía así. */}
         Mis contadores
       </Text>
     </View>

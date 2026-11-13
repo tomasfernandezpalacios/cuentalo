@@ -783,9 +783,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   (la última letra se sale de su caja); los botones rápidos tienen ancho **mínimo** 36 (no fijo)
   y su número se ajusta al botón (`adjustsFontSizeToFit`), y el selector y las carpetas reducen
   un poco la letra antes de cortar.
-- La pestaña «Mis contadores» se llama **«Contadores»** (petición del usuario). El tamaño común
-  de los títulos se sigue midiendo con «Mis contadores» (`TitleMeasurer`): el usuario prefiere
-  ese tamaño.
+- La pestaña se llamó un tiempo «Contadores» y **volvió a «Mis contadores»** al pasar la racha
+  a la derecha (petición del usuario): la racha va ahora **pequeña** (`StreakBadge compact`) en
+  `headerRight`, junto a filtros y +, y el título queda solo. El tamaño común de los títulos se
+  mide con «Mis contadores» y el ancho de la racha (`reportBadgeWidth`) igual que antes.
 
 - La pestaña «Amigos y grupos» se llama **«Social»** (petición del usuario), también en los
   textos que la mencionan y en el paso del tutorial. (Las notas anteriores de este archivo que
