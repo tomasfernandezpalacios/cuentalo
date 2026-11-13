@@ -802,6 +802,22 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   el modo selección (mantener pulsado un contador). `HEADER_RIGHT_WIDTH` sigue en 139 para no
   cambiar el tamaño de los títulos.
 
+- **Racha en Estadísticas** (petición del usuario): sale de «Mis contadores» y va a la derecha
+  del título «Estadísticas», en tamaño normal (`headerTitle` propio en `app/(tabs)/_layout.tsx`);
+  el paso de la racha del tutorial va a Estadísticas para enseñarla (`screen: '/estadisticas'`).
+  El tamaño común de los títulos ya **no** depende de la racha: se reserva un ancho fijo (55,
+  el de la racha pequeña) en `screenTitle.tsx`, porque el usuario quiere ese tamaño. El botón
+  del resumen vuelve a ser solo el libro (con «Resumen vital» la primera vez).
+- **Pasar de pestaña deslizando** (petición del usuario): `TabSwipeArea` envuelve cada pestaña
+  (`screenLayout` de las Tabs) y un deslizamiento claramente horizontal lleva a la de al lado
+  (orden: Mis contadores, Estadísticas, Social, Perfil); cambio con `animation: 'shift'`. Las
+  zonas que ya se desplazan de lado (carpetas, Grupos/Amigos, gráficas) se quedan su gesto.
+- Perfil: banda horizontal del color de destaque (10 %) de borde a borde, detrás de la foto
+  (120 de alto, centrada con ella; la foto lleva un aro del color del fondo).
+- Al crear un contador, la unidad se propone ya escrita con la primera palabra del nombre en
+  minúscula («Países visitados» → «países»; `suggestUnit` en `src/features/contadores/unit.ts`,
+  con tests) mientras no se toque el campo.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

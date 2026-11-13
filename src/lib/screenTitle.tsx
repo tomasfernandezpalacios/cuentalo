@@ -24,7 +24,10 @@ export const TITLE_GAP = 12;
 const HEADER_SPACING = 16 + TITLE_GAP + 16;
 
 let textWidthAtReference = 0;
-let badgeWidth = 72;
+// Sitio que se deja para la racha al calcular el tamaño de los títulos. Fijo (el de la racha
+// pequeña): la racha ya no está junto al título que manda y el usuario quiere este tamaño, así
+// que no cambia aunque la racha cambie de sitio o de tamaño.
+let badgeWidth = 55;
 const listeners = new Set<() => void>();
 let version = 0;
 

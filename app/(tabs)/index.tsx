@@ -48,14 +48,13 @@ import {
   useSetRemovedFromHome,
 } from '@/features/contadores/hooks';
 import { useCounterActions } from '@/features/contadores/useCounterActions';
-import { StreakBadge } from '@/features/estadisticas/components/StreakBadge';
 import { useCounterOrder, useSetCounterOrder } from '@/features/perfil/birthDate';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
 import { applyOrder } from '@/lib/reorder';
 import { matchesSearch } from '@/lib/search';
 import { useDragReorder } from '@/lib/useDragReorder';
-import { reportBadgeWidth, TITLE_GAP, useScreenTitleSize } from '@/lib/screenTitle';
+import { TITLE_GAP, useScreenTitleSize } from '@/lib/screenTitle';
 import { fonts, isCinema, screenTitleFont, useThemeColors } from '@/lib/theme';
 
 function openNewCounter() {
@@ -462,13 +461,6 @@ export default function CountersScreen() {
       // collapsable={false}: con varios botones en la cabecera de Android, si no, los toques
       // pueden no llegar.
       <View collapsable={false} style={styles.headerActions}>
-        {/* La racha, pequeña y junto a las herramientas (petición del usuario). Su ancho cuenta
-            para el tamaño de todos los títulos (para que nada se solape). */}
-        <View onLayout={(e) => reportBadgeWidth(e.nativeEvent.layout.width)}>
-          <TutorialTarget id="racha">
-            <StreakBadge compact />
-          </TutorialTarget>
-        </View>
         <Pressable
           onPress={() => setFiltersOpen(true)}
           accessibilityRole="button"

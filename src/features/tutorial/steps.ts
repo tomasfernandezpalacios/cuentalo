@@ -30,7 +30,7 @@ export type StepId =
   | 'done';
 
 /** Pantalla en la que se enseña el paso (el tutorial va a ella al llegar, salvo `userNavigates`). */
-export type TutorialScreen = '/' | '/contadores/nuevo';
+export type TutorialScreen = '/' | '/contadores/nuevo' | '/estadisticas';
 
 export type Step = {
   id: StepId;
@@ -132,6 +132,8 @@ const ALL_STEPS: Step[] = [
     title: 'Tus estadísticas son más potentes si registras cada día 🔥',
     text: 'Tu racha cuenta los días seguidos en los que apuntas algo. Si un día no registras nada, vuelve a 0.',
     target: 'racha',
+    // La racha está en la cabecera de Estadísticas: el tutorial va allí para enseñarla.
+    screen: '/estadisticas',
   },
   {
     id: 'done',

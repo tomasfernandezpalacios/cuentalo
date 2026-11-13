@@ -2,14 +2,23 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Tabs } from 'expo-router';
 import { PlatformPressable } from 'expo-router/react-navigation';
 import type { ComponentProps } from 'react';
-import { type ColorValue, Pressable, StyleSheet, View } from 'react-native';
+import { type ColorValue, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useInboxCount } from '@/features/social/hooks';
 import type { TargetId } from '@/features/tutorial/steps';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
-import { fonts, headerOptions, isCinema, type ThemeColors, useThemeColors } from '@/lib/theme';
-import { useScreenTitleSize } from '@/lib/screenTitle';
+import {
+  fonts,
+  headerOptions,
+  isCinema,
+  screenTitleFont,
+  type ThemeColors,
+  useThemeColors,
+} from '@/lib/theme';
+import { TITLE_GAP, useScreenTitleSize } from '@/lib/screenTitle';
+import { StreakBadge } from '@/features/estadisticas/components/StreakBadge';
+import { TabSwipeArea } from '@/components/TabSwipeArea';
 import { SummaryButton } from '@/features/estadisticas/components/SummaryButton';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -99,7 +108,15 @@ export default function TabsLayout() {
     // Fondo detrás de la barra (en el estilo Cine se ve alrededor de la cápsula).
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Tabs
+        // Deslizar de lado pasa a la pestaña de al lado (TabSwipeArea).
+        screenLayout={({ children, route, navigation }) => (
+          <TabSwipeArea routeName={route.name} navigate={(name) => navigation.navigate(name)}>
+            {children}
+          </TabSwipeArea>
+        )}
         screenOptions={{
+          // Al cambiar de pestaña, la nueva entra deslizándose desde su lado.
+          animation: 'shift',
           ...headerOptions(colors, titleSize),
           ...(isCinema
             ? cinemaTabBar(colors, insets.bottom)
@@ -121,7 +138,22 @@ export default function TabsLayout() {
             title: 'Estadísticas',
             tabBarIcon: tabIcon('bar-chart-outline'),
             tabBarButton: tabButton('tab-estadisticas'),
-            // «Generar resumen» (la primera vez) o el libro: abre el resumen de tu vida.
+            // Título con la racha a su derecha (como antes en «Mis contadores», petición del
+            // usuario). La racha no cambia el tamaño común de los títulos.
+            headerTitle: () => (
+              <View style={styles.titleRow}>
+                <Text
+                  style={[screenTitleFont(titleSize), { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  Estadísticas
+                </Text>
+                <TutorialTarget id="racha">
+                  <StreakBadge />
+                </TutorialTarget>
+              </View>
+            ),
+            // «Resumen vital» (la primera vez) o el libro: abre el resumen de tu vida.
             headerRight: () => <SummaryButton />,
           }}
         />
@@ -167,6 +199,7 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   tabTarget: { flex: 1 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: TITLE_GAP },
   cinemaTab: {
     flex: 1,
     alignItems: 'center',

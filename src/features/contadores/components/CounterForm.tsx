@@ -16,6 +16,7 @@ import { fonts, proseFont, useThemeColors } from '@/lib/theme';
 import { LIMITS, validateOptionalText, validateRequiredText } from '@/lib/validation';
 
 import type { CounterInput } from '../api';
+import { suggestUnit } from '../unit';
 import { type CounterPhotoChange, useCounterPhotoUrl } from '../photos';
 
 import { CommonCounterInfo, StreakFormatInfo } from './CommonCounterInfo';
@@ -78,7 +79,11 @@ export function CounterForm({
 }: Props) {
   const colors = useThemeColors();
   const [name, setName] = useState(initial?.name ?? '');
-  const [unit, setUnit] = useState(initial?.unit ?? '');
+  const [typedUnit, setUnit] = useState(initial?.unit ?? '');
+  // Al crear, mientras no se toque la unidad, se propone ya escrita la primera palabra del
+  // nombre («Kilómetros» → «kilómetros», «Países visitados» → «países»; petición del usuario).
+  const [unitTouched, setUnitTouched] = useState(Boolean(initial));
+  const unit = unitTouched ? typedUnit : suggestUnit(name);
   const [emoji, setEmoji] = useState(initial?.emoji ?? '');
   // Icono: emoticono o foto (petición del usuario), como la imagen de los grupos.
   const [imageMode, setImageMode] = useState<'emoji' | 'photo'>(
@@ -223,6 +228,7 @@ export function CounterForm({
                     setName(idea.name);
                     setEmoji(idea.emoji);
                     setUnit(idea.unit);
+                    setUnitTouched(true);
                     tutorialEvent('idea-chosen');
                   }}
                   accessibilityRole="button"
@@ -312,7 +318,10 @@ export function CounterForm({
         <TextField
           label="Unidad (opcional)"
           value={unit}
-          onChangeText={setUnit}
+          onChangeText={(value) => {
+            setUnitTouched(true);
+            setUnit(value);
+          }}
           error={errors.unit}
           placeholder="ej. cervezas, libros, km"
           maxLength={LIMITS.unit}
