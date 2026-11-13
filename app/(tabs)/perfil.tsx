@@ -39,19 +39,12 @@ export default function ProfileScreen() {
       }
     >
       <View style={styles.header} accessible>
-        {/* Banda del color de destaque (el 10 % del tema) que pasa de borde a borde por detrás
-            de la foto (petición del usuario). */}
-        <View style={styles.avatarArea}>
-          <View style={[styles.banner, { backgroundColor: colors.primary }]} />
-          <View style={[styles.avatarRing, { borderColor: colors.background }]}>
-            <PersonAvatar
-              name={profile.data.display_name}
-              emoji={profile.data.emoji}
-              photoPath={profile.data.photo_path}
-              size={96}
-            />
-          </View>
-        </View>
+        <PersonAvatar
+          name={profile.data.display_name}
+          emoji={profile.data.emoji}
+          photoPath={profile.data.photo_path}
+          size={96}
+        />
         <Text style={[styles.name, { color: colors.text }]}>{profile.data.display_name}</Text>
         <Text style={[styles.detail, { color: colors.textMuted }]}>@{profile.data.username}</Text>
         {session?.user.email ? (
@@ -84,11 +77,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   content: { padding: 20, gap: 24 },
   header: { alignItems: 'center', gap: 4, marginTop: 8 },
-  // De borde a borde (el contenido tiene 20 de margen a cada lado).
-  avatarArea: { alignSelf: 'stretch', alignItems: 'center', marginHorizontal: -20 },
-  // El triple de gruesa que al principio (petición del usuario), centrada con la foto.
-  banner: { position: 'absolute', left: 0, right: 0, top: -8, height: 120 },
-  avatarRing: { borderWidth: 4, borderRadius: 999 },
   name: { ...displayFont(26), marginTop: 8 },
   detail: { fontSize: 15, fontFamily: fonts.detail },
 });

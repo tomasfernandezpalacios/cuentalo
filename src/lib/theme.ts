@@ -93,7 +93,10 @@ const startMode: 'light' | 'dark' = (() => {
  * Color del texto con el que arrancó la app (para el engrosado de la serif, que se calcula una
  * vez): el de la paleta de prueba, si hay una, o el de Cine en su modo.
  */
-const startPalette = getSettings().palette;
+// Una paleta que no existe (o ajustes sin ella) cuenta como la de siempre.
+const startPalette = PALETTES[getSettings().palette as keyof typeof PALETTES]
+  ? (getSettings().palette as keyof typeof PALETTES)
+  : 'cine';
 const startText =
   startPalette !== 'cine' ? PALETTES[startPalette].colors.text : cinemaPalette[startMode].text;
 

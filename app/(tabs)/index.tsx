@@ -523,7 +523,13 @@ export default function CountersScreen() {
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={selecting ? selectionOptions : normalOptions} />
+      {/* Mientras se arrastra una tarjeta, las páginas no se deslizan (el gesto es del arrastre). */}
+      <Stack.Screen
+        options={{
+          ...(selecting ? selectionOptions : normalOptions),
+          ...({ swipeEnabled: !drag.dragging } as object),
+        }}
+      />
       {/* Sin conexión: lo que se sume se ve ya y se envía solo al volver. */}
       {online ? null : (
         <View style={[styles.offline, { backgroundColor: colors.elevated }]}>

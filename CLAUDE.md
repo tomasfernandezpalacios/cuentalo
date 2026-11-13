@@ -808,12 +808,18 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   El tamaño común de los títulos ya **no** depende de la racha: se reserva un ancho fijo (55,
   el de la racha pequeña) en `screenTitle.tsx`, porque el usuario quiere ese tamaño. El botón
   del resumen vuelve a ser solo el libro (con «Resumen vital» la primera vez).
-- **Pasar de pestaña deslizando** (petición del usuario): `TabSwipeArea` envuelve cada pestaña
-  (`screenLayout` de las Tabs) y un deslizamiento claramente horizontal lleva a la de al lado
-  (orden: Mis contadores, Estadísticas, Social, Perfil); cambio con `animation: 'shift'`. Las
-  zonas que ya se desplazan de lado (carpetas, Grupos/Amigos, gráficas) se quedan su gesto.
-- Perfil: banda horizontal del color de destaque (10 %) de borde a borde, detrás de la foto
-  (120 de alto, centrada con ella; la foto lleva un aro del color del fondo).
+- **Pestañas como páginas** (petición del usuario: deslizar suave, siguiendo al dedo; a medias
+  se ven las dos): `app/(tabs)/_layout.tsx` usa `TopTabs` de `expo-router/js-top-tabs`
+  (react-native-tab-view + react-native-pager-view, incluido en Expo Go) con `tabBarPosition:
+  'bottom'`. Páginas: Mis contadores, Estadísticas, Grupos (`social`), Amigos (`amigos`) y Mi
+  perfil. Grupos y Amigos son dos páginas del deslizador principal (`SocialPage`), así de Grupos
+  se pasa a Estadísticas y de Amigos a Mi perfil; su selector y la píldora de la barra siguen la
+  posición del deslizador (`useTabAnimation`). Amigos no tiene botón (`tabOf: 'social'`). La
+  barra Cine es propia (`CinemaTabBar`) y la cabecera de cada página la pinta `screenLayout` con
+  el `Header` de React Navigation y las opciones de siempre (`Stack.Screen` en las pantallas
+  sigue funcionando). Carga perezosa con `lazyPreloadDistance: 4`. Mientras se arrastra una
+  tarjeta en «Mis contadores», `swipeEnabled: false`. (Antes: Tabs abajo + un gesto que
+  cambiaba de golpe, «brusco».)
 - Al crear un contador, la unidad se propone ya escrita con la primera palabra del nombre en
   minúscula («Países visitados» → «países»; `suggestUnit` en `src/features/contadores/unit.ts`,
   con tests) mientras no se toque el campo.

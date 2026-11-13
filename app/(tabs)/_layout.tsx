@@ -1,145 +1,179 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, Tabs } from 'expo-router';
-import { PlatformPressable } from 'expo-router/react-navigation';
-import type { ComponentProps } from 'react';
-import { type ColorValue, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import {
+  TopTabs,
+  type MaterialTopTabBarProps,
+  type MaterialTopTabNavigationOptions,
+} from 'expo-router/js-top-tabs';
+import { getHeaderTitle, Header, type HeaderOptions } from 'expo-router/react-navigation';
+import { type ComponentProps, useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { StreakBadge } from '@/features/estadisticas/components/StreakBadge';
+import { SummaryButton } from '@/features/estadisticas/components/SummaryButton';
 import { useInboxCount } from '@/features/social/hooks';
 import type { TargetId } from '@/features/tutorial/steps';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
-import {
-  fonts,
-  headerOptions,
-  isCinema,
-  screenTitleFont,
-  type ThemeColors,
-  useThemeColors,
-} from '@/lib/theme';
 import { TITLE_GAP, useScreenTitleSize } from '@/lib/screenTitle';
-import { StreakBadge } from '@/features/estadisticas/components/StreakBadge';
-import { TabSwipeArea } from '@/components/TabSwipeArea';
-import { SummaryButton } from '@/features/estadisticas/components/SummaryButton';
+import { headerOptions, screenTitleFont, useThemeColors } from '@/lib/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
-function tabIcon(name: IconName) {
-  return function TabIcon({ color, size }: { color: ColorValue; size: number }) {
-    // Los tintes de la barra son siempre strings del tema; los tipos de ambas librerías no encajan.
-    return (
-      <Ionicons name={name} color={typeof color === 'string' ? color : undefined} size={size} />
-    );
-  };
+/**
+ * Opciones de cada página: las del deslizador, las de la cabecera (que se pinta aquí), el icono
+ * de la barra y, si no tiene botón propio, la pestaña de la barra que la representa.
+ */
+type PageOptions = MaterialTopTabNavigationOptions &
+  HeaderOptions & { icon?: IconName; tabOf?: string };
+
+function pageOptions(options: PageOptions): MaterialTopTabNavigationOptions {
+  return options;
 }
 
-type TabButtonProps = ComponentProps<typeof PlatformPressable>;
+/** Pestañas que ilumina el tutorial. */
+const TUTORIAL_TARGETS: Record<string, TargetId> = {
+  estadisticas: 'tab-estadisticas',
+  social: 'tab-social',
+};
 
 /**
- * Botón de pestaña del estilo Cine: la librería pone el icono arriba y pinta la pestaña activa
- * como un rectángulo, así que se dibuja aquí: icono centrado y, si está activa, una píldora de
- * dorado suave (sin blanco).
+ * Barra del estilo Cine: una cápsula flotante sin textos. La píldora dorada suave de la pestaña
+ * activa se desliza siguiendo al dedo mientras se pasa de una página a otra (`position`). Amigos
+ * no tiene botón propio: es una página de «Social» (`tabOf`).
  */
-function CinemaTabButton({ style: _style, children, ...props }: TabButtonProps) {
+function CinemaTabBar({
+  state,
+  descriptors,
+  navigateToTab,
+  position,
+  insets,
+}: MaterialTopTabBarProps) {
   const colors = useThemeColors();
-  const selected = props['aria-selected'] === true;
+  const [width, setWidth] = useState(0);
+  const optionsOf = (key: string) => descriptors[key]?.options as PageOptions | undefined;
+  const buttons = state.routes.filter((route) => !optionsOf(route.key)?.tabOf);
+  const slot = buttons.length > 0 ? width / buttons.length : 0;
+  // Hueco de la barra de cada página (en orden), para mover la píldora con el deslizador.
+  const slots = state.routes.map((route) => {
+    const name = optionsOf(route.key)?.tabOf ?? route.name;
+    return Math.max(
+      0,
+      buttons.findIndex((b) => b.name === name),
+    );
+  });
+  const activeSlot = slots[state.index] ?? 0;
+  const translateX =
+    state.routes.length > 1
+      ? position.interpolate({
+          inputRange: state.routes.map((_, i) => i),
+          outputRange: slots.map((s) => s * slot),
+          extrapolate: 'clamp',
+        })
+      : 0;
+
   return (
-    <PlatformPressable
-      {...props}
-      android_ripple={{ color: 'transparent' }}
-      style={[
-        styles.cinemaTab,
-        selected && { backgroundColor: colors.primarySoft, borderColor: colors.primary },
-      ]}
+    <View
+      style={[styles.bar, { backgroundColor: colors.surface, marginBottom: insets.bottom + 12 }]}
+      accessibilityRole="tablist"
     >
-      {children}
-    </PlatformPressable>
+      <View style={styles.items} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+        {width > 0 ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.pill,
+              {
+                width: slot - 8,
+                backgroundColor: colors.primarySoft,
+                borderColor: colors.primary,
+                transform: [{ translateX }],
+              },
+            ]}
+          />
+        ) : null}
+        {buttons.map((route, index) => {
+          const options = optionsOf(route.key);
+          const selected = index === activeSlot;
+          const color = selected ? colors.primary : colors.textMuted;
+          const button = (
+            <Pressable
+              key={route.key}
+              onPress={() => {
+                if (!selected) navigateToTab(route.key);
+              }}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              accessibilityLabel={options?.title}
+              style={styles.item}
+            >
+              <View>
+                {options?.icon ? <Ionicons name={options.icon} size={24} color={color} /> : null}
+                {options?.tabBarBadge ? (
+                  <View style={styles.badge}>{options.tabBarBadge()}</View>
+                ) : null}
+              </View>
+            </Pressable>
+          );
+          const target = TUTORIAL_TARGETS[route.name];
+          return target ? (
+            <TutorialTarget key={route.key} id={target} style={styles.item}>
+              {button}
+            </TutorialTarget>
+          ) : (
+            button
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
-/** El botón de cada pestaña (clásico o Cine), marcado si el tutorial lo ilumina. */
-function tabButton(id?: TargetId) {
-  return function TabButton(props: TabButtonProps) {
-    const button = isCinema ? <CinemaTabButton {...props} /> : <PlatformPressable {...props} />;
-    if (!id) return button;
-    return (
-      <TutorialTarget id={id} style={styles.tabTarget}>
-        {button}
-      </TutorialTarget>
-    );
-  };
-}
-
 /**
- * Barra del estilo Cine: una cápsula flotante separada de los bordes, sin textos, y la pestaña
- * activa como una píldora dorada suave con el icono dorado. No es «absolute»: ocupa su sitio y
- * así no tapa el final de las listas.
+ * Las pestañas grandes son páginas una al lado de otra (petición del usuario): la página sigue
+ * al dedo y, si se suelta a medias, se ven las dos hasta que termina de asentarse, igual que una
+ * galería (react-native-tab-view con el deslizador nativo de react-native-pager-view). Orden:
+ * Mis contadores, Estadísticas, Grupos, Amigos y Mi perfil. La cabecera de cada página se pinta
+ * aquí con la de React Navigation y las mismas opciones de siempre.
  */
-function cinemaTabBar(colors: ThemeColors, bottomInset: number) {
-  return {
-    tabBarShowLabel: false,
-    tabBarActiveTintColor: colors.primary,
-    tabBarInactiveTintColor: colors.textMuted,
-    tabBarButton: tabButton(),
-    tabBarStyle: {
-      backgroundColor: colors.surface,
-      borderTopWidth: 0,
-      borderRadius: 999,
-      height: 64,
-      paddingBottom: 0,
-      paddingTop: 0,
-      paddingHorizontal: 8,
-      // Casi de borde a borde (petición del usuario), sin perder la forma redondeada.
-      marginHorizontal: 6,
-      marginBottom: bottomInset + 12,
-      elevation: 0,
-      shadowOpacity: 0,
-    },
-    tabBarItemStyle: { marginVertical: 8, marginHorizontal: 4 },
-  };
-}
-
 export default function TabsLayout() {
   const colors = useThemeColors();
-  // Punto rojo en «Amigos y grupos» mientras haya algo pendiente en el buzón.
+  // Punto rojo en «Social» mientras haya algo pendiente en el buzón.
   const inbox = useInboxCount();
   const insets = useSafeAreaInsets();
   const titleSize = useScreenTitleSize();
   return (
-    // Fondo detrás de la barra (en el estilo Cine se ve alrededor de la cápsula).
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <Tabs
-        // Deslizar de lado pasa a la pestaña de al lado (TabSwipeArea).
-        screenLayout={({ children, route, navigation }) => (
-          <TabSwipeArea routeName={route.name} navigate={(name) => navigation.navigate(name)}>
+      <TopTabs
+        tabBarPosition="bottom"
+        tabBar={(props) => <CinemaTabBar {...props} insets={insets} />}
+        screenLayout={({ children, route, options }) => (
+          <View style={[styles.root, { backgroundColor: colors.background }]}>
+            <Header
+              {...(options as PageOptions)}
+              title={getHeaderTitle(options as PageOptions, route.name)}
+            />
             {children}
-          </TabSwipeArea>
+          </View>
         )}
-        screenOptions={{
-          // Al cambiar de pestaña, la nueva entra deslizándose desde su lado.
-          animation: 'shift',
+        screenOptions={pageOptions({
           ...headerOptions(colors, titleSize),
-          ...(isCinema
-            ? cinemaTabBar(colors, insets.bottom)
-            : {
-                tabBarActiveTintColor: colors.primary,
-                tabBarInactiveTintColor: colors.textMuted,
-                tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-                tabBarLabelStyle: { fontFamily: fonts.title },
-              }),
-        }}
+          // Primero la página que se abre y enseguida todas las demás, para que al deslizar la
+          // de al lado ya esté dibujada (sin huecos ni destellos).
+          lazy: true,
+          lazyPreloadDistance: 4,
+        })}
       >
-        <Tabs.Screen
+        <TopTabs.Screen
           name="index"
-          options={{ title: 'Mis contadores', tabBarIcon: tabIcon('add-circle-outline') }}
+          options={pageOptions({ title: 'Mis contadores', icon: 'add-circle-outline' })}
         />
-        <Tabs.Screen
+        <TopTabs.Screen
           name="estadisticas"
-          options={{
+          options={pageOptions({
             title: 'Estadísticas',
-            tabBarIcon: tabIcon('bar-chart-outline'),
-            tabBarButton: tabButton('tab-estadisticas'),
-            // Título con la racha a su derecha (como antes en «Mis contadores», petición del
-            // usuario). La racha no cambia el tamaño común de los títulos.
+            icon: 'bar-chart-outline',
+            // Título con la racha a su derecha. La racha no cambia el tamaño común de los títulos.
             headerTitle: () => (
               <View style={styles.titleRow}>
                 <Text
@@ -155,29 +189,25 @@ export default function TabsLayout() {
             ),
             // «Resumen vital» (la primera vez) o el libro: abre el resumen de tu vida.
             headerRight: () => <SummaryButton />,
-          }}
+          })}
         />
-        <Tabs.Screen
+        <TopTabs.Screen
           name="social"
-          options={{
+          options={pageOptions({
             title: 'Social',
-            tabBarIcon: tabIcon('people-outline'),
-            tabBarButton: tabButton('tab-social'),
-            tabBarBadge: inbox > 0 ? '' : undefined,
-            tabBarBadgeStyle: {
-              backgroundColor: colors.danger,
-              minWidth: 10,
-              maxHeight: 10,
-              borderRadius: 5,
-              marginTop: 2,
-            },
-          }}
+            icon: 'people-outline',
+            tabBarBadge:
+              inbox > 0
+                ? () => <View style={[styles.dot, { backgroundColor: colors.danger }]} />
+                : undefined,
+          })}
         />
-        <Tabs.Screen
+        <TopTabs.Screen name="amigos" options={pageOptions({ title: 'Social', tabOf: 'social' })} />
+        <TopTabs.Screen
           name="perfil"
-          options={{
+          options={pageOptions({
             title: 'Mi perfil',
-            tabBarIcon: tabIcon('person-circle-outline'),
+            icon: 'person-circle-outline',
             headerRight: () => (
               <Pressable
                 onPress={() => router.push('/configuracion')}
@@ -189,23 +219,21 @@ export default function TabsLayout() {
                 <Ionicons name="settings-outline" size={24} color={colors.text} />
               </Pressable>
             ),
-          }}
+          })}
         />
-      </Tabs>
+      </TopTabs>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  tabTarget: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: TITLE_GAP },
-  cinemaTab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
+  // Casi de borde a borde, sin perder la forma redondeada.
+  bar: { height: 64, borderRadius: 999, marginHorizontal: 6, paddingHorizontal: 8 },
+  items: { flex: 1, flexDirection: 'row' },
+  item: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  pill: { position: 'absolute', top: 8, bottom: 8, left: 4, borderRadius: 999, borderWidth: 1 },
+  badge: { position: 'absolute', top: -2, right: -6 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
 });
