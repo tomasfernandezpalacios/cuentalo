@@ -796,6 +796,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   seleccionados» a 15, con ancho máximo y reduciéndose si hace falta: se superponía con los
   botones.
 
+- El botón de fusionar ya no está en la cabecera de «Contadores» (petición del usuario): solo en
+  el modo selección (mantener pulsado un contador). `HEADER_RIGHT_WIDTH` sigue en 139 para no
+  cambiar el tamaño de los títulos.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

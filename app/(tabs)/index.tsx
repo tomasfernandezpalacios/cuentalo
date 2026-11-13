@@ -465,15 +465,8 @@ export default function CountersScreen() {
       </View>
     ),
     headerRight: () => (
+      // Fusionar ya no está aquí: solo en el modo selección (al mantener pulsado un contador).
       <View style={styles.headerActions}>
-        <Pressable
-          onPress={() => router.push('/contadores/fusionar')}
-          accessibilityRole="button"
-          accessibilityLabel="Fusionar contadores"
-          hitSlop={10}
-        >
-          <Ionicons name="git-merge-outline" size={25} color={colors.primary} />
-        </Pressable>
         <Pressable
           onPress={() => setFiltersOpen(true)}
           accessibilityRole="button"

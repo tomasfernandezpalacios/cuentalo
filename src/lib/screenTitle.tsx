@@ -13,7 +13,10 @@ import { screenTitleFont } from './theme';
 const MAX_SIZE = 30;
 const MIN_SIZE = 20;
 const REFERENCE = 100;
-/** Ancho de los botones de la derecha de «Mis contadores» (iconos, huecos y margen). */
+/**
+ * Ancho de los botones de la derecha de «Contadores». Se deja como cuando había tres botones
+ * (también fusionar): el usuario quiere el tamaño de títulos de entonces.
+ */
 export const HEADER_RIGHT_WIDTH = 139;
 /** Hueco entre el título y la racha. */
 export const TITLE_GAP = 12;
