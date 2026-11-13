@@ -791,6 +791,11 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   textos que la mencionan y en el paso del tutorial. (Las notas anteriores de este archivo que
   dicen «Amigos y grupos» se refieren a ella.)
 
+- Cabecera de «Contadores»: el + más grande (46) con un «+» grueso (`MaterialCommunityIcons`
+  «plus-thick»); fusionar y filtros, más pegados a él (hueco 12). En el modo selección, «N
+  seleccionados» a 15, con ancho máximo y reduciéndose si hace falta: se superponía con los
+  botones.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

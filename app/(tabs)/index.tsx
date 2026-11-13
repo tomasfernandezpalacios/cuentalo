@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState, type ComponentProps, type ComponentRef } from 'react';
 import {
@@ -405,7 +406,17 @@ export default function CountersScreen() {
     ),
     headerTitle: () => (
       // No es un título: va con la letra normal y a tamaño de texto, sin pisar los botones.
-      <Text style={[styles.selectionText, { color: colors.text }]} numberOfLines={1}>
+      // Más pequeño y con ancho máximo (dejando sitio a la X y a los botones): antes se
+      // superponía con las herramientas de la derecha.
+      <Text
+        style={[
+          styles.selectionText,
+          { color: colors.text, maxWidth: Math.max(80, width - SELECTION_RESERVED) },
+        ]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+      >
         {selectedIds.length === 1 ? '1 seleccionado' : `${selectedIds.length} seleccionados`}
       </Text>
     ),
@@ -487,7 +498,8 @@ export default function CountersScreen() {
               { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
             ]}
           >
-            <Ionicons name="add" size={26} color={colors.background} />
+            {/* «+» grueso (petición del usuario). */}
+            <MaterialCommunityIcons name="plus-thick" size={30} color={colors.background} />
           </Pressable>
         </TutorialTarget>
       </View>
@@ -748,6 +760,8 @@ export default function CountersScreen() {
 const SEARCH_FROM = 6;
 
 const CARD_GAP = 10;
+/** Ancho que ocupan la X y los botones de la cabecera en el modo selección. */
+const SELECTION_RESERVED = 270;
 const LIST_PADDING = 12;
 /** Cuánto del título «Ocultos» tiene que verse para que aparezca. */
 const REVEAL_MARGIN = 24;
@@ -778,11 +792,12 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   title: { flexDirection: 'row', alignItems: 'center', gap: isCinema ? TITLE_GAP : 24 },
   titleText: { ...screenTitleFont() },
-  selectionText: { fontSize: 18, fontFamily: fonts.title },
+  selectionText: { fontSize: 15, fontFamily: fonts.title },
   list: { padding: LIST_PADDING, gap: CARD_GAP, flexGrow: 1 },
   cards: { gap: CARD_GAP },
   gridWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18, marginRight: 14 },
+  // Fusionar y filtros, más pegados al + (a la derecha).
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12, marginRight: 14 },
   selectionActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginRight: 14 },
   close: { marginHorizontal: 12 },
   folderPlus: {
@@ -791,10 +806,11 @@ const styles = StyleSheet.create({
     bottom: -3,
     borderRadius: 7,
   },
+  // Más grande que antes (petición del usuario).
   addButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
   },
