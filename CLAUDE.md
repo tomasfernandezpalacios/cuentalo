@@ -238,7 +238,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   semana actual (lunes → domingo, `weekProgress`) con una barra por día: color de la llama si
   se mantuvo, gris si no, más clara si no ha llegado y borde en hoy.
 - **Resumen vital** (petición del usuario): botón en la cabecera de Estadísticas
-  (`SummaryButton`, «Resumen vital» + libro hasta el primer uso; después solo el libro) →
+  (`SummaryButton`, «Resumen vital» + libro hasta el primer uso; después «Mi vida en números»
+  + libro, petición del usuario) →
   `app/resumen.tsx` (pantalla completa). Pide la fecha de nacimiento con el calendario de la
   app (`BirthDatePicker`: año → mes → día) y la guarda en la cuenta, en la tabla privada
   `profile_private` (migración `20261209`; los perfiles los lee cualquiera, por eso no va en

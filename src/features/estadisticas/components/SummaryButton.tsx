@@ -7,8 +7,8 @@ import { fonts, useThemeColors } from '@/lib/theme';
 
 /**
  * Botón de la cabecera de Estadísticas que abre el «Resumen vital». Hasta que se genera el
- * primero (sin fecha de nacimiento en la cuenta) dice «Resumen vital» junto al libro; después,
- * solo el libro.
+ * primero (sin fecha de nacimiento en la cuenta) dice «Resumen vital» junto al libro, como
+ * siempre; después, «Mi vida en números» (petición del usuario; antes se quedaba solo el libro).
  */
 export function SummaryButton() {
   const colors = useThemeColors();
@@ -18,17 +18,23 @@ export function SummaryButton() {
     <Pressable
       onPress={() => router.push('/resumen')}
       accessibilityRole="button"
-      accessibilityLabel={first ? 'Generar tu resumen vital' : 'Resumen vital'}
+      accessibilityLabel={first ? 'Generar tu resumen vital' : 'Mi vida en números'}
       hitSlop={10}
       style={({ pressed }) => [
         styles.button,
-        // Relleno del color de la app (llamativo); sin texto, un círculo con el libro.
+        // Relleno del color de la app (llamativo).
         { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 },
-        !first && styles.round,
       ]}
     >
-      {first ? <Text style={[styles.text, { color: colors.onPrimary }]}>Resumen vital</Text> : null}
-      <Ionicons name="book" size={first ? 18 : 20} color={colors.onPrimary} />
+      <Text
+        style={[styles.text, { color: colors.onPrimary }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+      >
+        {first ? 'Resumen vital' : 'Mi vida en números'}
+      </Text>
+      <Ionicons name="book" size={18} color={colors.onPrimary} />
     </Pressable>
   );
 }
@@ -48,6 +54,5 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
-  round: { width: 36, paddingHorizontal: 0, justifyContent: 'center' },
   text: { fontSize: 14, fontFamily: fonts.title },
 });
