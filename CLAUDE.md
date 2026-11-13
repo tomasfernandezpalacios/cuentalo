@@ -751,6 +751,20 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   «Sin conexión: lo que sumes se enviará al volver» (`useIsOnline`). Tras cerrar la app sin
   conexión, el número optimista no se ve hasta que se envía.
 
+- **Paletas de prueba 60-30-10** (petición del usuario, desde unas imágenes; prueba, el estilo de
+  siempre está en la etiqueta de Git `estilo-cine-dorado`): `src/lib/palettes.ts` con Grafito
+  (#2B2D31 / #D9DADC / #FFC93C), Marino (#0F1B3D / #FFFFFF / #FF3D8B), Salvia (#9CAF88 /
+  #F7F5EF / #E8412C), Avena (#E9E5D6 / #2589D8 / #FF783D) y Mantequilla (#F5E8CC / #F34E3D /
+  #55263D). 60 % = fondo (y cabeceras); 30 % = el color de las letras (Grafito, Marino, Avena y
+  Mantequilla, oscurecido lo justo para leerse) o el de las tarjetas (Salvia); 10 % = destaque
+  (botones, totales, pestaña activa, iconos). Algunos tonos van un poco oscurecidos para el
+  contraste (tomate `#B52A15`, mandarina `#BE4A14`; test de contraste por paleta). Se elige en
+  Configuración → Apariencia → «Paleta (prueba)» (`settings.palette`, 'cine' = el de siempre;
+  `PalettePicker` con las muestras 60/30/10). Con una paleta, `useThemeColors` y
+  `useColorMode` salen de ella y se ocultan Tema y Color. Al cambiarla se ofrece reiniciar: el
+  engrosado de la serif (`startText`) y la primera serie de las gráficas (`startAccent`) se
+  fijan al arrancar.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

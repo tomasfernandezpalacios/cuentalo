@@ -2,6 +2,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { useStartTutorial } from '@/features/tutorial/useTutorialAutoStart';
 import { useMutation } from '@tanstack/react-query';
+import { reloadAppAsync } from 'expo';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -16,12 +17,14 @@ import {
   SettingsRow,
   SwitchRow,
 } from '@/features/configuracion/components';
+import { PalettePicker } from '@/features/configuracion/PalettePicker';
 import { requestReminderPermission } from '@/features/configuracion/reminder';
 import {
   type AccentChoice,
   type AccentName,
   MAX_QUICK_AMOUNTS,
   QUICK_AMOUNT_OPTIONS,
+  type PaletteName,
   type ThemeMode,
   toggleQuickAmount,
   updateSettings,
@@ -105,6 +108,23 @@ export default function SettingsScreen() {
   }
 
   /** El tema se aplica al momento, sin reiniciar (el usuario lo comprobó). */
+  /**
+   * Los colores cambian al momento; el engrosado de los títulos y el primer color de las
+   * gráficas se fijan al arrancar, así que se ofrece reiniciar para verlo todo perfecto.
+   */
+  function changePalette(palette: PaletteName) {
+    if (palette === settings.palette) return;
+    updateSettings({ palette });
+    appAlert(
+      'Paleta cambiada',
+      'Reinicia la app para que los títulos y las gráficas también cambien.',
+      [
+        { text: 'Más tarde', style: 'cancel' },
+        { text: 'Reiniciar ahora', onPress: () => void reloadAppAsync('Cambio de paleta') },
+      ],
+    );
+  }
+
   function changeTheme(theme: ThemeMode) {
     if (theme !== settings.theme) updateSettings({ theme });
   }
@@ -170,34 +190,42 @@ export default function SettingsScreen() {
       </SettingsGroup>
 
       <SettingsGroup title="Apariencia">
-        <>
-          <SettingsRow
-            first
-            label="Tema"
-            below={
-              <OptionChips
-                options={THEMES}
-                isSelected={(v) => v === settings.theme}
-                onPress={changeTheme}
-              />
-            }
-          />
-          <SettingsRow
-            label="Color"
-            detail="Botones, pestañas y detalles de la app."
-            below={
-              <OptionChips<AccentChoice>
-                options={(Object.keys(accents) as AccentName[]).map((name) => ({
-                  value: name as AccentChoice,
-                  label: accents[name].label,
-                  color: accents[name][mode].primary,
-                }))}
-                isSelected={(v) => v === settings.accent}
-                onPress={(accent) => updateSettings({ accent })}
-              />
-            }
-          />
-        </>
+        <SettingsRow
+          first
+          label="Paleta (prueba)"
+          detail="Regla 60-30-10: el primer color llena la app, el segundo acompaña y el tercero destaca. «Cine» es el estilo de siempre."
+          below={<PalettePicker value={settings.palette} onChange={changePalette} />}
+        />
+        {/* Con una paleta de prueba, el tema y el color los decide ella. */}
+        {settings.palette === 'cine' ? (
+          <>
+            <SettingsRow
+              label="Tema"
+              below={
+                <OptionChips
+                  options={THEMES}
+                  isSelected={(v) => v === settings.theme}
+                  onPress={changeTheme}
+                />
+              }
+            />
+            <SettingsRow
+              label="Color"
+              detail="Botones, pestañas y detalles de la app."
+              below={
+                <OptionChips<AccentChoice>
+                  options={(Object.keys(accents) as AccentName[]).map((name) => ({
+                    value: name as AccentChoice,
+                    label: accents[name].label,
+                    color: accents[name][mode].primary,
+                  }))}
+                  isSelected={(v) => v === settings.accent}
+                  onPress={(accent) => updateSettings({ accent })}
+                />
+              }
+            />
+          </>
+        ) : null}
       </SettingsGroup>
 
       <SettingsGroup title="Contadores">

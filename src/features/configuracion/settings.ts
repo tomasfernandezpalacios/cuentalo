@@ -1,4 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
+
+import { PALETTES, type PaletteName } from '@/lib/palettes';
 import { useSyncExternalStore } from 'react';
 
 // Ajustes de este móvil (no van a Supabase): apariencia, botones, avisos… Se guardan en
@@ -22,6 +24,7 @@ export const ACCENT_NAMES: AccentName[] = [
 export type VisualStyle = 'clasico' | 'cine';
 /** Cómo se ven los contadores en «Mis contadores»: filas (de serie) o bloques, dos por fila. */
 export type CounterLayout = 'list' | 'grid';
+export type { PaletteName } from '@/lib/palettes';
 /** El color de destaque elegido (ya no hay color personalizado). */
 export type AccentChoice = AccentName;
 
@@ -29,6 +32,8 @@ export type Settings = {
   theme: ThemeMode;
   visualStyle: VisualStyle;
   counterLayout: CounterLayout;
+  /** Paleta de prueba 60-30-10 ('cine' = el estilo de siempre, con su tema y su color). */
+  palette: PaletteName;
   accent: AccentChoice;
   /** Cantidades de los botones rápidos (de 1 a 3, ordenadas). */
   quickAmounts: number[];
@@ -59,6 +64,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
   visualStyle: 'clasico',
   counterLayout: 'list',
+  palette: 'cine',
   accent: 'dorado',
   quickAmounts: [1, 5],
   confirmRemove: false,
@@ -96,6 +102,8 @@ export function parseSettings(raw: string | null): Settings {
       ...merged,
       // Un color que ya no existe (el personalizado, el morado, el rosa…) vuelve al dorado.
       accent: ACCENT_NAMES.includes(merged.accent) ? merged.accent : 'dorado',
+      // Una paleta que ya no existe vuelve al estilo de siempre.
+      palette: merged.palette === 'cine' || merged.palette in PALETTES ? merged.palette : 'cine',
       quickAmounts:
         amounts.length > 0
           ? [...new Set(amounts)].sort((a, b) => a - b).slice(0, MAX_QUICK_AMOUNTS)

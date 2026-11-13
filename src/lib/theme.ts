@@ -2,6 +2,7 @@ import { Appearance, useColorScheme } from 'react-native';
 
 import { type AccentName, getSettings, useSettings } from '@/features/configuracion/settings';
 import { withAlpha } from '@/lib/color';
+import { PALETTES } from '@/lib/palettes';
 
 const palette = {
   light: {
@@ -88,6 +89,18 @@ const startMode: 'light' | 'dark' = (() => {
 })();
 
 /**
+ * Color del texto con el que arrancó la app (para el engrosado de la serif, que se calcula una
+ * vez): el de la paleta de prueba, si hay una, o el de Cine en su modo.
+ */
+const startPalette = getSettings().palette;
+const startText =
+  startPalette !== 'cine' ? PALETTES[startPalette].colors.text : cinemaPalette[startMode].text;
+
+/** Color de destaque con el que arrancó la app (primera serie de las gráficas). */
+export const startAccent =
+  startPalette !== 'cine' ? PALETTES[startPalette].colors.primary : undefined;
+
+/**
  * Tipografías (cargadas en app/_layout.tsx). Con fuentes personalizadas no se usa
  * fontWeight: cada archivo ya es un peso concreto.
  * - title: títulos, nombres, cifras y botones (clásico: Ubuntu Bold; cine: Redaction 10 Bold).
@@ -147,7 +160,7 @@ export function displayFont(size: number) {
  * usuario) se dibuja una sombra nítida del mismo color desplazada medio punto. `color` es el del
  * texto (por defecto, el blanco hueso de Cine; si el texto es dorado, se pasa el dorado).
  */
-export function serifWeight(color: string = cinemaPalette[startMode].text) {
+export function serifWeight(color: string = startText) {
   if (!isCinema) return {};
   return {
     textShadowColor: color,
@@ -268,14 +281,18 @@ export const accents: Record<
 /** 'light' o 'dark' según el ajuste de tema (o el del sistema si es automático). */
 export function useColorMode(): 'light' | 'dark' {
   const system = useColorScheme();
-  const { theme } = useSettings();
+  const { theme, palette: paletteName } = useSettings();
+  // Una paleta de prueba decide por sí misma si es clara u oscura.
+  if (paletteName !== 'cine') return PALETTES[paletteName].mode;
   if (theme !== 'system') return theme;
   return system === 'dark' ? 'dark' : 'light';
 }
 
 export function useThemeColors(): ThemeColors {
   const mode = useColorMode();
-  const { accent } = useSettings();
+  const { accent, palette: paletteName } = useSettings();
+  // Paleta de prueba 60-30-10: sustituye a todos los colores (tema y destaque incluidos).
+  if (paletteName !== 'cine') return PALETTES[paletteName].colors;
   const chosen = accents[accent] ?? accents.dorado;
   const base = isCinema ? cinemaPalette : palette;
   return { ...base[mode], ...chosen[mode] };
