@@ -38,7 +38,6 @@ export const TYPOGRAPHIES: Record<TypographyName, Typography> = {
       prose: 'Fraunces_400Regular_Italic',
     },
     displayFactor: 0.8,
-    displayLetterSpacing: -0.4,
     proseScale: 1,
     fakeBold: false,
   },

@@ -88,6 +88,9 @@ export function QuickAddBar({
           >
             <Text
               maxFontSizeMultiplier={compact ? 1.2 : 1.5}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
               style={[label, { color: colors.onPrimary }]}
             >
               +{amount}
@@ -115,7 +118,13 @@ export function QuickAddBar({
             },
           ]}
         >
-          <Text maxFontSizeMultiplier={compact ? 1.2 : 1.5} style={[label, { color: colors.text }]}>
+          <Text
+            maxFontSizeMultiplier={compact ? 1.2 : 1.5}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+            style={[label, { color: colors.text }]}
+          >
             −1
           </Text>
         </Pressable>
@@ -136,7 +145,13 @@ export function QuickAddBar({
             },
           ]}
         >
-          <Text maxFontSizeMultiplier={compact ? 1.2 : 1.5} style={[label, { color: colors.text }]}>
+          <Text
+            maxFontSizeMultiplier={compact ? 1.2 : 1.5}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+            style={[label, { color: colors.text }]}
+          >
             Otra
           </Text>
         </Pressable>
@@ -166,7 +181,8 @@ const styles = StyleSheet.create({
   // Los botones de cantidad van dentro de un envoltorio (TutorialTarget) que es quien estira.
   largeInTarget: { height: 60, borderRadius: 16 },
   // En la tarjeta: estrechos para que quepan, pero altos para pulsarlos con comodidad.
-  compact: { width: 36, height: 48, borderRadius: 10 },
+  // Ancho mínimo (no fijo): «+100» con letra ancha no cabía en 36 y se cortaba.
+  compact: { minWidth: 36, paddingHorizontal: 3, height: 48, borderRadius: 10 },
   compactStretch: { height: 44, borderRadius: 10 },
   stretchRow: { alignSelf: 'stretch' },
   streakStretch: { flex: 1, height: 44 },

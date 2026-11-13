@@ -130,6 +130,8 @@ export function FolderBar({
         <Text
           style={[styles.label, { color: chipColors(colors, selected).color }]}
           numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
           maxFontSizeMultiplier={1.3}
         >
           {label}

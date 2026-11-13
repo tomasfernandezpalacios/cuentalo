@@ -82,6 +82,8 @@ export function SegmentedControl<T extends string>({
                 { color: selected ? chipColors(colors, true).color : colors.text },
               ]}
               numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
             >
               {option.label}
             </Text>

@@ -778,6 +778,15 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   (`serifWeight`) solo se usa con Instrument Serif (`fakeBold`). El título de cabecera se mide a
   tamaño 100 real con la letra elegida.
 
+- **Textos que se cortaban** (con las letras nuevas): sin interletrado negativo en los títulos
+  (Android mide el texto corto y corta la última letra); las cursivas llevan `paddingRight: 3`
+  (la última letra se sale de su caja); los botones rápidos tienen ancho **mínimo** 36 (no fijo)
+  y su número se ajusta al botón (`adjustsFontSizeToFit`), y el selector y las carpetas reducen
+  un poco la letra antes de cortar.
+- La pestaña «Mis contadores» se llama **«Contadores»** (petición del usuario). El tamaño común
+  de los títulos se sigue midiendo con «Mis contadores» (`TitleMeasurer`): el usuario prefiere
+  ese tamaño.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

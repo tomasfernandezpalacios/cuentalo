@@ -443,7 +443,7 @@ export default function CountersScreen() {
           style={[styles.titleText, { color: colors.text }, isCinema && { fontSize: titleSize }]}
           numberOfLines={1}
         >
-          Mis contadores
+          Contadores
         </Text>
         {/* Su ancho decide el tamaño de todos los títulos (para que nada se solape). */}
         <View onLayout={(e) => reportBadgeWidth(e.nativeEvent.layout.width)}>

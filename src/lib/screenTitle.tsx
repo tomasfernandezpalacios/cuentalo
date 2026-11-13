@@ -78,6 +78,8 @@ export function TitleMeasurer() {
           emit();
         }}
       >
+        {/* Se sigue midiendo con «Mis contadores» aunque la pestaña se llame «Contadores»: el
+            usuario prefiere el tamaño de títulos que salía así. */}
         Mis contadores
       </Text>
     </View>

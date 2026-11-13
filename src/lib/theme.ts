@@ -191,6 +191,9 @@ export function proseFont(size: number, lineHeight?: number) {
   return {
     fontFamily: fonts.prose,
     fontSize: Math.round(size * k),
+    // La cursiva se sale un poco por la derecha y Android cortaba la última letra: un poco de
+    // aire a ese lado.
+    paddingRight: isCinema ? 3 : 0,
     ...(lineHeight ? { lineHeight: Math.round(lineHeight * k) } : {}),
   };
 }
