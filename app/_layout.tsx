@@ -13,7 +13,7 @@ import {
   DMSerifDisplay_400Regular,
   DMSerifDisplay_400Regular_Italic,
 } from '@expo-google-fonts/dm-serif-display';
-import { Fraunces_400Regular_Italic, Fraunces_600SemiBold } from '@expo-google-fonts/fraunces';
+import { Fraunces_400Regular_Italic, Fraunces_800ExtraBold } from '@expo-google-fonts/fraunces';
 import { Newsreader_400Regular, Newsreader_400Regular_Italic } from '@expo-google-fonts/newsreader';
 import {
   PlusJakartaSans_400Regular,
@@ -171,7 +171,7 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     // Combinaciones de prueba (src/lib/typography.ts).
-    Fraunces_600SemiBold,
+    Fraunces_800ExtraBold,
     Fraunces_400Regular_Italic,
     PlusJakartaSans_400Regular,
     PlusJakartaSans_700Bold,

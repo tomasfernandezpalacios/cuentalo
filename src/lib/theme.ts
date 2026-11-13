@@ -145,6 +145,7 @@ export function titleFont(size: number) {
   return {
     fontFamily: fonts.display,
     fontSize: isCinema ? Math.round(size * 1.3 * typography.displayFactor) : size,
+    ...displaySpacing(),
     ...serifWeight(),
   };
 }
@@ -154,6 +155,7 @@ export function displayFont(size: number) {
   return {
     fontFamily: fonts.display,
     fontSize: isCinema ? Math.round(size * typography.displayFactor) : size,
+    ...displaySpacing(),
     ...serifWeight(),
   };
 }
@@ -163,6 +165,13 @@ export function displayFont(size: number) {
  * usuario) se dibuja una sombra nítida del mismo color desplazada medio punto. `color` es el del
  * texto (por defecto, el blanco hueso de Cine; si el texto es dorado, se pasa el dorado).
  */
+/** Interletrado de los títulos grandes de la tipografía elegida (si lo tiene). */
+function displaySpacing() {
+  return isCinema && typography.displayLetterSpacing !== undefined
+    ? { letterSpacing: typography.displayLetterSpacing }
+    : {};
+}
+
 export function serifWeight(color: string = startText) {
   // Solo Instrument Serif lo necesita (tiene un único grosor); las demás tienen negrita de verdad.
   if (!isCinema || !typography.fakeBold) return {};
@@ -208,7 +217,7 @@ export function inverseColors(colors: ThemeColors) {
  */
 export function screenTitleFont(size = 30) {
   return isCinema
-    ? { fontFamily: fonts.display, fontSize: size, ...serifWeight() }
+    ? { fontFamily: fonts.display, fontSize: size, ...displaySpacing(), ...serifWeight() }
     : { fontFamily: fonts.title, fontSize: 18 };
 }
 

@@ -767,7 +767,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 
 - **Tipografías de prueba** (petición del usuario: modernas, cercanas, que cuenten historias;
   títulos llamativos y elegantes, el resto que encaje pero contraste): `src/lib/typography.ts`
-  con Editorial (Fraunces SemiBold + Plus Jakarta Sans, cursiva Fraunces; **de serie**), Con
+  con Editorial (Fraunces **ExtraBold** con interletrado −0,4 en los títulos grandes, más
+  gruesos y con más vida a petición del usuario, + Plus Jakarta Sans, cursiva Fraunces; **de serie**), Con
   carácter (Bricolage Grotesque + Newsreader, al revés: títulos sans y texto serif), Clásica
   (DM Serif Display + DM Sans) y «La de ahora» (Instrument Serif + Redaction 10). Se elige en
   Configuración → Apariencia → «Tipografía (prueba)» (`settings.typography`,

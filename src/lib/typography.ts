@@ -17,6 +17,8 @@ export type Typography = {
   /** Qué es, en pocas palabras (Configuración). */
   description: string;
   fonts: { display: string; title: string; detail: string; prose: string };
+  /** Interletrado de los títulos grandes (las letras muy gruesas piden ir un poco más juntas). */
+  displayLetterSpacing?: number;
   displayFactor: number;
   proseScale: number;
   /** Engordar la serif con una sombra (solo Instrument Serif, que tiene un único grosor). */
@@ -28,12 +30,15 @@ export const TYPOGRAPHIES: Record<TypographyName, Typography> = {
     label: 'Editorial',
     description: 'Fraunces y Plus Jakarta Sans',
     fonts: {
-      display: 'Fraunces_600SemiBold',
+      // ExtraBold: más grueso y con más vida (petición del usuario); Fraunces luce sus curvas
+      // «blandas» en los pesos altos.
+      display: 'Fraunces_800ExtraBold',
       title: 'PlusJakartaSans_700Bold',
       detail: 'PlusJakartaSans_400Regular',
       prose: 'Fraunces_400Regular_Italic',
     },
     displayFactor: 0.8,
+    displayLetterSpacing: -0.4,
     proseScale: 1,
     fakeBold: false,
   },

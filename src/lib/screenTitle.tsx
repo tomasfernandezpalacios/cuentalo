@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { fonts, serifWeight } from './theme';
+import { screenTitleFont } from './theme';
 
 // Tamaño de los títulos de cabecera en el estilo Cine («Mis contadores», «Estadísticas»…).
 //
@@ -69,7 +69,7 @@ export function TitleMeasurer() {
     <View style={styles.hidden} pointerEvents="none" accessibilityElementsHidden>
       <Text
         // A tamaño 100 exacto (sin el ajuste de cada tipografía): el título se dibuja igual.
-        style={{ fontFamily: fonts.display, fontSize: REFERENCE, ...serifWeight() }}
+        style={{ ...screenTitleFont(REFERENCE) }}
         numberOfLines={1}
         onLayout={(e) => {
           const width = Math.ceil(e.nativeEvent.layout.width);
