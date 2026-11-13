@@ -822,6 +822,11 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   que al entrar ninguna pestaña salga en blanco (petición del usuario). Mientras se arrastra una
   tarjeta en «Mis contadores», `swipeEnabled: false`. (Antes: Tabs abajo + un gesto que
   cambiaba de golpe, «brusco».)
+- Dentro de las pestañas (TopTabs) **no usar `<Stack.Screen options={{…}} />` con opciones nuevas
+  en cada render**: cada `setOptions` vuelve a dibujar la página y se hace un bucle infinito
+  («Maximum update depth exceeded»). Usar `StableScreenOptions` (`src/lib/stableOptions.tsx`):
+  solo envía las opciones cuando cambia `optionsKey` (lo que se ve en la cabecera) y sus funciones
+  llaman siempre a la versión más reciente.
 - Al crear un contador, la unidad se propone ya escrita con la primera palabra del nombre en
   minúscula («Países visitados» → «países»; `suggestUnit` en `src/features/contadores/unit.ts`,
   con tests) mientras no se toque el campo.

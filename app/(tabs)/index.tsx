@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState, type ComponentProps, type ComponentRef } from 'react';
 import {
   Animated,
@@ -52,6 +52,7 @@ import { useCounterOrder, useSetCounterOrder } from '@/features/perfil/birthDate
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
 import { applyOrder } from '@/lib/reorder';
+import { StableScreenOptions } from '@/lib/stableOptions';
 import { matchesSearch } from '@/lib/search';
 import { useDragReorder } from '@/lib/useDragReorder';
 import { TITLE_GAP, useScreenTitleSize } from '@/lib/screenTitle';
@@ -493,6 +494,10 @@ export default function CountersScreen() {
     ),
   };
 
+  // Opciones estables: en las pestañas como páginas, unas opciones nuevas en cada render harían
+  // un bucle infinito (`useStableOptions`). `key` = todo lo que se ve en la cabecera.
+  const allHidden = selected.every((c) => c.hidden);
+
   const selectedFolder = folderList.find((f) => f.id === filters.folderId);
   const emptyView =
     active.length === 0 ? (
@@ -524,11 +529,25 @@ export default function CountersScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       {/* Mientras se arrastra una tarjeta, las páginas no se deslizan (el gesto es del arrastre). */}
-      <Stack.Screen
+      <StableScreenOptions
         options={{
           ...(selecting ? selectionOptions : normalOptions),
-          ...({ swipeEnabled: !drag.dragging } as object),
+          swipeEnabled: !drag.dragging,
         }}
+        optionsKey={[
+          selecting,
+          selectedIds.length,
+          allHidden,
+          width,
+          titleSize,
+          filterCount,
+          drag.dragging,
+          colors.text,
+          colors.primary,
+          colors.background,
+          colors.surface,
+          colors.danger,
+        ].join('|')}
       />
       {/* Sin conexión: lo que se sume se ve ya y se envía solo al volver. */}
       {online ? null : (

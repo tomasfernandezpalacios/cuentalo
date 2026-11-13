@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
-import { router, Stack, useNavigation } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { useTabAnimation } from 'expo-router/js-top-tabs';
 import { useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -9,6 +9,7 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { FriendsPanel } from '@/features/social/components/FriendsPanel';
 import { GroupsPanel } from '@/features/social/components/GroupsPanel';
 import { socialKeys, useInboxCount } from '@/features/social/hooks';
+import { StableScreenOptions } from '@/lib/stableOptions';
 import { useThemeColors } from '@/lib/theme';
 
 export type SocialTab = 'friends' | 'groups';
@@ -52,50 +53,51 @@ export function SocialPage({ page }: { page: SocialTab }) {
     if (next !== page) navigation.navigate(SOCIAL_ROUTES[next] as never);
   }
 
+  const headerOptions = {
+    // collapsable={false}: con varios botones en la cabecera de Android, sin él los toques
+    // pueden no llegar.
+    headerRight: () => (
+      <View collapsable={false} style={styles.headerActions}>
+        <Pressable
+          onPress={() => router.push('/grupos/unirse')}
+          accessibilityRole="button"
+          accessibilityLabel="Unirme a un grupo con un código"
+          hitSlop={10}
+        >
+          <Ionicons name="key-outline" size={24} color={colors.primary} />
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/avisos')}
+          accessibilityRole="button"
+          accessibilityLabel={inbox > 0 ? `Buzón, ${inbox} pendientes` : 'Buzón de avisos'}
+          hitSlop={10}
+        >
+          <Ionicons name="mail-outline" size={25} color={colors.primary} />
+          {inbox > 0 ? <View style={[styles.badge, { backgroundColor: colors.danger }]} /> : null}
+        </Pressable>
+        {/* Crear grupo: el mismo + que en «Mis contadores». */}
+        <Pressable
+          onPress={() => router.push('/grupos/nuevo')}
+          accessibilityRole="button"
+          accessibilityLabel="Crear grupo"
+          hitSlop={6}
+          style={({ pressed }) => [
+            styles.addButton,
+            { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <Ionicons name="add" size={26} color={colors.background} />
+        </Pressable>
+      </View>
+    ),
+  };
+
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
-      <Stack.Screen
-        options={{
-          // collapsable={false}: con varios botones en la cabecera de Android, sin él los toques
-          // pueden no llegar.
-          headerRight: () => (
-            <View collapsable={false} style={styles.headerActions}>
-              <Pressable
-                onPress={() => router.push('/grupos/unirse')}
-                accessibilityRole="button"
-                accessibilityLabel="Unirme a un grupo con un código"
-                hitSlop={10}
-              >
-                <Ionicons name="key-outline" size={24} color={colors.primary} />
-              </Pressable>
-              <Pressable
-                onPress={() => router.push('/avisos')}
-                accessibilityRole="button"
-                accessibilityLabel={inbox > 0 ? `Buzón, ${inbox} pendientes` : 'Buzón de avisos'}
-                hitSlop={10}
-              >
-                <Ionicons name="mail-outline" size={25} color={colors.primary} />
-                {inbox > 0 ? (
-                  <View style={[styles.badge, { backgroundColor: colors.danger }]} />
-                ) : null}
-              </Pressable>
-              {/* Crear grupo: el mismo + que en «Mis contadores». */}
-              <Pressable
-                onPress={() => router.push('/grupos/nuevo')}
-                accessibilityRole="button"
-                accessibilityLabel="Crear grupo"
-                hitSlop={6}
-                style={({ pressed }) => [
-                  styles.addButton,
-                  { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
-                ]}
-              >
-                <Ionicons name="add" size={26} color={colors.background} />
-              </Pressable>
-            </View>
-          ),
-        }}
-      />
+      <StableScreenOptions
+        options={headerOptions}
+        optionsKey={`${colors.primary}|${colors.background}|${colors.danger}|${inbox}`}
+      />{' '}
       <View style={styles.selector}>
         <SegmentedControl options={TABS} value={page} onChange={selectTab} position={position} />
       </View>
