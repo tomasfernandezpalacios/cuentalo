@@ -18,6 +18,7 @@ import {
   SwitchRow,
 } from '@/features/configuracion/components';
 import { PalettePicker } from '@/features/configuracion/PalettePicker';
+import { TypographyPicker } from '@/features/configuracion/TypographyPicker';
 import { requestReminderPermission } from '@/features/configuracion/reminder';
 import {
   type AccentChoice,
@@ -25,6 +26,7 @@ import {
   MAX_QUICK_AMOUNTS,
   QUICK_AMOUNT_OPTIONS,
   type PaletteName,
+  type TypographyName,
   type ThemeMode,
   toggleQuickAmount,
   updateSettings,
@@ -125,6 +127,16 @@ export default function SettingsScreen() {
     );
   }
 
+  /** Las letras de toda la app se fijan al arrancar: se guarda y se ofrece reiniciar. */
+  function changeTypography(typography: TypographyName) {
+    if (typography === settings.typography) return;
+    updateSettings({ typography });
+    appAlert('Tipografía cambiada', 'Reinicia la app para ver las letras nuevas.', [
+      { text: 'Más tarde', style: 'cancel' },
+      { text: 'Reiniciar ahora', onPress: () => void reloadAppAsync('Cambio de tipografía') },
+    ]);
+  }
+
   function changeTheme(theme: ThemeMode) {
     if (theme !== settings.theme) updateSettings({ theme });
   }
@@ -195,6 +207,11 @@ export default function SettingsScreen() {
           label="Paleta (prueba)"
           detail="Regla 60-30-10: el primer color llena la app, el segundo acompaña y el tercero destaca. «Cine» es el estilo de siempre."
           below={<PalettePicker value={settings.palette} onChange={changePalette} />}
+        />
+        <SettingsRow
+          label="Tipografía (prueba)"
+          detail="Una letra llamativa para los títulos y otra que la acompaña en el resto. Se aplica al reiniciar."
+          below={<TypographyPicker value={settings.typography} onChange={changeTypography} />}
         />
         {/* Con una paleta de prueba, el tema y el color los decide ella. */}
         {settings.palette === 'cine' ? (

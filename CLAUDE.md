@@ -765,6 +765,18 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   engrosado de la serif (`startText`) y la primera serie de las gráficas (`startAccent`) se
   fijan al arrancar.
 
+- **Tipografías de prueba** (petición del usuario: modernas, cercanas, que cuenten historias;
+  títulos llamativos y elegantes, el resto que encaje pero contraste): `src/lib/typography.ts`
+  con Editorial (Fraunces SemiBold + Plus Jakarta Sans, cursiva Fraunces; **de serie**), Con
+  carácter (Bricolage Grotesque + Newsreader, al revés: títulos sans y texto serif), Clásica
+  (DM Serif Display + DM Sans) y «La de ahora» (Instrument Serif + Redaction 10). Se elige en
+  Configuración → Apariencia → «Tipografía (prueba)» (`settings.typography`,
+  `TypographyPicker` con cada opción escrita en sus letras); se fija al arrancar (`typography`
+  en `theme.ts`) y al cambiarla se ofrece reiniciar. `displayFactor` y `proseScale` corrigen
+  los tamaños (pensados para Instrument Serif, más pequeña); el engrosado con sombra
+  (`serifWeight`) solo se usa con Instrument Serif (`fakeBold`). El título de cabecera se mide a
+  tamaño 100 real con la letra elegida.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

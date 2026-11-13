@@ -3,6 +3,7 @@ import { Appearance, useColorScheme } from 'react-native';
 import { type AccentName, getSettings, useSettings } from '@/features/configuracion/settings';
 import { withAlpha } from '@/lib/color';
 import { PALETTES } from '@/lib/palettes';
+import { TYPOGRAPHIES } from '@/lib/typography';
 
 const palette = {
   light: {
@@ -109,13 +110,11 @@ export const startAccent =
  *   Serif, el toque editorial).
  * - prose: explicaciones largas y avisos (clásico: Redaction; cine: Instrument Serif itálica).
  */
+/** Combinación de tipografías elegida (Configuración → «Tipografía (prueba)»), fija al arrancar. */
+export const typography = TYPOGRAPHIES[getSettings().typography] ?? TYPOGRAPHIES.editorial;
+
 export const fonts = isCinema
-  ? ({
-      title: 'Redaction10-Bold',
-      detail: 'Redaction10-Regular',
-      display: 'InstrumentSerif_400Regular',
-      prose: 'InstrumentSerif_400Regular_Italic',
-    } as const)
+  ? typography.fonts
   : ({
       title: 'Ubuntu-Bold',
       detail: 'Redaction-Regular',
@@ -145,14 +144,18 @@ export function chipColors(colors: ThemeColors, selected: boolean) {
 export function titleFont(size: number) {
   return {
     fontFamily: fonts.display,
-    fontSize: isCinema ? Math.round(size * 1.3) : size,
+    fontSize: isCinema ? Math.round(size * 1.3 * typography.displayFactor) : size,
     ...serifWeight(),
   };
 }
 
 /** Cifras grandes y títulos destacados con la letra de `display` (en Cine, un poco más gruesa). */
 export function displayFont(size: number) {
-  return { fontFamily: fonts.display, fontSize: size, ...serifWeight() };
+  return {
+    fontFamily: fonts.display,
+    fontSize: isCinema ? Math.round(size * typography.displayFactor) : size,
+    ...serifWeight(),
+  };
 }
 
 /**
@@ -161,7 +164,8 @@ export function displayFont(size: number) {
  * texto (por defecto, el blanco hueso de Cine; si el texto es dorado, se pasa el dorado).
  */
 export function serifWeight(color: string = startText) {
-  if (!isCinema) return {};
+  // Solo Instrument Serif lo necesita (tiene un único grosor); las demás tienen negrita de verdad.
+  if (!isCinema || !typography.fakeBold) return {};
   return {
     textShadowColor: color,
     textShadowOffset: { width: 0.6, height: 0 },
@@ -174,7 +178,7 @@ export function serifWeight(color: string = startText) {
  * itálica, un 20 % más grande (su letra es pequeña).
  */
 export function proseFont(size: number, lineHeight?: number) {
-  const k = isCinema ? 1.2 : 1;
+  const k = isCinema ? typography.proseScale : 1;
   return {
     fontFamily: fonts.prose,
     fontSize: Math.round(size * k),
