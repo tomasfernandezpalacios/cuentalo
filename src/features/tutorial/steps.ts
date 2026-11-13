@@ -123,7 +123,7 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'social',
-    title: 'Amigos y grupos',
+    title: 'Social',
     text: 'Añade amigos, crea grupos o únete con un código y competid en la clasificación.',
     target: 'tab-social',
   },

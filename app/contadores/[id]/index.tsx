@@ -209,10 +209,7 @@ export default function CounterDetailScreen() {
       { ids: [counterId], removed: false },
       {
         onSuccess: () =>
-          appAlert(
-            'Añadido a tu pantalla principal',
-            `«${name}» vuelve a salir en Contadores.`,
-          ),
+          appAlert('Añadido a tu pantalla principal', `«${name}» vuelve a salir en Contadores.`),
         onError: showError,
       },
     );

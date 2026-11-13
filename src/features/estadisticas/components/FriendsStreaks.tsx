@@ -32,7 +32,7 @@ export function FriendsStreaks() {
   if (rows.length <= 1) {
     return (
       <Text style={[styles.detail, { color: colors.textMuted }]}>
-        Añade amigos en «Amigos y grupos» para comparar vuestras rachas.
+        Añade amigos en «Social» para comparar vuestras rachas.
       </Text>
     );
   }

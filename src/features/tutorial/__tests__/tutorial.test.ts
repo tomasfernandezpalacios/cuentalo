@@ -109,7 +109,7 @@ describe('recorrido', () => {
     expect(inForm.every((s) => s.userNavigates)).toBe(true);
   });
 
-  it('Estadísticas y Amigos y grupos se señalan desde la pantalla principal', () => {
+  it('Estadísticas y Social se señalan desde la pantalla principal', () => {
     const tabs = buildSteps().filter((s) => s.id === 'stats' || s.id === 'social');
     expect(tabs.map((s) => [s.target, s.screen ?? '/', stepKind(s)])).toEqual([
       ['tab-estadisticas', '/', 'spotlight'],

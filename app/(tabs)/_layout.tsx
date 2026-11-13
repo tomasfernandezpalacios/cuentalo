@@ -128,7 +128,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="social"
           options={{
-            title: 'Amigos y grupos',
+            title: 'Social',
             tabBarIcon: tabIcon('people-outline'),
             tabBarButton: tabButton('tab-social'),
             tabBarBadge: inbox > 0 ? '' : undefined,

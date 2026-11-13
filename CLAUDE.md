@@ -787,6 +787,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   de los títulos se sigue midiendo con «Mis contadores» (`TitleMeasurer`): el usuario prefiere
   ese tamaño.
 
+- La pestaña «Amigos y grupos» se llama **«Social»** (petición del usuario), también en los
+  textos que la mencionan y en el paso del tutorial. (Las notas anteriores de este archivo que
+  dicen «Amigos y grupos» se refieren a ella.)
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)

@@ -4,7 +4,7 @@ import { FormScreen } from '@/components/FormScreen';
 import { JoinByCode } from '@/features/social/components/GroupsPanel';
 import { proseFont, useThemeColors } from '@/lib/theme';
 
-/** Unirse a un grupo con su código (desde la llave de la cabecera de «Amigos y grupos»). */
+/** Unirse a un grupo con su código (desde la llave de la cabecera de «Social»). */
 export default function JoinGroupScreen() {
   const colors = useThemeColors();
   return (

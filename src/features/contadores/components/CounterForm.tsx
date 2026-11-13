@@ -337,7 +337,7 @@ export function CounterForm({
               ))}
               {groups.length === 0 ? (
                 <Text style={[styles.hint, { color: colors.textMuted }]}>
-                  Para compartir un contador, crea o únete a un grupo en Amigos y grupos.
+                  Para compartir un contador, crea o únete a un grupo en Social.
                 </Text>
               ) : null}
               {/* Fuera de la V1: compartir con un grupo un contador privado ya existente. */}

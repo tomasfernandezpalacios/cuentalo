@@ -83,7 +83,7 @@ export function shareInvite(groupName: string, code: string) {
   Share.share({
     message:
       `Únete a «${groupName}» en Cuéntalo: ${buildInviteLink(code)}\n\n` +
-      `O escribe el código ${formatInviteCode(code)} en Amigos y grupos (con la llave de arriba).`,
+      `O escribe el código ${formatInviteCode(code)} en Social (con la llave de arriba).`,
   });
 }
 

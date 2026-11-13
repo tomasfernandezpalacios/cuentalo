@@ -29,7 +29,7 @@ export default function InviteScreen() {
     return (
       <EmptyView
         title="No tienes amigos todavía"
-        description="Añade amigos desde la pestaña Amigos y grupos para poder invitarlos."
+        description="Añade amigos desde la pestaña Social para poder invitarlos."
       />
     );
   }
