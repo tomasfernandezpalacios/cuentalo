@@ -822,7 +822,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   usuario, no cambiarla):** cada pestaña grande lleva a sus adyacentes; Social se abre
   **siempre por Grupos**. Adelante: Estadísticas → Grupos → Amigos → Mi perfil. Atrás: Mi perfil
   → Grupos → Estadísticas (no se pasa por Amigos). Cuando Social deja de verse del todo
-  (`useTabAnimation`), su página interna vuelve a Grupos sin animación. La
+  (`useTabAnimation`), su página interna vuelve a Grupos sin animación. Dentro de Social, un
+  deslizamiento **suave y despacio** pasa de subpestaña en subpestaña (y desde los bordes a la
+  pestaña de al lado); uno **fuerte y grande** (≥ 30 % del ancho y ≥ 0,8 px/ms) pasa
+  directamente a la pestaña grande de al lado (`STRONG_DISTANCE`, `STRONG_SPEED`). La
   barra Cine es propia (`CinemaTabBar`) y la cabecera de cada página la pinta `screenLayout` con
   el `Header` de React Navigation y las opciones de siempre (`Stack.Screen` en las pantallas
   sigue funcionando). Todas las páginas se dibujan desde el principio (`lazy: false`) y la

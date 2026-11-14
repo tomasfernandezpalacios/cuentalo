@@ -30,6 +30,13 @@ const SOCIAL_INDEX = 2;
 
 /** Distancia mínima para pasar de pestaña desde un borde. */
 const EDGE_SWIPE = 60;
+/**
+ * Deslizamiento «fuerte y grande» (petición del usuario): al menos este recorrido (fracción del
+ * ancho) y esta velocidad (px/ms). Con él se pasa de pestaña grande aunque haya subpestaña al
+ * lado; uno suave y despacio pasa de subpestaña en subpestaña.
+ */
+const STRONG_DISTANCE = 0.3;
+const STRONG_SPEED = 0.8;
 
 const TABS: { value: Tab; label: string }[] = [
   { value: 'groups', label: 'Grupos' },
@@ -46,7 +53,7 @@ export default function SocialScreen() {
   const navigation = useNavigation();
   const pager = useRef<ComponentRef<typeof Animated.ScrollView>>(null);
   // Comienzo del toque, para pasar a la pestaña de al lado desde los bordes.
-  const touchStart = useRef<{ x: number; y: number; tab: Tab } | null>(null);
+  const touchStart = useRef<{ x: number; y: number; time: number; tab: Tab } | null>(null);
   // Desplazamiento de las páginas: la iluminación del selector lo sigue (se desliza, no salta).
   const [scrollX] = useState(() => new Animated.Value(0));
   const position = scrollX.interpolate({
@@ -88,13 +95,15 @@ export default function SocialScreen() {
   }
 
   function onTouchStart(e: GestureResponderEvent) {
-    const { pageX, pageY } = e.nativeEvent;
-    touchStart.current = { x: pageX, y: pageY, tab };
+    const { pageX, pageY, timestamp } = e.nativeEvent;
+    touchStart.current = { x: pageX, y: pageY, time: timestamp, tab };
   }
 
   /**
-   * Bordes: deslizar a la derecha en Grupos pasa a Estadísticas y a la izquierda en Amigos, a Mi
-   * perfil. Entre Grupos y Amigos se desliza dentro de esta misma pestaña.
+   * Suave y despacio: de subpestaña en subpestaña (Grupos ↔ Amigos, lo hace el deslizador de
+   * dentro) y, desde los bordes, a la pestaña de al lado (Grupos → Estadísticas, Amigos → Mi
+   * perfil). Fuerte y grande: directamente a la pestaña grande de al lado, sin pasar por la otra
+   * subpestaña; el deslizador de dentro se queda donde estaba.
    */
   function onTouchEnd(e: GestureResponderEvent) {
     const start = touchStart.current;
@@ -103,8 +112,16 @@ export default function SocialScreen() {
     const dx = e.nativeEvent.pageX - start.x;
     const dy = e.nativeEvent.pageY - start.y;
     if (Math.abs(dx) < EDGE_SWIPE || Math.abs(dx) < 2 * Math.abs(dy)) return;
-    if (dx > 0 && start.tab === 'groups') navigation.navigate('estadisticas' as never);
-    if (dx < 0 && start.tab === 'friends') navigation.navigate('perfil' as never);
+    const elapsed = Math.max(1, e.nativeEvent.timestamp - start.time);
+    const strong =
+      Math.abs(dx) >= width * STRONG_DISTANCE && Math.abs(dx) / elapsed >= STRONG_SPEED;
+    if (strong) {
+      // Deshace el paso de subpestaña que haya empezado el deslizador de dentro.
+      pager.current?.scrollTo({ x: start.tab === 'groups' ? 0 : width, animated: false });
+      setTab(start.tab);
+    }
+    if (dx > 0 && (strong || start.tab === 'groups')) navigation.navigate('estadisticas' as never);
+    if (dx < 0 && (strong || start.tab === 'friends')) navigation.navigate('perfil' as never);
   }
 
   const refreshControl = (
