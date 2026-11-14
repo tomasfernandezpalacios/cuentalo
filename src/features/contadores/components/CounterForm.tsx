@@ -8,7 +8,7 @@ import { EditablePhoto } from '@/components/EditablePhoto';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
-import { tutorialEvent } from '@/features/tutorial/store';
+import { TUTORIAL_COUNTER_NAME } from '@/features/tutorial/steps';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
 import { pickPhoto, type PickedPhoto } from '@/lib/photos';
@@ -44,8 +44,8 @@ type Props = {
   /** Contenido extra al final (p. ej. archivar o borrar en la pantalla de edición). */
   footer?: ReactNode;
   /**
-   * Tutorial de bienvenida: contador sencillo. Una guía arriba, ideas de un toque y solo
-   * nombre y emoticono (sin unidad, visibilidad, común ni formato racha: queda privado y amigos).
+   * Tutorial de bienvenida: solo el nombre, fijo («Mi primer contador»), y el botón de crear
+   * (sin icono, unidad, visibilidad, común ni formato racha: queda privado y amigos).
    */
   simple?: boolean;
   /** Al editar: la foto que ya tiene el contador (si tiene). */
@@ -53,13 +53,6 @@ type Props = {
   /** El botón de guardar va en la cabecera (arriba a la derecha) en vez de abajo. */
   submitInHeader?: boolean;
 };
-
-const SUGGESTIONS = [
-  { emoji: '☕', name: 'Cafés', unit: 'cafés' },
-  { emoji: '📚', name: 'Libros leídos', unit: 'libros' },
-  { emoji: '🏃', name: 'Kilómetros', unit: 'km' },
-  { emoji: '💧', name: 'Vasos de agua', unit: 'vasos' },
-];
 
 export function CounterForm({
   initial,
@@ -78,11 +71,12 @@ export function CounterForm({
   submitInHeader = false,
 }: Props) {
   const colors = useThemeColors();
-  const [name, setName] = useState(initial?.name ?? '');
+  const [name, setName] = useState(initial?.name ?? (simple ? TUTORIAL_COUNTER_NAME : ''));
   const [typedUnit, setUnit] = useState(initial?.unit ?? '');
   // Al crear, mientras no se toque la unidad, se propone ya escrita la primera palabra del
   // nombre («Kilómetros» → «kilómetros», «Países visitados» → «países»; petición del usuario).
-  const [unitTouched, setUnitTouched] = useState(Boolean(initial));
+  // En el tutorial no se propone unidad (de «Mi primer contador» saldría «mi»).
+  const [unitTouched, setUnitTouched] = useState(Boolean(initial) || simple);
   const unit = unitTouched ? typedUnit : suggestUnit(name);
   const [emoji, setEmoji] = useState(initial?.emoji ?? '');
   // Icono: emoticono o foto (petición del usuario), como la imagen de los grupos.
@@ -202,66 +196,20 @@ export function CounterForm({
 
   return (
     <FormScreen>
-      {simple ? (
-        <View style={[styles.guide, { backgroundColor: colors.primarySoft }]}>
-          <Text style={[styles.optionTitle, { color: colors.text }]}>
-            Tu primer contador, en dos pasos
-          </Text>
-          <Text style={[styles.hint, { color: colors.text }]}>
-            1. Toca una idea o escribe un nombre (y un emoticono, si quieres).
-          </Text>
-          <Text style={[styles.hint, { color: colors.text }]}>
-            2. Pulsa «Crear contador» abajo.
-          </Text>
-        </View>
-      ) : null}
-      {simple ? (
-        <TutorialTarget id="ideas" style={styles.visibility}>
-          <Text style={[styles.label, { color: colors.text }]}>Ideas para empezar</Text>
-          <View style={styles.ideas}>
-            {SUGGESTIONS.map((idea) => {
-              const chosen = name === idea.name;
-              return (
-                <Pressable
-                  key={idea.name}
-                  onPress={() => {
-                    setName(idea.name);
-                    setEmoji(idea.emoji);
-                    setUnit(idea.unit);
-                    setUnitTouched(true);
-                    tutorialEvent('idea-chosen');
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Usar ${idea.name}`}
-                  style={[
-                    styles.idea,
-                    {
-                      backgroundColor: chosen ? colors.primarySoft : colors.surface,
-                      borderColor: chosen ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    {idea.emoji} {idea.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </TutorialTarget>
-      ) : null}
-      <TextField
-        label="Nombre"
-        value={name}
-        onChangeText={setName}
-        error={errors.name}
-        placeholder="ej. Cervezas, Libros leídos, Kilómetros"
-        maxLength={LIMITS.counterName}
-        autoFocus={!initial && !simple}
-      />
-      {simple ? (
-        <EmojiPicker value={emoji} onChange={setEmoji} />
-      ) : (
+      {/* En el tutorial, el nombre viene puesto y no se cambia («Mi primer contador»). */}
+      <TutorialTarget id="nombre" enabled={simple}>
+        <TextField
+          label="Nombre"
+          value={name}
+          onChangeText={setName}
+          error={errors.name}
+          placeholder="ej. Cervezas, Libros leídos, Kilómetros"
+          maxLength={LIMITS.counterName}
+          autoFocus={!initial && !simple}
+          editable={!simple}
+        />
+      </TutorialTarget>
+      {simple ? null : (
         <>
           <View style={styles.preview}>
             <EditablePhoto
@@ -464,7 +412,6 @@ const styles = StyleSheet.create({
   headerSaveText: { fontSize: 17, fontFamily: fonts.title },
   photoActions: { gap: 8 },
   photoHint: { ...proseFont(14) },
-  guide: { borderRadius: 14, padding: 14, gap: 6 },
   visibility: { gap: 8 },
   label: { fontSize: 15, fontFamily: fonts.detail },
   option: { padding: 14, borderRadius: 12, borderWidth: 1, gap: 4 },
@@ -473,12 +420,4 @@ const styles = StyleSheet.create({
   commonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   checkbox: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   flexText: { flex: 1, gap: 2 },
-  ideas: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  idea: {
-    paddingHorizontal: 12,
-    minHeight: 44,
-    justifyContent: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-  },
 });

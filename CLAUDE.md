@@ -427,36 +427,35 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - Cabecera del grupo: arriba la imagen y, a su derecha y a la misma altura, el bloque del código
   (miembros activos); debajo, el nombre del grupo a la izquierda y a todo lo ancho.
 
-- **Tutorial de bienvenida** (petición del usuario, `src/features/tutorial/`). Sale la primera
-  vez que alguien entra si `profiles.tutorial_done = false` (migración `20261124`; sin la
-  columna no sale nunca) y se marca al terminar o saltar. «Ver tutorial» en Configuración →
-  Información. Pasos (`steps.ts`, puros con tests; rehechos a petición del usuario):
-  bienvenida a pantalla completa (texto a la izquierda), «Esto es Cuéntalo» 2 s sobre la app
-  (`banner`), **siempre** crear un contador sencillo aunque ya haya (+ → en el formulario, modo
-  `simple`, se ilumina una idea y luego «Crear contador»; `screen: '/contadores/nuevo'` con
-  `userNavigates`), sumar, restar 1, la pestaña Estadísticas y la de Amigos y grupos (desde
-  inicio, todo oscurecido menos su botón), la racha y una pantalla final «Todo listo» / «Empieza a
-  dejar huella de tu vida» con un círculo con huella: mantenerlo pulsado lo hace crecer hasta
-  cubrir la pantalla (soltar antes lo devuelve con un rebote) y sale «"Me comprometo a
-  registrar mi vida"» antes de terminar. La bienvenida no tiene «Saltar» (barra y «Seguir»
-  abajo). Barra de progreso (`Progress`): lo hecho es barra, el paso actual una bolita llena y
-  los pendientes bolitas huecas. Los pasos de tarea (crear, sumar, restar) se
-  superan haciéndola, sin pausa ni «Siguiente»; Estadísticas, Amigos y grupos y la racha
-  llevan «Siguiente». «Saltar», a la derecha de la barra. Sin confeti (el usuario lo quitó).
-  Movimientos lentos y suaves (fluidez antes que velocidad, `MOVE_MS`). El bocadillo es el mismo de paso a paso: el foco se desliza al elemento nuevo
-  (`useGlidingHole`, `lerpHole`), todo lo sigue, el texto entra con un fundido y la barra
-  avanza. Si el elemento no aparece, sale «Siguiente». Al final, tras la promesa sale
-  «Cuéntalo». Los de acción avanzan con `tutorialEvent` desde el código que ya existe
-  (`useCounterActions.add`, `contadores/nuevo`; durante el tutorial crear vuelve a la lista y
-  ofrece ideas de un toque) y solo dejan tocar el hueco. `TutorialHost` (montado en
-  `app/_layout.tsx`, solo se ve en «Mis contadores»): oscurecido con hueco (SVG evenodd),
-  anillo que late, flecha, bocadillo arriba o abajo (`layout.ts`, con tests), puntos de
-  progreso. Los elementos se marcan con `TutorialTarget` (View con
-  `collapsable={false}`) y se miden con `measureInWindow` cada 250 ms **restando la posición de
-  la propia capa del tutorial** (medida igual): la ventana y la vista raíz no empiezan en el
-  mismo sitio en Android y, sin restarla, el foco caía desplazado; si no aparece en 1,5 s,
-  el paso sale sin foco y con «Siguiente». Pestañas: `tabBarButton` envuelve
-  `PlatformPressable` (de `expo-router/react-navigation`).
+- **Tutorial de bienvenida** (rehecho de cero a petición del usuario: «la carta de presentación
+  de la app», tiene que ser fluido y profesional; `src/features/tutorial/`). Sale la primera vez
+  si `profiles.tutorial_done = false` (migración `20261124`) y se marca al terminar o saltar;
+  «Ver tutorial» en Configuración → Información. Pasos (`steps.ts`, con tests): bienvenida a
+  pantalla completa (igual que antes) → «Esto es Cuéntalo» destacado en el centro con todo lo
+  demás apagado (2,4 s) → tocar el + → en el formulario, el nombre iluminado, fijo y sin poder
+  cambiarse: **«Mi primer contador»** (`TUTORIAL_COUNTER_NAME`; modo `simple` de `CounterForm`:
+  solo nombre y botón, sin unidad propuesta) → «Crear contador» → sumar → restar (sin «Deshacer»
+  durante el tutorial, petición del usuario) → mantener pulsado el contador → sus herramientas
+  (la cabecera del modo selección, `herramientas`; al seguir, el modo selección se cierra solo)
+  → tocar Estadísticas → la pantalla entera iluminada (`pantalla`) → tocar Social → su pantalla
+  → la racha (en Estadísticas) → pantalla final igual que antes (huella, «"Me comprometo a
+  registrar mi vida"», «Cuéntalo»). El contador creado (`counterId` del store, llega con
+  `tutorialEvent('counter-created', id)`) se pone el primero de la lista y es el que se ilumina.
+  Si el usuario sale del formulario a medias, vuelve al paso del + (`fallback`). Durante el
+  tutorial no sale la celebración de la racha.
+- **Motor del tutorial** (`Coach.tsx`; por qué el anterior iba a trompicones: movía el foco
+  desde JS fotograma a fotograma redibujando un SVG, y la capa se desmontaba en cada cambio de
+  pantalla). Ahora: una sola capa montada todo el tutorial (también debajo de la bienvenida y
+  del final). El velo son **piezas sólidas** (4 paneles + 4 esquinas con un cuarto de círculo
+  recortado) que solo se **desplazan y estiran con el motor nativo** (`useNativeDriver`, bordes
+  `left/top/right/bottom` como `Animated.Value`), dentro de un grupo semitransparente con
+  `needsOffscreenAlphaCompositing` (los solapes no oscurecen; las piezas se solapan 1 px para no
+  dejar líneas). El elemento se mide (`measureInWindow`, restando la capa) hasta que está quieto
+  (dos medidas iguales seguidas), y entonces el foco se desliza (680 ms, ease-in-out); si el
+  paso es en otra pantalla, el hueco antes se cierra como un iris. El bocadillo se funde, se
+  coloca (debajo, encima o dentro si no cabe; piquito hacia el foco) y reaparece en la segunda
+  mitad del deslizamiento; el que se está yendo no acepta toques. Anillo que late solo en lo que
+  hay que tocar. Geometría pura en `layout.ts` (tests). Toque háptico leve en cada paso.
 - Valores de `Animated` en componentes: `useState(() => new Animated.Value(0))[0]`, no
   `useRef(...).current` (la regla react-hooks/refs lo marca como error).
 

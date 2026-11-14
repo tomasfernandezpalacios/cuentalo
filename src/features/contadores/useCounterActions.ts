@@ -7,7 +7,7 @@ import { showUndoToast } from '@/components/UndoToast';
 import { getSettings } from '@/features/configuracion/settings';
 import { markActiveToday } from '@/features/configuracion/reminder';
 import { markTodayActive } from '@/features/estadisticas/streakCelebration';
-import { tutorialEvent } from '@/features/tutorial/store';
+import { isTutorialActive, tutorialEvent } from '@/features/tutorial/store';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount } from '@/lib/format';
 
@@ -39,6 +39,8 @@ export function useCounterActions() {
 
   /** Aviso «+1 en Cafés · Deshacer» tras registrar (borra lo que se acaba de apuntar). */
   function offerUndo(counter: CounterWithTotal, text: string) {
+    // En el tutorial no sale (petición del usuario): distrae del paso que se está enseñando.
+    if (isTutorialActive()) return;
     showUndoToast(`${text} en «${counter.name}»`, () =>
       undo.mutate(counter.id, {
         onSuccess: (done) => {

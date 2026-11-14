@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { useSyncExternalStore } from 'react';
 
 import { counterKeys } from '@/features/contadores/hooks';
+import { isTutorialActive } from '@/features/tutorial/store';
 
 import { localToday } from './periods';
 import { currentStreak } from './streaks';
@@ -68,5 +69,6 @@ export function markTodayActive(queryClient: QueryClient, userId: string) {
   const increase = streakIncrease(days, today);
   if (!increase) return;
   queryClient.setQueryData(key, [today, ...days]);
-  celebrateStreak(increase.from, increase.to);
+  // Durante el tutorial no: escondería los botones de la barra que el tutorial va a enseñar.
+  if (!isTutorialActive()) celebrateStreak(increase.from, increase.to);
 }

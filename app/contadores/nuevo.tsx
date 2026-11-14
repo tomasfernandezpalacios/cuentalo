@@ -12,10 +12,10 @@ export default function NewCounterScreen() {
   const create = useCreateCounter();
   const groups = useMyGroups();
   const activeGroups = (groups.data ?? []).filter((g) => g.status === 'active');
-  // Durante el tutorial: contador sencillo guiado y, al crear, de vuelta a la lista («Sumar»).
+  // Durante el tutorial: «Mi primer contador» (nombre fijo) y, al crear, de vuelta a la lista.
   const tutorial = useTutorial();
   const stepId = tutorial.step?.id;
-  const inTutorial = stepId === 'create' || stepId === 'pick-idea' || stepId === 'submit';
+  const inTutorial = stepId === 'create' || stepId === 'name' || stepId === 'submit';
 
   // Paso «Toca el +»: ya estamos en el formulario, el tutorial sigue aquí.
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function NewCounterScreen() {
             onSuccess: (counter) => {
               if (inTutorial) {
                 router.back();
-                tutorialEvent('counter-created');
+                tutorialEvent('counter-created', counter.id);
               } else {
                 router.replace({ pathname: '/contadores/[id]', params: { id: counter.id } });
               }
