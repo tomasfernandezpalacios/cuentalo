@@ -7,16 +7,21 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cuentalo.app",
+      "buildNumber": "1"
     },
     "android": {
+      "package": "com.cuentalo.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0B0A09",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": ["android.permission.WRITE_CONTACTS"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -48,9 +53,16 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Cuéntalo usa tus fotos para poner una imagen a tu perfil y a tus grupos.",
-          "cameraPermission": "Cuéntalo usa la cámara para hacerte una foto de perfil.",
+          "photosPermission": "Cuéntalo usa tus fotos para poner una imagen a tu perfil, a tus grupos y a tus contadores.",
+          "cameraPermission": "Cuéntalo usa la cámara para hacer la foto de tu perfil.",
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#E9C46A"
         }
       ]
     ],

@@ -19,6 +19,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // Enlaces del correo (recuperar la contraseña) con PKCE: solo los abre el móvil que los pidió.
+    flowType: 'pkce',
   },
 });
 

@@ -1,10 +1,21 @@
 // Tipos de la base de datos, escritos a mano a partir de supabase/migrations.
 // Si se cambia una migración, hay que actualizar este archivo.
 
+/** Una fila de my_counter_totals(): los totales de un contador que veo. */
+export type CounterTotalRow = {
+  counter_id: string;
+  total: number;
+  entry_count: number;
+  last_logged_at: string;
+  my_total: number;
+  my_entry_count: number;
+  my_group_total: number;
+};
+
 /** Lo que devuelve get_my_home(): todo lo de la pantalla principal en una petición. */
 export type HomeBundle = {
   counters: Database['public']['Tables']['counters']['Row'][];
-  totals: Database['public']['Views']['counter_totals']['Row'][];
+  totals: CounterTotalRow[];
   groups: {
     id: string;
     name: string;
@@ -316,28 +327,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      counter_totals: {
-        Row: {
-          counter_id: string;
-          total: number;
-          entry_count: number;
-          last_logged_at: string;
-          my_total: number;
-          my_entry_count: number;
-          my_group_total: number;
-        };
-        Relationships: [];
-      };
-      entry_daily_totals: {
-        Row: {
-          counter_id: string;
-          user_id: string;
-          day: string;
-          total: number;
-          entry_count: number;
-        };
-        Relationships: [];
-      };
     };
     Functions: {
       is_username_available: {
@@ -347,10 +336,6 @@ export type Database = {
       login_email_for_username: {
         Args: { p_username: string; p_password: string };
         Returns: string | null;
-      };
-      can_log_to_counter: {
-        Args: { p_counter_id: string };
-        Returns: boolean;
       };
       remove_one_from_counter: {
         Args: { p_counter_id: string };
@@ -467,10 +452,6 @@ export type Database = {
         Args: Record<string, never>;
         Returns: undefined;
       };
-      undo_last_entry: {
-        Args: { p_counter_id: string };
-        Returns: boolean;
-      };
       set_my_time_zone: {
         Args: { p_time_zone: string };
         Returns: undefined;
@@ -479,9 +460,19 @@ export type Database = {
         Args: Record<string, never>;
         Returns: HomeBundle;
       };
-      get_group_counter_daily: {
+      /** JSON: [{ user_id, day, total }] (sin el límite de 1000 filas). */
+      get_group_counter_days: {
         Args: { p_counter_id: string };
-        Returns: { user_id: string; day: string; total: number }[];
+        Returns: unknown;
+      };
+      /** JSON: [{ counter_id, day, total, entry_count }] (mis totales diarios). */
+      get_my_daily_totals: {
+        Args: Record<string, never>;
+        Returns: unknown;
+      };
+      my_counter_totals: {
+        Args: Record<string, never>;
+        Returns: CounterTotalRow[];
       };
       get_streak_leaderboard: {
         Args: { p_counter_id: string };

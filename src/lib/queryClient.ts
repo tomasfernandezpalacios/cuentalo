@@ -4,7 +4,8 @@ import { AppState } from 'react-native';
 /**
  * Tras cualquier cambio se refresca todo lo que está en pantalla, menos lo que no depende de los
  * datos: los enlaces firmados de las fotos (duran 1 h), las fotos y emoticonos de otras personas
- * en las clasificaciones y los códigos de grupo (son fijos).
+ * en las clasificaciones y los códigos de grupo (solo cambian al expulsar, y ese cambio los
+ * vuelve a pedir).
  *
  * **Por detrás y sin esperar** (petición del usuario: «primero que se vea, luego se guarda por
  * detrás»): no devuelve la promesa. Antes los `onSuccess` la devolvían y TanStack Query esperaba
@@ -75,6 +76,9 @@ export const queryClient = new QueryClient({
       staleTime: 30_000,
       retry: 1,
     },
+    // Sin conexión, los cambios fallan al momento (con su aviso y deshaciendo lo optimista) en
+    // vez de quedarse en pausa: solo los +N y −1 esperan a la conexión (ver src/lib/offline.ts).
+    mutations: { networkMode: 'always' },
   },
 });
 

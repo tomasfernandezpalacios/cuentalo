@@ -38,10 +38,7 @@ export function usePrefetchMain(isSignedIn: boolean): boolean {
     if (!isSignedIn || userId === '') return;
     const prefetch: { queryKey: readonly unknown[]; queryFn: () => Promise<unknown> }[] = [
       { queryKey: counterKeys.list(), queryFn: () => fetchCounters(userId) },
-      {
-        queryKey: [...counterKeys.all, 'daily-totals', userId],
-        queryFn: () => fetchMyDailyTotals(userId),
-      },
+      { queryKey: counterKeys.dailyTotals(userId), queryFn: fetchMyDailyTotals },
       {
         queryKey: [...counterKeys.all, 'activity', userId],
         queryFn: () => fetchMyActivityDays(userId),

@@ -16,7 +16,7 @@ type Props = { groupId: string; groupName: string };
 /**
  * Tarjeta del grupo (cabecera y lista de «Tus grupos»): imagen con el código a su derecha y el
  * nombre debajo, a la izquierda. El código va en una línea (con copiar a su derecha) y,
- * debajo y alineado a su izquierda, «Compartir» (el enlace). El código es fijo: no se cambia.
+ * debajo y alineado a su izquierda, «Compartir» (el enlace). El código solo cambia al expulsar a alguien.
  */
 export function GroupHeaderCard({
   groupId,

@@ -1,5 +1,7 @@
+import { useFonts } from 'expo-font';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { fontsFor } from '@/lib/fontSources';
 import { TYPOGRAPHIES, TYPOGRAPHY_NAMES, type TypographyName } from '@/lib/typography';
 import { chipColors, useThemeColors } from '@/lib/theme';
 
@@ -14,6 +16,8 @@ type Props = {
  */
 export function TypographyPicker({ value, onChange }: Props) {
   const colors = useThemeColors();
+  // Las letras de las demás opciones se cargan solo aquí, al abrir el selector.
+  useFonts(fontsFor(...Object.values(TYPOGRAPHIES)));
   return (
     <View style={styles.list}>
       {TYPOGRAPHY_NAMES.map((name) => {

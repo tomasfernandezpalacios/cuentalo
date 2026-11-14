@@ -19,9 +19,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState({ session: data.session, isLoading: false });
     });
 
+    let lastUserId: string | null = null;
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      // Al cerrar sesión borramos la caché para que el siguiente usuario no vea datos ajenos.
-      if (event === 'SIGNED_OUT') queryClient.clear();
+      // Al cerrar sesión, o si se pasa a otra cuenta sin cerrarla, borramos la caché para que
+      // nadie vea datos de otro usuario (las claves de las consultas no llevan el usuario).
+      const userId = session?.user.id ?? null;
+      if (event === 'SIGNED_OUT' || (lastUserId && userId && userId !== lastUserId)) {
+        queryClient.clear();
+      }
+      if (userId) lastUserId = userId;
       setState({ session, isLoading: false });
     });
     return () => data.subscription.unsubscribe();

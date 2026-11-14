@@ -23,7 +23,6 @@ import {
   requestCommonChange,
   setHidden,
   setRemovedFromHome,
-  undoLastEntry,
   setParticipants,
   updateCounter,
   updateEntry,
@@ -38,11 +37,13 @@ import { optimistic, optimisticHandlers, refreshAll, type Undo } from '@/lib/que
 import {
   entryAddKey,
   entryRemoveKey,
+  entryScope,
   sendAddEntry,
   sendRemoveOne,
   type AddEntryVariables,
   type RemoveOneVariables,
 } from '@/lib/offline';
+import { localToday, type DailyTotal } from '@/features/estadisticas/periods';
 
 import { applyCounterPhoto, type CounterPhotoChange } from './photos';
 
@@ -54,6 +55,7 @@ export const counterKeys = {
   leaderboard: (id: string, period: LeaderboardPeriod) =>
     [...counterKeys.all, 'leaderboard', id, period] as const,
   lastUsed: (ids: string[]) => [...counterKeys.all, 'last-used', ...ids] as const,
+  dailyTotals: (userId: string) => [...counterKeys.all, 'daily-totals', userId] as const,
 };
 
 // Tras cualquier cambio refrescamos todo (no solo lo de contadores): son pocas consultas y así
@@ -285,15 +287,6 @@ export function useSetHidden() {
   });
 }
 
-/** Deshacer el último registro (desde el aviso «Deshacer»). */
-export function useUndoLastEntry() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: undoLastEntry,
-    onSettled: () => invalidateCounters(queryClient),
-  });
-}
-
 export function useSetRemovedFromHome() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -321,13 +314,21 @@ type TotalChange = (counter: CounterWithTotal) => CounterWithTotal;
  * el servidor, y devuelve lo necesario para deshacerlo si falla. Así los botones se sienten
  * inmediatos.
  */
-async function applyOptimistic(queryClient: QueryClient, counterId: string, change: TotalChange) {
+async function applyOptimistic(
+  queryClient: QueryClient,
+  userId: string,
+  counterId: string,
+  change: TotalChange,
+) {
   const detailKey = counterKeys.detail(counterId);
   const listKey = counterKeys.list();
+  const dailyKey = counterKeys.dailyTotals(userId);
   await queryClient.cancelQueries({ queryKey: counterKeys.all });
 
   const previousDetail = queryClient.getQueryData<CounterWithTotal>(detailKey);
   const previousList = queryClient.getQueryData<CounterWithTotal[]>(listKey);
+  const previousDaily = queryClient.getQueryData<DailyTotal[]>(dailyKey);
+  const before = previousDetail ?? previousList?.find((c) => c.id === counterId);
   if (previousDetail) queryClient.setQueryData(detailKey, change(previousDetail));
   if (previousList) {
     queryClient.setQueryData(
@@ -335,7 +336,22 @@ async function applyOptimistic(queryClient: QueryClient, counterId: string, chan
       previousList.map((c) => (c.id === counterId ? change(c) : c)),
     );
   }
-  return { detailKey, listKey, previousDetail, previousList };
+  // Las estadísticas también se ven al instante: lo que cambia «lo mío» se suma al día de hoy.
+  const mine = before ? change(before).myTotal - before.myTotal : 0;
+  if (previousDaily && mine !== 0) {
+    queryClient.setQueryData(dailyKey, addToDay(previousDaily, counterId, localToday(), mine));
+  }
+  return { detailKey, listKey, dailyKey, previousDetail, previousList, previousDaily };
+}
+
+/** Suma `amount` al total del día `day` del contador (o crea ese día). */
+function addToDay(rows: DailyTotal[], counterId: string, day: string, amount: number) {
+  const index = rows.findIndex((r) => r.counterId === counterId && r.day === day);
+  const entries = amount > 0 ? 1 : 0;
+  if (index === -1) return [...rows, { counterId, day, total: amount, entryCount: entries }];
+  return rows.map((r, i) =>
+    i === index ? { ...r, total: r.total + amount, entryCount: r.entryCount + entries } : r,
+  );
 }
 
 type OptimisticContext = Awaited<ReturnType<typeof applyOptimistic>>;
@@ -372,16 +388,20 @@ function rollback(queryClient: QueryClient, context: OptimisticContext | undefin
   if (!context) return;
   queryClient.setQueryData(context.detailKey, context.previousDetail);
   queryClient.setQueryData(context.listKey, context.previousList);
+  queryClient.setQueryData(context.dailyKey, context.previousDaily);
 }
 
 // --- Refresco tras +N / −1 ---------------------------------------------------
 //
-// Antes cada toque refrescaba todo al terminar. Con varios toques seguidos eso lanzaba muchas
-// consultas y, peor, la respuesta de un refresco podía llegar con el total *antiguo* mientras otro
-// toque aún no estaba guardado: el número bajaba un momento y volvía a subir. Ahora:
-//  - todos los +N/−1 comparten `entryMutationKey`, así sabemos si queda alguno en vuelo;
-//  - solo el último en terminar programa el refresco, y con un pequeño retraso que se reinicia
-//    con cada toque nuevo (varios toques rápidos → un solo refresco al final).
+// Cada toque ya se ve al momento (optimista) en la lista, el detalle y las estadísticas. Al
+// terminar una ráfaga de toques solo se vuelve a pedir lo que el servidor calcula y se está
+// viendo: la lista de contadores (totales exactos), el historial y la clasificación. Lo demás
+// (estadísticas, rachas, avisos…) solo se marca como antiguo: se pide al volver a la app o al
+// tirar para refrescar, en vez de descargar todo después de cada toque.
+//  - Todos los +N/−1 comparten `entryMutationKey`, así sabemos si queda alguno en vuelo.
+//  - Solo el último en terminar programa el refresco, con un pequeño retraso que se reinicia con
+//    cada toque nuevo (varios toques rápidos → un solo refresco al final). Así una respuesta con
+//    el total antiguo no pisa un toque que aún no se ha guardado.
 
 const entryMutationKey = ['entry-change'] as const;
 const REFRESH_DELAY_MS = 700;
@@ -392,6 +412,18 @@ function cancelScheduledRefresh() {
   refreshTimer = null;
 }
 
+/** Lo que cambia con un +N/−1: se vuelve a pedir solo lo que está en pantalla. */
+export function refreshAfterEntries(queryClient: QueryClient) {
+  const live = (part: string) => ({ queryKey: [...counterKeys.all, part] });
+  void queryClient.invalidateQueries(live('list'));
+  void queryClient.invalidateQueries(live('detail'));
+  void queryClient.invalidateQueries(live('entries'));
+  void queryClient.invalidateQueries(live('leaderboard'));
+  // El resto de lo que cuelga de los contadores, sin pedirlo ahora.
+  void queryClient.invalidateQueries({ queryKey: counterKeys.all, refetchType: 'none' });
+  void queryClient.invalidateQueries({ queryKey: ['social'], refetchType: 'none' });
+}
+
 /** Llamar en `onSettled`: la mutación que termina aún cuenta como en vuelo. */
 function scheduleRefreshAfterEntry(queryClient: QueryClient) {
   if (queryClient.isMutating({ mutationKey: entryMutationKey }) > 1) return;
@@ -399,23 +431,27 @@ function scheduleRefreshAfterEntry(queryClient: QueryClient) {
   refreshTimer = setTimeout(() => {
     refreshTimer = null;
     if (queryClient.isMutating({ mutationKey: entryMutationKey }) > 0) return;
-    void invalidateCounters(queryClient);
+    refreshAfterEntries(queryClient);
   }, REFRESH_DELAY_MS);
 }
 
 /**
  * +N. En un contador común se suma a todos sus participantes. Sin conexión no falla: se queda
- * en pausa (ya se ve sumado) y se envía al volver (ver src/lib/offline.ts).
+ * en pausa (ya se ve sumado) y se envía al volver (ver src/lib/offline.ts). Los +N y −1 se
+ * envían de uno en uno y en orden (`entryScope`): un −1 nunca llega antes que el +1 anterior.
  */
 export function useAddEntry() {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
     mutationKey: entryAddKey,
+    scope: entryScope,
     mutationFn: sendAddEntry,
     onMutate: ({ counterId, input }: AddEntryVariables) => {
       cancelScheduledRefresh();
-      return applyOptimistic(queryClient, counterId, (c) => applyAmount(c, input.amount, userId));
+      return applyOptimistic(queryClient, userId, counterId, (c) =>
+        applyAmount(c, input.amount, userId),
+      );
     },
     onError: (_error, _variables, context) => rollback(queryClient, context),
     onSettled: () => scheduleRefreshAfterEntry(queryClient),
@@ -431,10 +467,11 @@ export function useRemoveOne() {
   const userId = useUserId();
   return useMutation({
     mutationKey: entryRemoveKey,
+    scope: entryScope,
     mutationFn: sendRemoveOne,
     onMutate: ({ counterId }: RemoveOneVariables) => {
       cancelScheduledRefresh();
-      return applyOptimistic(queryClient, counterId, (c) =>
+      return applyOptimistic(queryClient, userId, counterId, (c) =>
         c.is_common
           ? applyAmount(c, -1, userId)
           : c.myGroupTotal < 1

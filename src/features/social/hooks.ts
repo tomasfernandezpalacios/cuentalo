@@ -210,9 +210,16 @@ export function useLeaveGroup() {
 }
 
 export function useRemoveMember() {
-  return useSocialMutation(({ groupId, userId }: { groupId: string; userId: string }) =>
-    removeMember(groupId, userId),
-  );
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, userId }: { groupId: string; userId: string }) =>
+      removeMember(groupId, userId),
+    onSuccess: (_result, { groupId }) => {
+      refreshAll(queryClient);
+      // Al expulsar a alguien el grupo estrena código (notify_kicked): el antiguo ya no vale.
+      void queryClient.invalidateQueries({ queryKey: socialKeys.inviteCode(groupId) });
+    },
+  });
 }
 
 // --- Códigos de invitación --------------------------------------------------------------------
@@ -222,7 +229,7 @@ export function useInviteCode(groupId: string, enabled: boolean) {
     queryKey: socialKeys.inviteCode(groupId),
     queryFn: () => fetchInviteCode(groupId),
     enabled,
-    // El código de un grupo no cambia nunca: se pide una vez.
+    // El código solo cambia al expulsar a alguien (y entonces se vuelve a pedir).
     staleTime: Infinity,
   });
 }

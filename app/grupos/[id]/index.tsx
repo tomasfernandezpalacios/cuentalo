@@ -58,7 +58,7 @@ export default function GroupScreen() {
       pending ? 'Retirar invitación' : 'Expulsar del grupo',
       pending
         ? `¿Retirar la invitación a ${member.profile.display_name}?`
-        : `¿Expulsar a ${member.profile.display_name} del grupo? Conservará sus estadísticas personales.`,
+        : `¿Expulsar a ${member.profile.display_name} del grupo? Conservará sus estadísticas personales y el grupo estrenará código de invitación.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {

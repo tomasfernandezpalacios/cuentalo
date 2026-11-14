@@ -23,23 +23,25 @@ export default function RecoveryLinkScreen() {
   const error =
     link?.kind === 'error'
       ? 'El enlace ha caducado o ya se ha usado. Pide otro desde «¿Olvidaste tu contraseña?».'
-      : sessionError;
+      : url && !link
+        ? 'Este enlace no es válido. Pide otro desde «¿Olvidaste tu contraseña?».'
+        : sessionError;
 
   useEffect(() => {
     if (!url || handled.current) return;
     const parsed = parseRecoveryUrl(url);
-    if (parsed?.kind !== 'session') return;
+    if (parsed?.kind !== 'code') return;
     handled.current = true;
-    const link = parsed;
-    supabase.auth
-      .setSession({ access_token: link.accessToken, refresh_token: link.refreshToken })
-      .then(({ error: sessionError }) => {
-        if (sessionError) {
-          setError('No se ha podido abrir el enlace. Pide otro desde «¿Olvidaste tu contraseña?».');
-          return;
-        }
-        router.replace('/nueva-contrasena');
-      });
+    supabase.auth.exchangeCodeForSession(parsed.code).then(({ error: sessionError }) => {
+      if (sessionError) {
+        setError(
+          'No se ha podido abrir el enlace. Ábrelo en el mismo móvil en el que lo pediste, o ' +
+            'pide otro desde «¿Olvidaste tu contraseña?».',
+        );
+        return;
+      }
+      router.replace('/nueva-contrasena');
+    });
   }, [url]);
 
   return (

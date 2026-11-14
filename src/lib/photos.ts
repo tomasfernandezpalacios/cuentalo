@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
+import { supabase } from '@/lib/supabase';
 
 // Fotos de perfil y de grupo: elegirlas (galería o cámara) y preparar la ya guardada para
 // editarla. Todas son cuadradas.
@@ -53,4 +54,20 @@ export function imageSize(uri: string): Promise<{ width: number; height: number 
   return new Promise((resolve, reject) => {
     Image.getSize(uri, (width, height) => resolve({ width, height }), reject);
   });
+}
+
+/**
+ * Borra todas las fotos guardadas en las carpetas `folders` de un bucket (las fotos se guardan
+ * en '<id>/<ts>.<ext>'). Se llama antes de borrar lo que las usa: Storage no se borra desde SQL
+ * y, una vez borrado el contador o el grupo, sus políticas ya no dejan tocarlas. Si falla no
+ * pasa nada grave: nadie podría verlas.
+ */
+export async function removePhotoFolders(bucket: string, folders: string[]): Promise<void> {
+  await Promise.all(
+    folders.map(async (folder) => {
+      const { data } = await supabase.storage.from(bucket).list(folder);
+      const paths = (data ?? []).map((file) => `${folder}/${file.name}`);
+      if (paths.length > 0) await supabase.storage.from(bucket).remove(paths);
+    }),
+  ).catch(() => {});
 }

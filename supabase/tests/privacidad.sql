@@ -30,8 +30,39 @@ set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
 insert into public.counters (id, name, unit)
   values ('10000000-0000-0000-0000-000000000001', 'Privado de Ana', 'cosas');
+-- En entries solo escriben las funciones; para poder fijar el id, este se inserta sin el rol.
+reset role;
 insert into public.entries (id, counter_id, amount)
   values ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 5);
+set local role authenticated;
+
+-- Nadie escribe directamente en entries (ni en lo suyo) ni cambia el signo o las marcas.
+do $$
+declare n int;
+begin
+  begin
+    insert into public.entries (counter_id, amount)
+      values ('10000000-0000-0000-0000-000000000001', -999);
+    raise exception 'FALLO: se puede insertar directamente en entries';
+  exception when insufficient_privilege then null;
+  end;
+
+  begin
+    update public.entries set amount = -5 where id = '20000000-0000-0000-0000-000000000001';
+    raise exception 'FALLO: editar un registro puede cambiarle el signo';
+  exception when raise_exception then null; -- invalid_amount
+  end;
+
+  begin
+    update public.entries set personal_only = true where id = '20000000-0000-0000-0000-000000000001';
+    raise exception 'FALLO: se pueden cambiar las marcas de un registro';
+  exception when insufficient_privilege then null;
+  end;
+
+  update public.entries set note = 'nota' where id = '20000000-0000-0000-0000-000000000001';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'FALLO: no se puede editar la nota de un registro propio'; end if;
+end $$;
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}', true);
 do $$
@@ -43,14 +74,14 @@ begin
   select count(*) into n from public.entries where counter_id = '10000000-0000-0000-0000-000000000001';
   if n <> 0 then raise exception 'FALLO: Beto puede leer los registros privados de Ana'; end if;
 
-  select count(*) into n from public.counter_totals where counter_id = '10000000-0000-0000-0000-000000000001';
+  select count(*) into n from public.my_counter_totals() where counter_id = '10000000-0000-0000-0000-000000000001';
   if n <> 0 then raise exception 'FALLO: Beto ve el total del contador privado de Ana'; end if;
 
   begin
-    insert into public.entries (counter_id, amount)
-      values ('10000000-0000-0000-0000-000000000001', 1);
+    perform public.log_to_counter('10000000-0000-0000-0000-000000000001', 1);
     raise exception 'FALLO: Beto puede registrar en el contador privado de Ana';
-  exception when insufficient_privilege then null; -- esperado (RLS)
+  exception when raise_exception then
+    if sqlerrm <> 'cannot_log' then raise; end if;
   end;
 
   begin
@@ -168,8 +199,10 @@ insert into public.group_members (group_id, user_id)
 insert into public.counters (id, name, unit, group_id)
   values ('10000000-0000-0000-0000-000000000002', 'Compartido', 'cosas',
           '30000000-0000-0000-0000-000000000001');
+reset role;
 insert into public.entries (id, counter_id, amount)
   values ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 3);
+set local role authenticated;
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}', true);
 do $$
@@ -192,13 +225,12 @@ begin
   select count(*) into n from public.counters where id = '10000000-0000-0000-0000-000000000002';
   if n <> 1 then raise exception 'FALLO: un miembro activo no ve el contador del grupo'; end if;
 
-  insert into public.entries (counter_id, amount)
-    values ('10000000-0000-0000-0000-000000000002', 4);
+  perform public.log_to_counter('10000000-0000-0000-0000-000000000002', 4);
 
   select count(*) into n from public.entries where counter_id = '10000000-0000-0000-0000-000000000002';
   if n <> 2 then raise exception 'FALLO: un miembro no ve los registros del grupo (ve %)', n; end if;
 
-  select total into v_total from public.counter_totals
+  select total into v_total from public.my_counter_totals()
    where counter_id = '10000000-0000-0000-0000-000000000002';
   if v_total <> 7 then raise exception 'FALLO: total del grupo incorrecto (%)', v_total; end if;
 
@@ -243,10 +275,10 @@ begin
   end;
 
   begin
-    insert into public.entries (counter_id, amount)
-      values ('10000000-0000-0000-0000-000000000002', 1);
+    perform public.log_to_counter('10000000-0000-0000-0000-000000000002', 1);
     raise exception 'FALLO: Carla puede registrar en un contador de un grupo ajeno';
-  exception when insufficient_privilege then null;
+  exception when raise_exception then
+    if sqlerrm <> 'cannot_log' then raise; end if;
   end;
 
   begin
@@ -355,8 +387,7 @@ end $$;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}', true);
 insert into public.counters (id, name, unit)
   values ('10000000-0000-0000-0000-000000000004', 'Cervezas de Beto', 'cosas');
-insert into public.entries (counter_id, amount)
-  values ('10000000-0000-0000-0000-000000000004', 100);
+select public.log_to_counter('10000000-0000-0000-0000-000000000004', 100);
 
 do $$
 declare n int; v_total numeric; v_target uuid;
@@ -381,7 +412,7 @@ begin
   select count(*) into n from public.counters where id = '10000000-0000-0000-0000-000000000004';
   if n <> 0 then raise exception 'FALLO: el contador individual fusionado no desaparece'; end if;
 
-  select my_total into v_total from public.counter_totals
+  select my_total into v_total from public.my_counter_totals()
    where counter_id = '10000000-0000-0000-0000-000000000002';
   if v_total <> 104 then raise exception 'FALLO: Beto no conserva su total personal (%)', v_total; end if;
 
@@ -407,7 +438,7 @@ begin
    where counter_id = '10000000-0000-0000-0000-000000000002' and personal_only;
   if n <> 0 then raise exception 'FALLO: Ana ve los registros solo personales de Beto'; end if;
 
-  select total into v_total from public.counter_totals
+  select total into v_total from public.my_counter_totals()
    where counter_id = '10000000-0000-0000-0000-000000000002';
   if v_total <> 7 then raise exception 'FALLO: lo fusionado suma en el total del grupo (%)', v_total; end if;
 
@@ -425,8 +456,7 @@ insert into public.groups (id, name) values ('30000000-0000-0000-0000-0000000000
 insert into public.counters (id, name, unit, group_id)
   values ('10000000-0000-0000-0000-000000000005', 'Cervezas G2', 'cosas',
           '30000000-0000-0000-0000-000000000002');
-insert into public.entries (counter_id, amount)
-  values ('10000000-0000-0000-0000-000000000005', 5);
+select public.log_to_counter('10000000-0000-0000-0000-000000000005', 5);
 insert into public.counters (id, name, unit, group_id)
   values ('10000000-0000-0000-0000-000000000006', 'Otro del grupo 1', 'cosas',
           '30000000-0000-0000-0000-000000000001');
@@ -464,9 +494,9 @@ begin
   if v_total <> 6 then raise exception 'FALLO: clasificación del grupo 2 incorrecta (%)', v_total; end if;
 
   -- Personal: 104 + 5 + 1 (una sola vez) = 110.
-  select sum(total) into v_total from public.entry_daily_totals
-   where user_id = '00000000-0000-0000-0000-0000000000b2'
-     and counter_id in ('10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005');
+  select sum((d->>'total')::numeric) into v_total
+    from json_array_elements(public.get_my_daily_totals()) d
+   where d->>'counter_id' in ('10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005');
   if v_total <> 110 then raise exception 'FALLO: total personal duplicado o incompleto (%)', v_total; end if;
 
   -- Borrar el registro quita sus copias en los dos grupos.
@@ -526,8 +556,7 @@ insert into public.counters (id, name, unit) values
   ('10000000-0000-0000-0000-000000000007', 'Visible de Beto', 'cosas');
 insert into public.counters (id, name, unit, hidden_from_friends) values
   ('10000000-0000-0000-0000-000000000008', 'Oculto de Beto', 'cosas', true);
-insert into public.entries (counter_id, amount)
-  values ('10000000-0000-0000-0000-000000000007', 7);
+select public.log_to_counter('10000000-0000-0000-0000-000000000007', 7);
 
 -- Ana (amiga y del mismo grupo) ve el visible con su total, no el oculto, y el compartido en común.
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
@@ -581,10 +610,10 @@ begin
   if n <> 1 then raise exception 'FALLO: tras salir no se ve el contador en las estadísticas'; end if;
 
   begin
-    insert into public.entries (counter_id, amount)
-      values ('10000000-0000-0000-0000-000000000002', 1);
+    perform public.log_to_counter('10000000-0000-0000-0000-000000000002', 1);
     raise exception 'FALLO: tras salir del grupo se puede seguir registrando';
-  exception when insufficient_privilege then null;
+  exception when raise_exception then
+    if sqlerrm <> 'cannot_log' then raise; end if;
   end;
 end $$;
 
@@ -637,7 +666,7 @@ select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-000000
 do $$
 declare n int; v_total numeric;
 begin
-  select my_total into v_total from public.counter_totals
+  select my_total into v_total from public.my_counter_totals()
    where counter_id = '10000000-0000-0000-0000-000000000005';
   if v_total <> 109 then raise exception 'FALLO: Beto pierde registros al borrarse un contador (%)', v_total; end if;
 
@@ -664,8 +693,7 @@ end $$;
 -- 4b. Rendimiento: las funciones rápidas dan lo mismo que la RLS (migración 20261201)
 -- ---------------------------------------------------------------------------
 
--- Para cada usuario de prueba: los contadores de get_my_home() son los que deja ver la RLS y
--- my_counter_totals() da los mismos totales que la vista counter_totals.
+-- Para cada usuario de prueba: los contadores de get_my_home() son los que deja ver la RLS.
 do $$
 declare
   u text;
@@ -685,20 +713,6 @@ begin
     ) x;
     if diff <> 0 then raise exception 'FALLO: my_visible_counter_ids no coincide con la RLS (%)', u; end if;
 
-    select count(*) into diff from (
-      (select counter_id, total, entry_count, last_logged_at, my_total, my_entry_count, my_group_total
-         from public.counter_totals
-       except
-       select counter_id, total, entry_count, last_logged_at, my_total, my_entry_count, my_group_total
-         from public.my_counter_totals())
-      union all
-      (select counter_id, total, entry_count, last_logged_at, my_total, my_entry_count, my_group_total
-         from public.my_counter_totals()
-       except
-       select counter_id, total, entry_count, last_logged_at, my_total, my_entry_count, my_group_total
-         from public.counter_totals)
-    ) x;
-    if diff <> 0 then raise exception 'FALLO: my_counter_totals no coincide con counter_totals (%)', u; end if;
   end loop;
 end $$;
 

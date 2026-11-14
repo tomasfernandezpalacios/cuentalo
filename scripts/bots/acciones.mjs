@@ -120,15 +120,6 @@ export const ACTIONS = {
     return `−1 en «${c.name}» (${res.data ? 'restado' : 'no se podía: ya estaba en 0'})`;
   },
 
-  async deshacer(bot) {
-    const h = await home(bot);
-    const c = pick(bot.rng, myCounters(h, bot));
-    if (!c) return null;
-    const res = await bot.db.rpc('undo_last_entry', { p_counter_id: c.id });
-    check(res, 'undo_last_entry');
-    return `deshacer en «${c.name}» (${res.data ? 'deshecho' : 'nada reciente'})`;
-  },
-
   async editarContador(bot) {
     const h = await home(bot);
     const c = pick(bot.rng, myCounters(h, bot));
@@ -191,12 +182,8 @@ export const ACTIONS = {
   },
 
   async mirarEstadisticas(bot) {
-    const res = await bot.db
-      .from('entry_daily_totals')
-      .select('counter_id, day, total')
-      .eq('user_id', bot.id)
-      .order('day');
-    check(res, 'entry_daily_totals');
+    const res = await bot.db.rpc('get_my_daily_totals');
+    check(res, 'get_my_daily_totals');
     return `mira sus estadísticas (${res.data.length} días con registros)`;
   },
 
@@ -456,8 +443,8 @@ export const ACTIONS = {
       );
     }
     check(
-      await bot.db.rpc('get_group_counter_daily', { p_counter_id: c.id }),
-      'get_group_counter_daily',
+      await bot.db.rpc('get_group_counter_days', { p_counter_id: c.id }),
+      'get_group_counter_days',
     );
     return `mira la clasificación de «${c.name}» (${period})`;
   },

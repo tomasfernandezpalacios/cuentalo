@@ -1,12 +1,13 @@
-import type { HomeBundle, Tables, Views } from '@/lib/database.types';
+import type { CounterTotalRow, HomeBundle, Tables } from '@/lib/database.types';
+import { removePhotoFolders } from '@/lib/photos';
 import { supabase } from '@/lib/supabase';
 
 import { applyLinks, type CounterLink, type LinkedGroup } from './links';
-import { applyCounterPhoto, type CounterPhotoChange } from './photos';
+import { applyCounterPhoto, COUNTER_PHOTO_BUCKET, type CounterPhotoChange } from './photos';
 
 export type Counter = Tables<'counters'>;
 export type Entry = Tables<'entries'>;
-export type CounterTotal = Views<'counter_totals'>;
+export type CounterTotal = CounterTotalRow;
 export type LeaderboardPeriod = 'week' | 'month' | 'year' | 'all';
 
 export type CounterGroup = {
@@ -285,7 +286,7 @@ export async function fetchCounter(
 async function fetchSingleCounter(id: string, myId: string): Promise<CounterWithTotal> {
   const [counter, totals, groups, participants, aliases] = await Promise.all([
     supabase.from('counters').select('*').eq('id', id).single(),
-    supabase.from('counter_totals').select('*').eq('counter_id', id),
+    supabase.rpc('my_counter_totals').eq('counter_id', id),
     fetchMyActiveGroups(myId),
     fetchParticipants([id]),
     fetchAliases(),
@@ -362,6 +363,21 @@ export async function mergeCounters(
   name: string,
   emoji: string,
 ): Promise<string> {
+  // Los individuales que desaparecen (todos menos el primero si no hay ninguno de grupo; todos
+  // si hay alguno de grupo, igual que en merge_counters): sus fotos se borran antes.
+  const { data: chosen, error: chosenError } = await supabase
+    .from('counters')
+    .select('id, group_id, photo_path')
+    .in('id', counterIds);
+  if (chosenError) throw chosenError;
+  const anyGroup = chosen.some((c) => c.group_id !== null);
+  const doomed = chosen.filter(
+    (c) => c.group_id === null && c.photo_path && (anyGroup || c.id !== counterIds[0]),
+  );
+  await removePhotoFolders(
+    COUNTER_PHOTO_BUCKET,
+    doomed.map((c) => c.id),
+  );
   const { data, error } = await supabase.rpc('merge_counters', {
     p_counter_ids: counterIds,
     p_name: name.trim() || null,
@@ -376,9 +392,14 @@ export async function mergeCounters(
  * administrador puede), solo sale del grupo: cada miembro conserva sus registros.
  */
 export async function deleteCounter(counter: Pick<Counter, 'id' | 'group_id'>): Promise<void> {
-  const { error } = counter.group_id
-    ? await supabase.rpc('delete_group_counter', { p_counter_id: counter.id })
-    : await supabase.from('counters').delete().eq('id', counter.id);
+  if (counter.group_id) {
+    const { error } = await supabase.rpc('delete_group_counter', { p_counter_id: counter.id });
+    if (error) throw error;
+    return;
+  }
+  // Su foto se borra antes: después ya no se podría (ver removePhotoFolders).
+  await removePhotoFolders(COUNTER_PHOTO_BUCKET, [counter.id]);
+  const { error } = await supabase.from('counters').delete().eq('id', counter.id);
   if (error) throw error;
 }
 
@@ -414,7 +435,8 @@ export async function requestCommonChange(counterId: string, amount: number): Pr
 
 // --- Registros --------------------------------------------------------------
 
-const ENTRIES_PAGE_SIZE = 100;
+/** El historial del detalle enseña solo los últimos registros (petición del usuario). */
+const ENTRIES_PAGE_SIZE = 10;
 
 /**
  * Mi historial en el contador y sus enlazados, sin repetir las copias de un mismo registro (en
@@ -483,13 +505,6 @@ export async function removeOneFromCommonCounter(counterId: string): Promise<voi
   if (error) throw error;
 }
 
-/** Deshace lo último que acabo de apuntar en el contador (ver undo_last_entry). */
-export async function undoLastEntry(counterId: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc('undo_last_entry', { p_counter_id: counterId });
-  if (error) throw error;
-  return data;
-}
-
 /** Borra un registro y sus copias en contadores enlazados. */
 export async function deleteEntry(entry: Entry): Promise<void> {
   const query = supabase.from('entries').delete();
@@ -505,11 +520,17 @@ export async function deleteEntry(entry: Entry): Promise<void> {
 export async function fetchGroupCounterDaily(
   counterId: string,
 ): Promise<{ userId: string; day: string; total: number }[]> {
-  const { data, error } = await supabase.rpc('get_group_counter_daily', {
+  // Llega todo de una vez como JSON: una lista de filas se cortaría en 1000 (límite de Supabase)
+  // y, al ir del día más antiguo al más reciente, se perderían los últimos días.
+  const { data, error } = await supabase.rpc('get_group_counter_days', {
     p_counter_id: counterId,
   });
   if (error) throw error;
-  return data.map((row) => ({ userId: row.user_id, day: row.day, total: Number(row.total) }));
+  return (data as { user_id: string; day: string; total: number }[]).map((row) => ({
+    userId: row.user_id,
+    day: row.day,
+    total: Number(row.total),
+  }));
 }
 
 /** Clasificación de un contador de grupo en formato racha: racha actual de cada miembro. */

@@ -49,7 +49,7 @@ export default function TransferAdminScreen() {
   }
 
   const points = [
-    `${name} podrá invitar y expulsar, ver y cambiar el código, editar el grupo y eliminarlo.`,
+    `${name} podrá invitar y expulsar, ver el código, editar el grupo y eliminarlo.`,
     'Tú pasarás a ser un miembro más: seguirás en el grupo con tus contadores y registros.',
     'Sigues siendo el administrador de los contadores que creaste.',
     `Solo ${name} podrá volver a hacerte líder.`,

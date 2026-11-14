@@ -1,13 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useUserId } from '@/features/auth/AuthProvider';
+import { COUNTER_PHOTO_BUCKET } from '@/features/contadores/photos';
+import { GROUP_PHOTO_BUCKET } from '@/features/social/api';
 import { UsernameTakenError } from '@/features/auth/api';
 import type { Tables } from '@/lib/database.types';
 import { base64ToBytes } from '@/lib/base64';
 import { localDateTime, toCsv } from '@/lib/csv';
 import { supabase } from '@/lib/supabase';
 import { normalizeUsername } from '@/lib/validation';
-import type { PickedPhoto } from '@/lib/photos';
+import { removePhotoFolders, type PickedPhoto } from '@/lib/photos';
 
 export type Profile = Tables<'profiles'>;
 
@@ -94,12 +96,50 @@ export async function updateProfile(
 }
 
 /**
+ * Fotos de lo que desaparece con la cuenta (ver delete_my_account): mis contadores individuales
+ * y los grupos que lidero en los que no queda nadie más (se borran; si queda alguien, el grupo
+ * pasa a otro miembro con su foto).
+ */
+async function removeDoomedPhotos(userId: string): Promise<void> {
+  const [counters, groups] = await Promise.all([
+    supabase
+      .from('counters')
+      .select('id')
+      .eq('owner_id', userId)
+      .is('group_id', null)
+      .not('photo_path', 'is', null),
+    supabase.from('groups').select('id').eq('owner_id', userId).not('photo_path', 'is', null),
+  ]);
+  const groupIds = (groups.data ?? []).map((g) => g.id);
+  const { data: others } = groupIds.length
+    ? await supabase
+        .from('group_members')
+        .select('group_id')
+        .in('group_id', groupIds)
+        .eq('status', 'active')
+        .neq('user_id', userId)
+    : { data: [] };
+  const withOthers = new Set((others ?? []).map((m) => m.group_id));
+  await Promise.all([
+    removePhotoFolders(
+      COUNTER_PHOTO_BUCKET,
+      (counters.data ?? []).map((c) => c.id),
+    ),
+    removePhotoFolders(
+      GROUP_PHOTO_BUCKET,
+      groupIds.filter((id) => !withOthers.has(id)),
+    ),
+  ]);
+}
+
+/**
  * Borra la cuenta y todos sus datos (ver la migración delete_my_account) y cierra la sesión en
  * este móvil. El cierre es local porque el usuario ya no existe en el servidor.
  */
 export async function deleteMyAccount(userId: string): Promise<void> {
   // Las fotos de Storage no se borran desde SQL: se quitan antes de borrar la cuenta.
   await removeMyPhotos(userId).catch(() => {});
+  await removeDoomedPhotos(userId).catch(() => {});
   const { error } = await supabase.rpc('delete_my_account');
   if (error) throw error;
   await supabase.auth.signOut({ scope: 'local' });

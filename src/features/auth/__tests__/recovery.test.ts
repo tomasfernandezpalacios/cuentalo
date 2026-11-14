@@ -3,12 +3,19 @@ import { parseRecoveryUrl } from '../recovery';
 jest.mock('expo-linking', () => ({ createURL: (path: string) => `cuentalo:/${path}` }));
 
 describe('parseRecoveryUrl', () => {
-  it('saca la sesión del fragmento', () => {
+  it('saca el código de la consulta', () => {
+    expect(parseRecoveryUrl('exp://192.168.1.5:8081/--/restablecer?code=ABC123')).toEqual({
+      kind: 'code',
+      code: 'ABC123',
+    });
+  });
+
+  it('no acepta una sesión metida en el enlace (solo el código PKCE)', () => {
     expect(
       parseRecoveryUrl(
-        'exp://192.168.1.5:8081/--/restablecer#access_token=AAA&expires_in=3600&refresh_token=RRR&type=recovery',
+        'cuentalo://restablecer#access_token=AAA&expires_in=3600&refresh_token=RRR&type=recovery',
       ),
-    ).toEqual({ kind: 'session', accessToken: 'AAA', refreshToken: 'RRR' });
+    ).toBeNull();
   });
 
   it('entiende el error de un enlace caducado', () => {

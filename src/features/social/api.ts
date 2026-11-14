@@ -4,7 +4,7 @@ import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import { base64ToBytes } from '@/lib/base64';
 import { normalizeUsername } from '@/lib/validation';
-import type { PickedPhoto } from '@/lib/photos';
+import { removePhotoFolders, type PickedPhoto } from '@/lib/photos';
 
 export type PublicProfile = Pick<
   Tables<'profiles'>,
@@ -40,7 +40,8 @@ const PROFILE_COLUMNS =
   'id, username, display_name, hide_streak, hide_counter_totals, group_invites, emoji, photo_path';
 // Columnas legibles de groups (invite_code solo se obtiene con get_group_invite_code).
 const GROUP_COLUMNS = 'id, name, owner_id, created_at, emoji, photo_path';
-const PHOTO_BUCKET = 'group-photos';
+export const GROUP_PHOTO_BUCKET = 'group-photos';
+const PHOTO_BUCKET = GROUP_PHOTO_BUCKET;
 
 export async function fetchProfilesByIds(ids: string[]): Promise<Map<string, PublicProfile>> {
   if (ids.length === 0) return new Map();
@@ -224,6 +225,8 @@ export async function updateGroup(group: Group, input: GroupInput): Promise<void
 }
 
 export async function deleteGroup(groupId: string): Promise<void> {
+  // Su foto se borra antes: después ya no se podría (ver removePhotoFolders).
+  await removePhotoFolders(PHOTO_BUCKET, [groupId]);
   const { error } = await supabase.from('groups').delete().eq('id', groupId);
   if (error) throw error;
 }

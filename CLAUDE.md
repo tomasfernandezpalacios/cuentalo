@@ -118,9 +118,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   Reanimated, demasiado para unas barras.
 - Fase 2: los periodos de las estadísticas son **naturales** (esta semana ISO, este mes, este
   año), igual que la clasificación, no "últimos 7/30 días".
-- Fase 2: la vista `entry_daily_totals` agrupa por día en Europe/Madrid y la app agrega días en
+- Fase 2: la RPC `get_my_daily_totals` (antes la vista `entry_daily_totals`, borrada en la
+  auditoría) agrupa mis registros por día en la hora del móvil y los devuelve en **un JSON**
+  (una petición, sin el límite de 1000 filas de PostgREST); la app agrega días en
   semanas/meses/años con funciones puras (`src/features/estadisticas/periods.ts`, con tests).
-  La consulta se pagina porque PostgREST devuelve como máximo 1000 filas.
 - Fase 4 (resuelto): al salir de un grupo se sigue viendo el contador por la política
   `has_entries_in_counter`, así las estadísticas mantienen nombre y unidad.
 - Fase 3: amistad única por pareja (índice único sobre least/greatest de los dos ids). Solo el
@@ -136,8 +137,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   **enlace** `cuentalo://unirse/CODIGO` (en Expo Go `exp://…/--/unirse/CODIGO`). **Cualquier
   miembro activo** ve el código (`get_group_invite_code`; la columna no es legible
   directamente), y lo comparte (migración `20261129`, petición del usuario; antes solo el
-  owner). El código es **fijo**: se genera único al crear el grupo y no se cambia (migración
-  `20261130` quita `regenerate_group_invite_code`). Bajo el código, botón «Compartir». Con el código se entra aunque no seas amigo de nadie del grupo.
+  owner). El código se genera único al crear el grupo y **solo cambia al expulsar a alguien**
+  (decisión del usuario tras la auditoría: `notify_kicked` le pone uno nuevo, así el expulsado
+  no vuelve a entrar con el antiguo; la app vuelve a pedirlo). No hay botón para cambiarlo
+  (migración `20261130`). Bajo el código, botón «Compartir». Con el código se entra aunque no seas amigo de nadie del grupo.
   Si se abre el enlace sin sesión, tras iniciar sesión hay que volver a abrirlo (V1).
 - «Amigos y grupos» se abre en la pestaña Grupos (petición del usuario). Orden: invitaciones
   (si hay), «Tus grupos», y debajo «Crear grupo» y el código. Cada grupo de «Tus grupos» es el
@@ -156,9 +159,15 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   consulta. `refreshAll` refresca todo menos enlaces de fotos, avatares y códigos de grupo.
 - **Cambios al instante** (petición del usuario): toda mutación (contadores, social, carpetas,
   perfil) refresca **todas** las consultas (`refreshAll`; solo se vuelven a
-  pedir las que están en pantalla). Excepción: tras +N/−1 el refresco se agrupa
-  (`entryMutationKey` en `hooks.ts`): solo lo programa el último toque en vuelo, 700 ms después,
-  para que varios toques rápidos no pidan todo cada vez ni un refresco pise el número optimista.
+  pedir las que están en pantalla). Excepción: tras +N/−1 (auditoría, A-008: «fluidez en la
+  logística de datos») el número y las estadísticas de hoy ya se ven al momento (optimista
+  también en `daily-totals`) y, al acabar la ráfaga (`entryMutationKey`, 700 ms después del
+  último toque en vuelo), `refreshAfterEntries` solo vuelve a pedir la lista, el detalle, el
+  historial y la clasificación; lo demás (estadísticas, rachas, avisos) se marca como antiguo y
+  se pide al volver a la app o al tirar para refrescar. Los +N/−1 van en serie y en orden
+  (`scope` `entryScope`): un −1 nunca llega antes que su +1.
+- El historial del detalle de un contador enseña solo los **10 últimos** registros (petición
+  del usuario).
   `ChartPlot` lleva `key` con series, valores y etiquetas:
   gifted-charts no redibujaba al cambiar de contador (solo al cambiar de tipo).
 - Fase 3: los datos se refrescan al volver a la app (`focusManager` + `AppState`) y con
@@ -241,14 +250,14 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   se mantuvo, gris si no, más clara si no ha llegado y borde en hoy.
 - **Resumen vital** (petición del usuario): botón en la cabecera de Estadísticas
   (`SummaryButton`, «Resumen vital» + libro hasta el primer uso; después «Mi vida en números»
-  + libro, petición del usuario) →
-  `app/resumen.tsx` (pantalla completa). Pide la fecha de nacimiento con el calendario de la
-  app (`BirthDatePicker`: año → mes → día) y la guarda en la cuenta, en la tabla privada
-  `profile_private` (migración `20261209`; los perfiles los lee cualquiera, por eso no va en
-  profiles; `useBirthDate` sube una vez la antigua guardada en el móvil). Enseña la edad en
-  tiempo real (años, meses, semanas, días, horas, minutos y segundos; cálculo
-  de calendario en `age.ts`, con tests, inmune al cambio de hora), días/horas/minutos vividos y
-  todos mis contadores de mayor a menor (`myTotal`), sin título, separados por un hueco.
+  - libro, petición del usuario) →
+    `app/resumen.tsx` (pantalla completa). Pide la fecha de nacimiento con el calendario de la
+    app (`BirthDatePicker`: año → mes → día) y la guarda en la cuenta, en la tabla privada
+    `profile_private` (migración `20261209`; los perfiles los lee cualquiera, por eso no va en
+    profiles; `useBirthDate` sube una vez la antigua guardada en el móvil). Enseña la edad en
+    tiempo real (años, meses, semanas, días, horas, minutos y segundos; cálculo
+    de calendario en `age.ts`, con tests, inmune al cambio de hora), días/horas/minutos vividos y
+    todos mis contadores de mayor a menor (`myTotal`), sin título, separados por un hueco.
 - **Reordenar arrastrando** (petición del usuario; `useDragReorder` en `src/lib`, sin librerías
   de gestos, con `dropIndex`/`moveItem`/`applyOrder` en `reorder.ts` con tests): mantener
   pulsado levanta el elemento y al mover el dedo la capa de la lista se queda con el gesto; los
@@ -492,11 +501,9 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   cual los `raise exception` escritos en español (código P0001); nunca un código interno.
 - «Exportar mis datos»: fechas en la hora del móvil (`localDateTime`).
 
-- **Deshacer** (petición del usuario): tras un −1 sale abajo «−1 en «Cafés» · Deshacer» (tras +N
-  ya no: el usuario lo quitó porque para eso está el −1)
-  (`UndoToast`, montado en `app/_layout.tsx`, 4,5 s). La RPC `undo_last_entry` (migración
-  `20261128`) borra mi último registro de hace ≤ 2 min con sus copias (`batch_id`) o, en un
-  común que administro, la última tanda sumada a todos.
+- **Sin «Deshacer» tras +N/−1** (decisión del usuario tras la auditoría: borraba el último
+  registro fuera cual fuera). `undo_last_entry` se borró. `UndoToast` sigue solo para añadir o
+  quitar bloques de Estadísticas desde el Resumen vital.
 - −1 en un contador de racha: si hoy ya estaba mantenida y quedaría por debajo de +1
   (`streak.todayAmount`, nueva columna `today_amount` de `my_counter_streaks`), se avisa con
   «Perderías la racha» antes de restar.
@@ -628,7 +635,7 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   tirar (con la recarga o siguiendo el dedo) y no funcionaba bien: Android cancela los toques
   de JS en cuanto la lista o la recarga toman el gesto.
 - Editar contador: «Guardar» va arriba a la derecha en la cabecera (`CounterForm
-  submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón abajo.
+submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón abajo.
 - Bloques de la cuadrícula: icono más grande (52); si hay línea de grupos, el nombre va en una
   sola línea para que todo quepa en el cuadrado.
 
@@ -644,9 +651,12 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   `resetPasswordForEmail` manda un correo con un **enlace** (con el correo integrado, Supabase no
   deja editar la plantilla para poner un código: haría falta un SMTP propio). El enlace vuelve a
   la app (`redirectTo` = `Linking.createURL('/restablecer')`: `cuentalo://restablecer`, o
-  `exp://…/--/restablecer` en Expo Go) con la sesión en el fragmento; `app/restablecer.tsx`
-  (fuera de las zonas con y sin sesión) la lee (`parseRecoveryUrl`, con tests), hace
-  `setSession` y lleva a `app/nueva-contrasena.tsx` (`updateUser({ password })`). **Requiere**
+  `exp://…/--/restablecer` en Expo Go) con `?code=…` (**PKCE**, `flowType: 'pkce'` en
+  `supabase.ts`, auditoría A-002: antes traía la sesión entera y un enlace fabricado metía al
+  usuario en otra cuenta). `app/restablecer.tsx` (fuera de las zonas con y sin sesión) lo lee
+  (`parseRecoveryUrl`, con tests), hace `exchangeCodeForSession` (solo funciona en el móvil que
+  pidió el correo) y lleva a `app/nueva-contrasena.tsx` (`updateUser({ password })`). Si se pasa
+  a otra cuenta sin cerrar sesión, `AuthProvider` vacía la caché. **Requiere**
   en Supabase → Authentication → URL Configuration → Redirect URLs: `cuentalo://**` y
   `exp://**`; si no, Supabase manda al Site URL y el enlace «no funciona». Para publicar hará
   falta un SMTP propio (el integrado manda pocos correos por hora; Fase 6).
@@ -658,13 +668,11 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   siempre puestos (transparentes si no) y clave por fecha: en Android salían cuadrados al
   volver de otro mes.
 
-- **Fusionar en dos pasos** (petición del usuario): 1) elegir los contadores («Siguiente»);
-  2) «Contador resultante»: nombre e imagen ya rellenos con los del que se queda y editables
+- **Fusionar en dos pasos** (petición del usuario): 1) elegir los contadores («Siguiente»); 2) «Contador resultante»: nombre e imagen ya rellenos con los del que se queda y editables
   antes de fusionar (nombre obligatorio). Si queda un individual, emoticono o foto (como al
   editar; la foto se aplica tras `merge_counters` con `applyCounterPhoto` en
   `useMergeCounters`). Si queda uno de grupo, solo nombre y emoticono, personales (alias): la
   foto cambiaría la de todo el grupo.
-
 
 - Campos de texto (TextField, buscadores, emoticono propio) con `fonts.detail`, también el
   texto de ejemplo (petición del usuario). Unidad: «ej. cervezas, libros, km» (sin «déjalo
@@ -747,7 +755,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   La hora del registro es la del toque (la fecha vuelve como texto de AsyncStorage y se
   convierte; test). El −1 y el día de la racha usan la hora del envío. En «Mis contadores» sale
   «Sin conexión: lo que sumes se enviará al volver» (`useIsOnline`). Tras cerrar la app sin
-  conexión, el número optimista no se ve hasta que se envía.
+  conexión, el número optimista no se ve hasta que se envía. **Solo** los +N/−1 esperan y se
+  guardan (`isEntryChange`); el resto de cambios van con `networkMode: 'always'`: sin conexión
+  fallan al momento con su aviso y se deshacen (antes se quedaban en pausa y se perdían en
+  silencio al reiniciar la app, auditoría A-006).
 
 - **Paletas de prueba 60-30-10** (petición del usuario, desde unas imágenes; prueba, el estilo de
   siempre está en la etiqueta de Git `estilo-cine-dorado`): `src/lib/palettes.ts` con Grafito
@@ -811,7 +822,7 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - **Pestañas como páginas** (petición del usuario: deslizar suave, siguiendo al dedo; a medias
   se ven las dos): `app/(tabs)/_layout.tsx` usa `TopTabs` de `expo-router/js-top-tabs`
   (react-native-tab-view + react-native-pager-view, incluido en Expo Go) con `tabBarPosition:
-  'bottom'`. Páginas: Mis contadores, Estadísticas, Social y Mi perfil. **Regla del
+'bottom'`. Páginas: Mis contadores, Estadísticas, Social y Mi perfil. **Regla del
   deslizar (decisión final del usuario, no cambiarla):** deslizar el dedo solo pasa entre las 4
   pestañas grandes, también desde Social en cualquiera de sus subpestañas. Grupos y Amigos se
   cambian **solo con el selector** (el deslizador de dentro tiene `scrollEnabled={false}` y se
@@ -858,3 +869,30 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)
+
+- **Auditoría del 2026-11-14** (`docs/auditoria/2026-11-14.md`; corregidos A-001 a A-006,
+  A-008 a A-011, A-012, A-013, A-016, A-025 y A-032 en las migraciones `20261216120000` y
+  `20261216130000`):
+  - En `entries` **solo escriben las funciones** (`log_to_counter`, `remove_one_from_counter`,
+    `merge_counters`, ahora SECURITY DEFINER, y las de comunes). La app solo puede editar
+    `amount`, `logged_at` y `note` de lo suyo, y el trigger `keep_entry_sign` impide cambiar el
+    signo. Las pruebas de `privacidad.sql` insertan con `log_to_counter` (o sin rol, para fijar
+    ids).
+  - Sugerencias de contactos: cupo de **3000 resúmenes distintos al día** por usuario
+    (`contact_lookups`, sin acceso desde la app); repetir la misma agenda no gasta.
+  - **Como mucho 50 avisos** por usuario (trigger `trim_notifications`, borra los más antiguos).
+  - Clasificación, rachas del grupo y gráfica del grupo: SECURITY DEFINER (comprueban que soy
+    miembro activo y solo cuentan a los miembros activos), zona horaria calculada una vez y el
+    periodo comparado con `logged_at` directamente. La gráfica del grupo y «Tú y X» usan
+    `get_group_counter_days` (JSON). `my_counter_streaks` parte de mis registros. El detalle
+    suelto de un contador usa `my_counter_totals()` (la vista `counter_totals` se borró).
+  - Fotos: antes de borrar un contador individual, un grupo, fusionar o eliminar la cuenta, la
+    app borra sus carpetas de Storage (`removePhotoFolders`), porque después las políticas ya no
+    dejan y desde SQL no se puede.
+  - Al arrancar solo se cargan las 4 letras de la tipografía elegida (`src/lib/fontSources.ts`);
+    el selector de tipografías carga las demás al abrirse. Inter, Ubuntu y Redaction (la
+    antigua) ya no se cargan; el paquete `@expo-google-fonts/inter` sigue instalado sin uso.
+  - `app.json`: `com.cuentalo.app` como identificador en iOS y Android (**cambiable hasta la
+    primera publicación**; después es para siempre), `versionCode`/`buildNumber`,
+    `WRITE_CONTACTS` bloqueado (solo se lee la agenda), plugin de `expo-notifications` con el
+    icono monocromo y `eas.json` básico.

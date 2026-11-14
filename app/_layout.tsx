@@ -1,24 +1,4 @@
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import {
-  InstrumentSerif_400Regular,
-  InstrumentSerif_400Regular_Italic,
-} from '@expo-google-fonts/instrument-serif';
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
-import {
-  BricolageGrotesque_600SemiBold,
-  BricolageGrotesque_700Bold,
-} from '@expo-google-fonts/bricolage-grotesque';
-import { DMSans_400Regular, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
-import {
-  DMSerifDisplay_400Regular,
-  DMSerifDisplay_400Regular_Italic,
-} from '@expo-google-fonts/dm-serif-display';
-import { Fraunces_400Regular_Italic, Fraunces_800ExtraBold } from '@expo-google-fonts/fraunces';
-import { Newsreader_400Regular, Newsreader_400Regular_Italic } from '@expo-google-fonts/newsreader';
-import {
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_700Bold,
-} from '@expo-google-fonts/plus-jakarta-sans';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -35,16 +15,20 @@ import { usePendingInvite } from '@/features/social/pendingInvite';
 import { TutorialHost } from '@/features/tutorial/TutorialHost';
 import { useTutorialAutoStart } from '@/features/tutorial/useTutorialAutoStart';
 import { usePrefetchMain } from '@/lib/prefetch';
-import { offlinePersister, setupOffline } from '@/lib/offline';
+import { fontsFor } from '@/lib/fontSources';
+import { isEntryChange, offlinePersister, setupOffline } from '@/lib/offline';
 import { queryClient } from '@/lib/queryClient';
 import { HeaderTitle } from '@/components/HeaderTitle';
 import { TitleMeasurer, useScreenTitleSize } from '@/lib/screenTitle';
-import { headerOptions, isCinema, useColorMode, useThemeColors } from '@/lib/theme';
+import { headerOptions, isCinema, typography, useColorMode, useThemeColors } from '@/lib/theme';
 
 // La pantalla de carga (icono sobre fondo liso, ver app.json) se mantiene hasta tener las
 // fuentes y saber si hay sesión, para no enseñar un parpadeo de pantallas a medio cargar.
 // Sin conexión: los +N/−1 esperan y se envían al volver (src/lib/offline.ts).
 setupOffline(queryClient);
+
+// Solo las cuatro letras de la tipografía elegida (se fija al arrancar, src/lib/theme.ts).
+const startupFonts = fontsFor(typography);
 
 SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ fade: true, duration: 200 });
@@ -160,31 +144,7 @@ function ThemedStatusBar() {
 }
 
 export default function RootLayout() {
-  // Las de los dos estilos (clásico y cine): se cargan siempre, son pocas.
-  const [fontsLoaded, fontError] = useFonts({
-    'Ubuntu-Bold': require('../assets/fonts/Ubuntu-Bold.ttf'),
-    'Redaction-Regular': require('../assets/fonts/Redaction-Regular.ttf'),
-    InstrumentSerif_400Regular,
-    InstrumentSerif_400Regular_Italic,
-    'Redaction10-Regular': require('../assets/fonts/Redaction10-Regular.otf'),
-    'Redaction10-Bold': require('../assets/fonts/Redaction10-Bold.otf'),
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    // Combinaciones de prueba (src/lib/typography.ts).
-    Fraunces_800ExtraBold,
-    Fraunces_400Regular_Italic,
-    PlusJakartaSans_400Regular,
-    PlusJakartaSans_700Bold,
-    BricolageGrotesque_600SemiBold,
-    BricolageGrotesque_700Bold,
-    Newsreader_400Regular,
-    Newsreader_400Regular_Italic,
-    DMSerifDisplay_400Regular,
-    DMSerifDisplay_400Regular_Italic,
-    DMSans_400Regular,
-    DMSans_700Bold,
-  });
+  const [fontsLoaded, fontError] = useFonts(startupFonts);
 
   // Si las fuentes fallan seguimos con las del sistema en vez de bloquear la app.
   if (!fontsLoaded && !fontError) return null;
@@ -197,9 +157,11 @@ export default function RootLayout() {
         persister: offlinePersister,
         maxAge: 7 * 24 * 60 * 60 * 1000,
         dehydrateOptions: {
-          // Solo lo pendiente de enviar (no los datos: esos se piden al abrir).
+          // Solo los +N y −1 pendientes de enviar (no los datos: esos se piden al abrir). Son los
+          // únicos que se pueden reanudar tras cerrar la app (ver src/lib/offline.ts).
           shouldDehydrateQuery: () => false,
-          shouldDehydrateMutation: (mutation) => mutation.state.isPaused,
+          shouldDehydrateMutation: (mutation) =>
+            mutation.state.isPaused && isEntryChange(mutation.options.mutationKey),
         },
       }}
       onSuccess={() => void queryClient.resumePausedMutations()}

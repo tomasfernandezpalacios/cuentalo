@@ -7,7 +7,8 @@ import { supabase } from '@/lib/supabase';
 // Foto como icono de un contador (bucket privado 'counter-photos', ruta '<counter_id>/<ts>.<ext>').
 // La sube quien puede editar el contador y la ve quien ve el contador (ver migración 20261212).
 
-const BUCKET = 'counter-photos';
+export const COUNTER_PHOTO_BUCKET = 'counter-photos';
+const BUCKET = COUNTER_PHOTO_BUCKET;
 
 /** Lo que el formulario pide hacer con la foto: una nueva, dejar la que hay o quitarla. */
 export type CounterPhotoChange = PickedPhoto | 'keep' | 'remove';

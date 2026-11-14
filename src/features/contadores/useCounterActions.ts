@@ -3,16 +3,14 @@ import * as Haptics from 'expo-haptics';
 
 import { appAlert } from '@/components/AppDialog';
 import { useUserId } from '@/features/auth/AuthProvider';
-import { showUndoToast } from '@/components/UndoToast';
 import { getSettings } from '@/features/configuracion/settings';
 import { markActiveToday } from '@/features/configuracion/reminder';
 import { markTodayActive } from '@/features/estadisticas/streakCelebration';
-import { isTutorialActive } from '@/features/tutorial/store';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount } from '@/lib/format';
 
 import type { CounterWithTotal, EntryInput } from './api';
-import { useAddEntry, useRemoveOne, useRequestCommonChange, useUndoLastEntry } from './hooks';
+import { useAddEntry, useRemoveOne, useRequestCommonChange } from './hooks';
 
 function showError(error: unknown) {
   appAlert('No se ha podido guardar', getErrorMessage(error));
@@ -33,23 +31,8 @@ export function useCounterActions() {
   const addEntry = useAddEntry();
   const removeOne = useRemoveOne();
   const request = useRequestCommonChange();
-  const undo = useUndoLastEntry();
   const queryClient = useQueryClient();
   const userId = useUserId();
-
-  /** Aviso «+1 en Cafés · Deshacer» tras registrar (borra lo que se acaba de apuntar). */
-  function offerUndo(counter: CounterWithTotal, text: string) {
-    // En el tutorial no sale (petición del usuario): distrae del paso que se está enseñando.
-    if (isTutorialActive()) return;
-    showUndoToast(`${text} en «${counter.name}»`, () =>
-      undo.mutate(counter.id, {
-        onSuccess: (done) => {
-          if (!done) appAlert('No se ha podido deshacer', 'Ese registro ya no se puede deshacer.');
-        },
-        onError: showError,
-      }),
-    );
-  }
 
   function askAdmin(counter: CounterWithTotal, amount: number, onSent?: () => void) {
     const change = amount > 0 ? `sumar ${formatAmount(amount)}` : `restar ${formatAmount(-amount)}`;
@@ -105,10 +88,7 @@ export function useCounterActions() {
     removeOne.mutate(
       { counterId: counter.id, common: counter.is_common },
       {
-        onSuccess: () => {
-          markActiveToday();
-          offerUndo(counter, '−1');
-        },
+        onSuccess: () => markActiveToday(),
         onError: showError,
       },
     );
