@@ -16,26 +16,22 @@ import {
 } from '../layout';
 import { nextPhase } from '../machine';
 import {
-  advancesOn,
-  advancesOnScreen,
   buildSteps,
   closesBetween,
-  isTabScreen,
+  completesStep,
+  demoState,
   isWholeScreen,
   letsTouchTarget,
-  navigationFor,
   nextIndex,
-  readyToEnter,
+  SCENES,
   showsNext,
   stepKind,
-  stepScreen,
   TUTORIAL_COUNTER_NAME,
-  type Readiness,
 } from '../steps';
 
 const byId = Object.fromEntries(buildSteps().map((s) => [s.id, s]));
 
-describe('pasos', () => {
+describe('guion fijo', () => {
   it('el recorrido pedido: crear, sumar y restar, herramientas, pestañas, racha y fin', () => {
     expect(buildSteps().map((s) => s.id)).toEqual([
       'welcome',
@@ -56,31 +52,32 @@ describe('pasos', () => {
     ]);
   });
 
+  it('siempre es el mismo guion', () => {
+    expect(buildSteps()).toEqual(buildSteps());
+  });
+
   it('«Siguiente» avanza y el último termina', () => {
     const steps = buildSteps();
     expect(nextIndex(steps, 0)).toBe(1);
     expect(nextIndex(steps, steps.length - 1)).toBeNull();
   });
 
-  it('solo la acción que pide el paso lo hace avanzar', () => {
-    expect(advancesOn(byId.create, 'form-opened')).toBe(true);
-    expect(advancesOn(byId.submit, 'counter-created')).toBe(true);
-    expect(advancesOn(byId.add, 'entry-added')).toBe(true);
-    expect(advancesOn(byId.remove, 'entry-removed')).toBe(true);
-    expect(advancesOn(byId.hold, 'selection-opened')).toBe(true);
-    expect(advancesOn(byId.create, 'entry-added')).toBe(false);
-    expect(advancesOn(byId.remove, 'entry-added')).toBe(false);
-    expect(advancesOn(undefined, 'entry-added')).toBe(false);
+  it('solo el gesto que pide el paso, sobre su elemento, lo hace avanzar', () => {
+    expect(completesStep(byId.create, 'nuevo-contador', 'tap')).toBe(true);
+    expect(completesStep(byId.submit, 'crear-contador', 'tap')).toBe(true);
+    expect(completesStep(byId.add, 'sumar', 'tap')).toBe(true);
+    expect(completesStep(byId.remove, 'restar', 'tap')).toBe(true);
+    expect(completesStep(byId.hold, 'tarjeta', 'hold')).toBe(true);
+    expect(completesStep(byId['stats-tab'], 'tab-estadisticas', 'tap')).toBe(true);
+    expect(completesStep(byId['social-tab'], 'tab-social', 'tap')).toBe(true);
+    // Otro elemento, otro gesto o un paso de «Siguiente»: nada.
+    expect(completesStep(byId.add, 'restar', 'tap')).toBe(false);
+    expect(completesStep(byId.hold, 'tarjeta', 'tap')).toBe(false);
+    expect(completesStep(byId.name, 'nombre', 'tap')).toBe(false);
+    expect(completesStep(undefined, 'sumar', 'tap')).toBe(false);
   });
 
-  it('los pasos de pestaña avanzan al llegar a su pantalla', () => {
-    expect(advancesOnScreen(byId['stats-tab'], '/estadisticas')).toBe(true);
-    expect(advancesOnScreen(byId['stats-tab'], '/')).toBe(false);
-    expect(advancesOnScreen(byId['social-tab'], '/social')).toBe(true);
-    expect(advancesOnScreen(byId.stats, '/estadisticas')).toBe(false);
-  });
-
-  it('se toca lo iluminado en los pasos de acción y de pestaña; el resto lleva «Siguiente»', () => {
+  it('se toca lo iluminado en los pasos de acción; el resto lleva «Siguiente»', () => {
     const touch = buildSteps()
       .filter((s) => stepKind(s) === 'spotlight' && letsTouchTarget(s))
       .map((s) => s.id);
@@ -89,16 +86,6 @@ describe('pasos', () => {
     expect(showsNext(byId.add!, false)).toBe(false);
     // Si el elemento no aparece, siempre se puede seguir.
     expect(showsNext(byId.add!, true)).toBe(true);
-  });
-
-  it('el contador del tutorial tiene nombre fijo y se crea en el formulario', () => {
-    expect(TUTORIAL_COUNTER_NAME).toBe('Mi primer contador');
-    expect(byId.name?.text).toContain(TUTORIAL_COUNTER_NAME);
-    const inForm = buildSteps().filter((s) => s.screen === '/contadores/nuevo');
-    expect(inForm.map((s) => [s.id, s.userNavigates, s.fallback])).toEqual([
-      ['name', true, 'create'],
-      ['submit', true, 'create'],
-    ]);
   });
 
   it('empieza y acaba a pantalla completa; «Esto es Cuéntalo» se pasa solo', () => {
@@ -110,11 +97,35 @@ describe('pasos', () => {
     expect(steps.at(-2)?.target).toBe('racha');
   });
 
-  it('cada paso dice en qué pantalla se enseña', () => {
-    expect(stepScreen(byId.create!)).toBe('/');
-    expect(stepScreen(byId.stats!)).toBe('/estadisticas');
-    expect(stepScreen(byId.social!)).toBe('/social');
-    expect(stepScreen(byId.streak!)).toBe('/estadisticas');
+  it('cada paso ocurre en una pantalla de la demostración', () => {
+    for (const step of buildSteps()) expect(SCENES).toContain(step.scene);
+    expect(byId.create?.scene).toBe('home-empty');
+    expect(byId.name?.scene).toBe('form');
+    expect(byId.add?.scene).toBe('home');
+    expect(byId.stats?.scene).toBe('stats');
+    expect(byId.social?.scene).toBe('social');
+    expect(byId.streak?.scene).toBe('stats');
+  });
+
+  it('el contador de la demostración tiene nombre fijo', () => {
+    expect(TUTORIAL_COUNTER_NAME).toBe('Mi primer contador');
+    expect(byId.name?.text).toContain(TUTORIAL_COUNTER_NAME);
+  });
+
+  it('las presentaciones de Estadísticas y Social iluminan la pantalla entera', () => {
+    expect(isWholeScreen(byId.stats!.target)).toBe(true);
+    expect(isWholeScreen(byId.social!.target)).toBe(true);
+    expect(isWholeScreen(byId.add!.target)).toBe(false);
+  });
+});
+
+describe('demostración', () => {
+  it('lo que se ve depende solo del paso: +1 suma, −1 resta, mantener abre la selección', () => {
+    expect(demoState('add')).toEqual({ total: 0, selecting: false });
+    expect(demoState('remove')).toEqual({ total: 1, selecting: false });
+    expect(demoState('hold')).toEqual({ total: 0, selecting: false });
+    expect(demoState('tools')).toEqual({ total: 0, selecting: true });
+    expect(demoState('stats-tab')).toEqual({ total: 0, selecting: false });
   });
 });
 
@@ -245,63 +256,19 @@ describe('cuándo se cierra el hueco', () => {
     expect(closesBetween(byId.add!, byId.remove!)).toBe(false);
     expect(closesBetween(byId.name!, byId.submit!)).toBe(false);
     expect(closesBetween(byId.tools!, byId['stats-tab']!)).toBe(false);
+    expect(closesBetween(byId.stats!, byId['social-tab']!)).toBe(false);
   });
 
-  it('al cambiar de pantalla, o sin paso siguiente, se cierra', () => {
+  it('al cambiar de pantalla, o hacia una pantalla completa, se cierra', () => {
     expect(closesBetween(byId.create!, byId.name!)).toBe(true);
     expect(closesBetween(byId.submit!, byId.add!)).toBe(true);
+    expect(closesBetween(byId['stats-tab']!, byId.stats!)).toBe(true);
     expect(closesBetween(byId.social!, byId.streak!)).toBe(true);
     expect(closesBetween(byId.streak!, byId.done!)).toBe(true);
-    expect(closesBetween(byId.submit!, null)).toBe(true);
   });
 
   it('desde la bienvenida o el rótulo no hay hueco que cerrar', () => {
     expect(closesBetween(null, byId.welcome!)).toBe(false);
     expect(closesBetween(byId.intro!, byId.create!)).toBe(false);
-  });
-});
-
-describe('navegación y espera', () => {
-  const ready: Readiness = {
-    pathname: '/',
-    stackBusy: false,
-    pagerBusy: false,
-    targetMounted: true,
-  };
-
-  it('el tutorial solo navega a donde no llega el propio usuario', () => {
-    expect(navigationFor(byId.streak!, '/social')).toBe('/estadisticas');
-    expect(navigationFor(byId.create!, '/')).toBeNull();
-    // Al formulario y de vuelta a la lista llega el usuario.
-    expect(navigationFor(byId.name!, '/')).toBeNull();
-    expect(navigationFor(byId.add!, '/contadores/nuevo')).toBeNull();
-    expect(navigationFor(byId.welcome!, '/perfil')).toBeNull();
-  });
-
-  it('espera a que termine cualquier transición y a que el elemento esté montado', () => {
-    expect(readyToEnter(byId.add!, ready)).toBe(true);
-    expect(readyToEnter(byId.add!, { ...ready, stackBusy: true })).toBe(false);
-    expect(readyToEnter(byId.add!, { ...ready, pagerBusy: true })).toBe(false);
-    expect(readyToEnter(byId.add!, { ...ready, targetMounted: false })).toBe(false);
-    expect(readyToEnter(byId.add!, { ...ready, pathname: '/contadores/nuevo' })).toBe(false);
-    expect(readyToEnter(byId.stats!, { ...ready, pathname: '/estadisticas' })).toBe(true);
-  });
-
-  it('la bienvenida y el final no esperan a nada', () => {
-    const busy = { ...ready, stackBusy: true, pagerBusy: true, targetMounted: false };
-    expect(readyToEnter(byId.welcome!, busy)).toBe(true);
-    expect(readyToEnter(byId.done!, busy)).toBe(true);
-  });
-
-  it('las pestañas grandes son páginas; el formulario no', () => {
-    expect(isTabScreen('/estadisticas')).toBe(true);
-    expect(isTabScreen('/')).toBe(true);
-    expect(isTabScreen('/contadores/nuevo')).toBe(false);
-  });
-
-  it('las presentaciones de Estadísticas y Social iluminan la pantalla entera', () => {
-    expect(isWholeScreen(byId.stats!.target)).toBe(true);
-    expect(isWholeScreen(byId.social!.target)).toBe(true);
-    expect(isWholeScreen(byId.add!.target)).toBe(false);
   });
 });

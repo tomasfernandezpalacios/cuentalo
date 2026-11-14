@@ -8,7 +8,6 @@ import { displayFont, fonts, isCinema, serifWeight, shape, useThemeColors } from
 import type { CounterWithTotal } from '../api';
 
 import { CounterAvatar } from './CounterAvatar';
-import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 
 import { QuickAddBar } from './QuickAddBar';
 
@@ -28,8 +27,6 @@ type Props = {
   /** Modo selección: en vez de los botones rápidos se ve si está elegida. */
   selectionMode?: boolean;
   selected?: boolean;
-  /** Primera tarjeta de la lista: la que ilumina el tutorial (tarjeta y su primer botón). */
-  tutorialTarget?: boolean;
   /** Bloque cuadrado de la cuadrícula (dos por fila) en vez de fila. */
   grid?: boolean;
 };
@@ -45,7 +42,6 @@ export function CounterCard({
   onPressOut,
   selectionMode = false,
   selected = false,
-  tutorialTarget = false,
   grid = false,
 }: Props) {
   const colors = useThemeColors();
@@ -71,7 +67,6 @@ export function CounterCard({
           : null
       }
       onLongPressAdd={onCustomAdd}
-      tutorialTarget={tutorialTarget}
       stretch={grid}
     />
   );
@@ -118,7 +113,7 @@ export function CounterCard({
     </Text>
   ) : null;
   return (
-    <TutorialTarget id="tarjeta" enabled={tutorialTarget}>
+    <View>
       <Pressable
         onPress={onPress}
         onLongPress={onLongPress}
@@ -198,7 +193,7 @@ export function CounterCard({
           </>
         )}
       </Pressable>
-    </TutorialTarget>
+    </View>
   );
 }
 

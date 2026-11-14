@@ -7,7 +7,7 @@ import { showUndoToast } from '@/components/UndoToast';
 import { getSettings } from '@/features/configuracion/settings';
 import { markActiveToday } from '@/features/configuracion/reminder';
 import { markTodayActive } from '@/features/estadisticas/streakCelebration';
-import { isTutorialActive, tutorialEvent } from '@/features/tutorial/store';
+import { isTutorialActive } from '@/features/tutorial/store';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount } from '@/lib/format';
 
@@ -66,8 +66,6 @@ export function useCounterActions() {
               { counterId: counter.id, amount },
               {
                 onSuccess: () => {
-                  // Si el tutorial está en «Suma con un toque», enviar la solicitud también vale.
-                  tutorialEvent('entry-added');
                   appAlert('Solicitud enviada', 'Te avisaremos cuando la responda.');
                   onSent?.();
                 },
@@ -87,8 +85,6 @@ export function useCounterActions() {
       return;
     }
     tap();
-    // Paso «Suma con un toque» del tutorial (si está en marcha).
-    tutorialEvent('entry-added');
     addEntry.mutate(
       { counterId: counter.id, input, common: counter.is_common },
       {
@@ -106,8 +102,6 @@ export function useCounterActions() {
 
   function doSubtract(counter: CounterWithTotal) {
     tap();
-    // Paso «Resta 1» del tutorial (si está en marcha).
-    tutorialEvent('entry-removed');
     removeOne.mutate(
       { counterId: counter.id, common: counter.is_common },
       {

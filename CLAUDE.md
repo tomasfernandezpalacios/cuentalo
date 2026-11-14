@@ -429,56 +429,33 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - Cabecera del grupo: arriba la imagen y, a su derecha y a la misma altura, el bloque del código
   (miembros activos); debajo, el nombre del grupo a la izquierda y a todo lo ancho.
 
-- **Tutorial de bienvenida** (rehecho de cero a petición del usuario: «la carta de presentación
-  de la app», tiene que ser fluido y profesional; `src/features/tutorial/`). Sale la primera vez
-  si `profiles.tutorial_done = false` (migración `20261124`) y se marca al terminar o saltar;
-  «Ver tutorial» en Configuración → Información. Pasos (`steps.ts`, con tests): bienvenida a
-  pantalla completa (igual que antes) → «Esto es Cuéntalo» destacado en el centro con todo lo
-  demás apagado (2,4 s) → tocar el + → en el formulario, el nombre iluminado, fijo y sin poder
-  cambiarse: **«Mi primer contador»** (`TUTORIAL_COUNTER_NAME`; modo `simple` de `CounterForm`:
-  solo nombre y botón, sin unidad propuesta) → «Crear contador» → sumar → restar (sin «Deshacer»
-  durante el tutorial, petición del usuario) → mantener pulsado el contador → sus herramientas
-  (la cabecera del modo selección, `herramientas`; al seguir, el modo selección se cierra solo)
-  → tocar Estadísticas → la pantalla entera iluminada (`pantalla-estadisticas`) → tocar Social → su pantalla
-  → la racha (en Estadísticas) → pantalla final igual que antes (huella, «"Me comprometo a
-  registrar mi vida"», «Cuéntalo»). El contador creado (`counterId` del store, llega con
-  `tutorialEvent('counter-created', id)`) se pone el primero de la lista y es el que se ilumina.
-  Si el usuario sale del formulario a medias, vuelve al paso del + (`fallback`). Durante el
-  tutorial no sale la celebración de la racha.
-- **Motor del tutorial** (tercera versión, con **Reanimated**, decisión del usuario; las dos
-  anteriores iban lentas, a tirones y con animaciones pisándose). Diagnóstico de la anterior:
-  la lista de inicio se volvía a dibujar entera en cada paso (`useTutorial()` en la pantalla),
-  la barra de progreso animaba en el hilo de JS, el foco se medía cada 90/450 ms y se
-  «retocaba» a mitad de camino, el bocadillo se colocaba con el alto del paso anterior y las
-  fases (iris, deslizamiento, fundidos) se solapaban por tiempos fijos. Además, en la nueva
-  arquitectura de RN las medidas salen del árbol de layout, que **no ve** las transiciones
-  nativas (Stack y pager): esperar «a que esté quieto midiendo» no puede funcionar. Ahora:
-  - Máquina de estados por paso (`machine.ts`, tests): `leaving` (se va el bocadillo; si se
-    cambia de pantalla, después el hueco se cierra como un iris) → `waiting` (todo quieto y
-    apagado; aquí se cambia el texto del bocadillo y, si hace falta, se navega) → `entering`
-    (una medida y un único deslizamiento) → `active` (anillo que late, se puede tocar). Cada
-    fase empieza cuando avisa la anterior; un paso nuevo invalida todo lo anterior (`run`).
-  - `director.ts`: la máquina fuera de React (clase `Director`); el Coach solo dibuja y se
-    repinta una o dos veces por paso. `motion.ts`: valores (`makeMutable`) y worklets que
-    encadenan medida → deslizamiento → bocadillo en el hilo de la interfaz sin volver a JS.
-  - Cuándo se mide: con la ruta del paso, sin transiciones en marcha y el elemento montado
-    (`readyToEnter`). Transiciones: el formulario avisa con `useTutorialStackScreen`
-    (`transitionStart/End`; `markStackLeaving` antes de `router.back()`) y las pestañas con
-    `screenListeners` `swipeStart/swipeEnd` (`setPagerBusy`); con tiempo de seguridad (1,5 s y
-    0,9 s). Después, `measure` en el hilo de la interfaz hasta 3 fotogramas quietos (máx.
-    1,2 s). Sin vigilar después: el foco no se recoloca nunca. Si el elemento no llega en 4 s,
-    el paso se explica con «Siguiente».
-  - `TutorialTarget` es siempre un `Animated.View` de Reanimated (activarlo no vuelve a montar
-    lo de dentro) y registra su `useAnimatedRef`. Las pantallas enteras son la zona de
-    contenido de la pestaña (`pantalla-estadisticas`, `pantalla-social`, en `screenLayout`).
-  - La tarjeta iluminada es la del contador del tutorial **solo cuando ya es la primera** (antes
-    se esperaba apagado, en vez de iluminar otra y saltar). Al tocar «Crear contador», el
-    bocadillo se va ya (`beginTutorialLeave`; `cancelTutorialLeave` si falla).
-  - Las pantallas de la app leen el tutorial con `useTutorialValue(selector)`: solo se repintan
-    si cambia ese dato. Velo de piezas sólidas como antes (4 paneles + 4 esquinas, grupo con
-    `needsOffscreenAlphaCompositing`). Duraciones: bocadillo fuera 160 ms, iris 260 ms,
-    deslizamiento 340–560 ms según la distancia (`glideDuration`), bocadillo dentro 240 ms.
-    Barra de progreso con Reanimated, avanza al aparecer el paso. Toque háptico en cada paso.
+- **Tutorial de bienvenida** (`src/features/tutorial/`; cuarta versión, decisión del usuario:
+  «algo meramente visual», fijo y guardado, sin base de datos). Sale la primera vez si
+  `profiles.tutorial_done = false` (migración `20261124`) y se marca al terminar o saltar; «Ver
+  tutorial» en Configuración → Información. **No toca la app de verdad**: tapa la pantalla con
+  una **demostración fija** (`Demo.tsx`: inicio vacío, formulario, inicio con «Mi primer
+  contador», Estadísticas y Social, con datos de ejemplo y la barra de pestañas) y sigue un
+  guion siempre igual (`steps.ts`, con tests): bienvenida (igual que antes) → «Esto es
+  Cuéntalo» (2,4 s) → tocar el + → el nombre («Siguiente») → «Crear contador» → +1 → −1 →
+  mantener pulsado el contador → herramientas del modo selección → pestaña Estadísticas → su
+  pantalla → pestaña Social → su pantalla → la racha → final (igual que antes). Lo que se ve
+  sale solo del paso (`demoState`: total 1 tras el +1, modo selección en «herramientas»).
+  **Solo funciona lo que pide el paso** (`completesStep`: ese elemento y ese gesto) y solo a
+  través del hueco del foco; todo lo demás no hace nada, y la app de debajo no recibe ningún
+  toque. «Saltar» siempre está en el bocadillo. La app ya no tiene ningún enganche del tutorial
+  (salvo `isTutorialActive` para no enseñar la celebración de la racha ni «Deshacer»).
+- **Motor del tutorial** (Reanimated, decisión del usuario). Máquina de estados por paso
+  (`machine.ts`, tests): `leaving` (se va el bocadillo; si cambia la pantalla de la demo, el
+  hueco se cierra como un iris) → `waiting` (se pone el texto nuevo del bocadillo) →
+  `entering` (fundido a la otra pantalla de la demo si toca, una medida con `measure` en el
+  hilo de la interfaz y un único deslizamiento) → `active` (anillo que late, se puede tocar).
+  `director.ts` lleva las fases fuera de React; `motion.ts` tiene los valores (`makeMutable`)
+  y los worklets que encadenan las animaciones sin volver a JS; el Coach solo dibuja (demo,
+  velo de piezas sólidas, bloqueos, anillo, rótulo y bocadillo). Los elementos iluminables son
+  `DemoTarget` (dentro de la demo), así las medidas aciertan siempre: la demo no se mueve ni
+  depende de la red ni de transiciones de navegación. Duraciones: bocadillo fuera 160 ms, iris
+  260 ms, fundido de pantalla 220 ms, deslizamiento 340–560 ms según la distancia
+  (`glideDuration`), bocadillo dentro 240 ms. Barra de progreso con Reanimated.
 - Valores de `Animated` en componentes: `useState(() => new Animated.Value(0))[0]`, no
   `useRef(...).current` (la regla react-hooks/refs lo marca como error).
 
@@ -495,8 +472,6 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   la columna `counters.archived` se borró (migración `20261204`, junto con
   `profiles.avatar_url` y `profiles.hide_counters_from_friends`, que no se usaban).
 - Textos: no dar por hecho que el primer botón rápido es +1 (se configura).
-- El tutorial ilumina la primera tarjeta donde se puede sumar directamente (no un común de
-  otro) y también avanza si se envía una solicitud al administrador.
 - La racha de uso de la app se mantiene con cualquier registro, también un −1 (decisión del
   usuario: basta con interactuar).
 
@@ -848,6 +823,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   («Maximum update depth exceeded»). Usar `StableScreenOptions` (`src/lib/stableOptions.tsx`):
   solo envía las opciones cuando cambia `optionsKey` (lo que se ve en la cabecera) y sus funciones
   llaman siempre a la versión más reciente.
+- Al crear un contador, se pone **el primero** de «Mis contadores» en las dos vistas (filas y
+  bloques comparten `counter_order`; `withFirst` en `src/lib/reorder.ts`, con tests).
 - Al crear un contador, la unidad se propone ya escrita con la primera palabra del nombre en
   minúscula («Países visitados» → «países»; `suggestUnit` en `src/features/contadores/unit.ts`,
   con tests) mientras no se toque el campo.

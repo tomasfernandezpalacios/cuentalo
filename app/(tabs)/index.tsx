@@ -3,7 +3,6 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useFocusEffect } from 'expo-router';
 import {
   useCallback,
-  useEffect,
   useRef,
   useState,
   type ComponentProps,
@@ -56,13 +55,6 @@ import {
 } from '@/features/contadores/hooks';
 import { useCounterActions } from '@/features/contadores/useCounterActions';
 import { useCounterOrder, useSetCounterOrder } from '@/features/perfil/birthDate';
-import {
-  currentStepId,
-  subscribeTutorial,
-  tutorialEvent,
-  useTutorialValue,
-} from '@/features/tutorial/store';
-import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
 import { applyOrder } from '@/lib/reorder';
 import { StableScreenOptions } from '@/lib/stableOptions';
@@ -169,35 +161,6 @@ export default function CountersScreen() {
       ]),
   });
 
-  // --- Tutorial -----------------------------------------------------------------------------
-  // El contador creado en el tutorial va el primero de la lista (se ve sin buscarlo) y es el que
-  // se ilumina para sumar, restar y mantener pulsado.
-  // Solo el id (no todo el tutorial): así un cambio de paso no vuelve a dibujar la lista.
-  const tutorialCounterId = useTutorialValue((s) => s.counterId);
-  const orderedIds = ordered.map((c) => c.id).join(',');
-  const movedFirstFor = useRef<string | null>(null);
-  useEffect(() => {
-    if (!tutorialCounterId || movedFirstFor.current === tutorialCounterId) return;
-    const ids = orderedIds.split(',');
-    if (!ids.includes(tutorialCounterId)) return;
-    movedFirstFor.current = tutorialCounterId;
-    if (ids[0] === tutorialCounterId) return;
-    setCounterOrder.mutate([tutorialCounterId, ...ids.filter((id) => id !== tutorialCounterId)]);
-  }, [tutorialCounterId, orderedIds, setCounterOrder]);
-  // Paso «Mantén pulsado»: al entrar en el modo selección se sigue; y al dejar el paso «Tus
-  // herramientas», el modo selección se cierra solo.
-  useEffect(() => {
-    if (selecting) tutorialEvent('selection-opened');
-  }, [selecting]);
-  useEffect(() => {
-    let last = currentStepId();
-    return subscribeTutorial(() => {
-      const now = currentStepId();
-      if (last === 'tools' && now !== 'tools') setSelectedIds([]);
-      last = now;
-    });
-  }, []);
-
   if (isPending) return <LoadingView />;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
 
@@ -209,15 +172,6 @@ export default function CountersScreen() {
       active.flatMap((c) => c.linkedGroups.map((g) => [g.group.id, g.group] as const)),
     ).values(),
   ].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-  // Tarjeta que ilumina el tutorial: la del contador creado en él, y solo cuando ya es la
-  // primera de la lista (antes, el tutorial espera con todo apagado en vez de iluminar otra y
-  // saltar después). Sin contador del tutorial, la primera en la que se puede sumar directamente
-  // (en un común de otro, el +1 abre una solicitud y el paso «Suma con un toque» no avanzaría).
-  const tutorialCardId = tutorialCounterId
-    ? shown[0]?.id === tutorialCounterId
-      ? tutorialCounterId
-      : undefined
-    : shown.find((c) => !(c.is_common && !c.canManage))?.id;
   // Los ocultos salen al final de la lista.
   const hidden = filtered.filter((c) => c.hidden);
   const selected = active.filter((c) => selectedIds.includes(c.id));
@@ -391,13 +345,12 @@ export default function CountersScreen() {
 
   // --- Vista ------------------------------------------------------------------------------
 
-  function renderCard(item: CounterWithTotal, isFirst = false, draggable = false) {
+  function renderCard(item: CounterWithTotal, draggable = false) {
     const dragProps = draggable ? drag.itemProps(item.id) : null;
     const card = (
       <CounterCard
         key={item.id}
         counter={item}
-        tutorialTarget={isFirst}
         grid={grid}
         selectionMode={selecting}
         selected={selectedIds.includes(item.id)}
@@ -469,29 +422,27 @@ export default function CountersScreen() {
       </Text>
     ),
     headerRight: () => (
-      <TutorialTarget id="herramientas">
-        <View style={styles.selectionActions}>
-          {headerIcon('trash-outline', 'Borrar', deleteSelected)}
-          <Pressable
-            onPress={() => setFolderPickerOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Añadir a una carpeta"
-            hitSlop={8}
-          >
-            <Ionicons name="folder-outline" size={24} color={colors.primary} />
-            <View style={[styles.folderPlus, { backgroundColor: colors.surface }]}>
-              <Ionicons name="add" size={13} color={colors.primary} />
-            </View>
-          </Pressable>
-          {headerIcon(
-            selected.every((c) => c.hidden) ? 'eye-outline' : 'eye-off-outline',
-            selected.every((c) => c.hidden) ? 'Mostrar' : 'Ocultar',
-            toggleHiddenSelected,
-          )}
-          {headerIcon('create-outline', 'Editar', editSelected, selectedIds.length !== 1)}
-          {headerIcon('git-merge-outline', 'Fusionar', mergeSelected)}
-        </View>
-      </TutorialTarget>
+      <View style={styles.selectionActions}>
+        {headerIcon('trash-outline', 'Borrar', deleteSelected)}
+        <Pressable
+          onPress={() => setFolderPickerOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Añadir a una carpeta"
+          hitSlop={8}
+        >
+          <Ionicons name="folder-outline" size={24} color={colors.primary} />
+          <View style={[styles.folderPlus, { backgroundColor: colors.surface }]}>
+            <Ionicons name="add" size={13} color={colors.primary} />
+          </View>
+        </Pressable>
+        {headerIcon(
+          selected.every((c) => c.hidden) ? 'eye-outline' : 'eye-off-outline',
+          selected.every((c) => c.hidden) ? 'Mostrar' : 'Ocultar',
+          toggleHiddenSelected,
+        )}
+        {headerIcon('create-outline', 'Editar', editSelected, selectedIds.length !== 1)}
+        {headerIcon('git-merge-outline', 'Fusionar', mergeSelected)}
+      </View>
     ),
   };
 
@@ -525,21 +476,19 @@ export default function CountersScreen() {
             <View style={[styles.badge, { backgroundColor: colors.danger }]} />
           ) : null}
         </Pressable>
-        <TutorialTarget id="nuevo-contador">
-          <Pressable
-            onPress={openNewCounter}
-            accessibilityRole="button"
-            accessibilityLabel="Nuevo contador"
-            hitSlop={6}
-            style={({ pressed }) => [
-              styles.addButton,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
-            ]}
-          >
-            {/* «+» algo grueso, pero no tanto como «plus-thick» (petición del usuario). */}
-            <MaterialCommunityIcons name="plus" size={32} color={colors.background} />
-          </Pressable>
-        </TutorialTarget>
+        <Pressable
+          onPress={openNewCounter}
+          accessibilityRole="button"
+          accessibilityLabel="Nuevo contador"
+          hitSlop={6}
+          style={({ pressed }) => [
+            styles.addButton,
+            { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          {/* «+» algo grueso, pero no tanto como «plus-thick» (petición del usuario). */}
+          <MaterialCommunityIcons name="plus" size={32} color={colors.background} />
+        </Pressable>
       </View>
     ),
   };
@@ -735,11 +684,11 @@ export default function CountersScreen() {
           emptyView
         ) : grid ? (
           <View {...drag.containerProps} style={styles.gridWrap}>
-            {shown.map((item) => renderCard(item, item.id === tutorialCardId, true))}
+            {shown.map((item) => renderCard(item, true))}
           </View>
         ) : (
           <View {...drag.containerProps} style={styles.cards}>
-            {shown.map((item) => renderCard(item, item.id === tutorialCardId, true))}
+            {shown.map((item) => renderCard(item, true))}
           </View>
         )}
         {hidden.length > 0 ? (

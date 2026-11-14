@@ -1,4 +1,4 @@
-import { applyOrder, dropIndex, moveItem } from '../reorder';
+import { applyOrder, dropIndex, moveItem, withFirst } from '../reorder';
 
 describe('moveItem', () => {
   it('mueve hacia abajo y hacia arriba', () => {
@@ -32,5 +32,18 @@ describe('dropIndex', () => {
     expect(dropIndex(heights, 1, 900)).toBe(3);
     expect(dropIndex(heights, 2, -60)).toBe(1);
     expect(dropIndex(heights, 2, -900)).toBe(0);
+  });
+});
+
+describe('withFirst', () => {
+  it('pone el nuevo el primero y no lo repite', () => {
+    expect(withFirst(['a', 'b'], 'c')).toEqual(['c', 'a', 'b']);
+    expect(withFirst(['a', 'c', 'b'], 'c')).toEqual(['c', 'a', 'b']);
+    expect(withFirst([], 'c')).toEqual(['c']);
+  });
+
+  it('con el orden aplicado, el nuevo sale el primero aunque no hubiera orden guardado', () => {
+    const items = ['a', 'b', 'c'];
+    expect(applyOrder(items, withFirst([], 'c'), (x) => x)).toEqual(['c', 'a', 'b']);
   });
 });

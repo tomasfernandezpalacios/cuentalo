@@ -8,8 +8,6 @@ import { EditablePhoto } from '@/components/EditablePhoto';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { FormScreen } from '@/components/FormScreen';
 import { TextField } from '@/components/TextField';
-import { TUTORIAL_COUNTER_NAME } from '@/features/tutorial/steps';
-import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
 import { pickPhoto, type PickedPhoto } from '@/lib/photos';
 import { fonts, proseFont, useThemeColors } from '@/lib/theme';
@@ -43,11 +41,6 @@ type Props = {
   initialParticipantIds?: string[] | null;
   /** Contenido extra al final (p. ej. archivar o borrar en la pantalla de edición). */
   footer?: ReactNode;
-  /**
-   * Tutorial de bienvenida: solo el nombre, fijo («Mi primer contador»), y el botón de crear
-   * (sin icono, unidad, visibilidad, común ni formato racha: queda privado y amigos).
-   */
-  simple?: boolean;
   /** Al editar: la foto que ya tiene el contador (si tiene). */
   initialPhotoPath?: string | null;
   /** El botón de guardar va en la cabecera (arriba a la derecha) en vez de abajo. */
@@ -66,17 +59,15 @@ export function CounterForm({
   sharedGroupId = null,
   initialParticipantIds = null,
   footer,
-  simple = false,
   initialPhotoPath = null,
   submitInHeader = false,
 }: Props) {
   const colors = useThemeColors();
-  const [name, setName] = useState(initial?.name ?? (simple ? TUTORIAL_COUNTER_NAME : ''));
+  const [name, setName] = useState(initial?.name ?? '');
   const [typedUnit, setUnit] = useState(initial?.unit ?? '');
   // Al crear, mientras no se toque la unidad, se propone ya escrita la primera palabra del
   // nombre («Kilómetros» → «kilómetros», «Países visitados» → «países»; petición del usuario).
-  // En el tutorial no se propone unidad (de «Mi primer contador» saldría «mi»).
-  const [unitTouched, setUnitTouched] = useState(Boolean(initial) || simple);
+  const [unitTouched, setUnitTouched] = useState(Boolean(initial));
   const unit = unitTouched ? typedUnit : suggestUnit(name);
   const [emoji, setEmoji] = useState(initial?.emoji ?? '');
   // Icono: emoticono o foto (petición del usuario), como la imagen de los grupos.
@@ -196,150 +187,135 @@ export function CounterForm({
 
   return (
     <FormScreen>
-      {/* En el tutorial, el nombre viene puesto y no se cambia («Mi primer contador»). */}
-      <TutorialTarget id="nombre" enabled={simple}>
-        <TextField
-          label="Nombre"
-          value={name}
-          onChangeText={setName}
-          error={errors.name}
-          placeholder="ej. Cervezas, Libros leídos, Kilómetros"
-          maxLength={LIMITS.counterName}
-          autoFocus={!initial && !simple}
-          editable={!simple}
+      <TextField
+        label="Nombre"
+        value={name}
+        onChangeText={setName}
+        error={errors.name}
+        placeholder="ej. Cervezas, Libros leídos, Kilómetros"
+        maxLength={LIMITS.counterName}
+        autoFocus={!initial}
+      />
+      <>
+        <View style={styles.preview}>
+          <EditablePhoto
+            enabled={imageMode === 'photo'}
+            hasPhoto={hasPhoto}
+            editUri={newPhoto?.uri ?? (imageMode === 'photo' ? (savedPhoto.data ?? null) : null)}
+            onPicked={(photo) => {
+              setNewPhoto(photo);
+              setImageMode('photo');
+            }}
+            onRemove={() => {
+              setNewPhoto(null);
+              setImageMode('emoji');
+            }}
+          >
+            <CounterAvatar
+              emoji={emoji || null}
+              name={name || '?'}
+              photoPath={imageMode === 'photo' ? initialPhotoPath : null}
+              localUri={imageMode === 'photo' ? newPhoto?.uri : null}
+              size={96}
+            />
+          </EditablePhoto>
+        </View>
+        <SegmentedControl
+          options={[
+            { value: 'emoji', label: 'Emoticono' },
+            { value: 'photo', label: 'Foto' },
+          ]}
+          value={imageMode}
+          onChange={setImageMode}
         />
-      </TutorialTarget>
-      {simple ? null : (
-        <>
-          <View style={styles.preview}>
-            <EditablePhoto
-              enabled={imageMode === 'photo'}
-              hasPhoto={hasPhoto}
-              editUri={newPhoto?.uri ?? (imageMode === 'photo' ? (savedPhoto.data ?? null) : null)}
-              onPicked={(photo) => {
-                setNewPhoto(photo);
-                setImageMode('photo');
-              }}
-              onRemove={() => {
-                setNewPhoto(null);
-                setImageMode('emoji');
-              }}
-            >
-              <CounterAvatar
-                emoji={emoji || null}
-                name={name || '?'}
-                photoPath={imageMode === 'photo' ? initialPhotoPath : null}
-                localUri={imageMode === 'photo' ? newPhoto?.uri : null}
-                size={96}
+        {imageMode === 'emoji' ? (
+          <EmojiPicker value={emoji} onChange={setEmoji} />
+        ) : (
+          <View style={styles.photoActions}>
+            {hasPhoto ? null : (
+              <AppButton
+                title="Elegir foto de la galería"
+                variant="secondary"
+                onPress={() => pickPhoto('library').then((p) => p && setNewPhoto(p))}
               />
-            </EditablePhoto>
+            )}
+            <Text style={[styles.photoHint, { color: colors.textMuted }]}>
+              {hasPhoto
+                ? 'Toca «Editar» sobre la foto para cambiarla, editarla o borrarla.'
+                : 'La foto la ve quien ve el contador.'}
+            </Text>
           </View>
-          <SegmentedControl
-            options={[
-              { value: 'emoji', label: 'Emoticono' },
-              { value: 'photo', label: 'Foto' },
-            ]}
-            value={imageMode}
-            onChange={setImageMode}
-          />
-          {imageMode === 'emoji' ? (
-            <EmojiPicker value={emoji} onChange={setEmoji} />
-          ) : (
-            <View style={styles.photoActions}>
-              {hasPhoto ? null : (
-                <AppButton
-                  title="Elegir foto de la galería"
-                  variant="secondary"
-                  onPress={() => pickPhoto('library').then((p) => p && setNewPhoto(p))}
-                />
-              )}
-              <Text style={[styles.photoHint, { color: colors.textMuted }]}>
-                {hasPhoto
-                  ? 'Toca «Editar» sobre la foto para cambiarla, editarla o borrarla.'
-                  : 'La foto la ve quien ve el contador.'}
-              </Text>
-            </View>
-          )}
-        </>
-      )}
-      {simple ? null : (
-        <TextField
-          label="Unidad (opcional)"
-          value={unit}
-          onChangeText={(value) => {
-            setUnitTouched(true);
-            setUnit(value);
-          }}
-          error={errors.unit}
-          placeholder="ej. cervezas, libros, km"
-          maxLength={LIMITS.unit}
-          autoCapitalize="none"
-        />
-      )}
+        )}
+      </>
+      <TextField
+        label="Unidad (opcional)"
+        value={unit}
+        onChangeText={(value) => {
+          setUnitTouched(true);
+          setUnit(value);
+        }}
+        error={errors.unit}
+        placeholder="ej. cervezas, libros, km"
+        maxLength={LIMITS.unit}
+        autoCapitalize="none"
+      />
 
-      {simple ? null : (
-        <>
-          {groups ? (
-            <View style={styles.visibility}>
-              <Text style={[styles.label, { color: colors.text }]}>¿Quién lo ve?</Text>
-              {privateOptions}
-              {groups.map((group) => (
-                <VisibilityOption
-                  key={group.id}
-                  title={`👥 ${group.name}`}
-                  description="Cada miembro suma lo suyo y hay clasificación."
-                  selected={groupId === group.id}
-                  onPress={() => selectGroup(group.id)}
-                />
-              ))}
-              {groups.length === 0 ? (
-                <Text style={[styles.hint, { color: colors.textMuted }]}>
-                  Para compartir un contador, crea o únete a un grupo en Social.
-                </Text>
-              ) : null}
-              {/* Fuera de la V1: compartir con un grupo un contador privado ya existente. */}
-            </View>
-          ) : sharedGroupName ? (
-            <View
-              style={[
-                styles.option,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <Text style={[styles.optionTitle, { color: colors.text }]}>👥 {sharedGroupName}</Text>
+      <>
+        {groups ? (
+          <View style={styles.visibility}>
+            <Text style={[styles.label, { color: colors.text }]}>¿Quién lo ve?</Text>
+            {privateOptions}
+            {groups.map((group) => (
+              <VisibilityOption
+                key={group.id}
+                title={`👥 ${group.name}`}
+                description="Cada miembro suma lo suyo y hay clasificación."
+                selected={groupId === group.id}
+                onPress={() => selectGroup(group.id)}
+              />
+            ))}
+            {groups.length === 0 ? (
               <Text style={[styles.hint, { color: colors.textMuted }]}>
-                Compartido con el grupo.
+                Para compartir un contador, crea o únete a un grupo en Social.
               </Text>
-            </View>
-          ) : (
-            // Al editar un individual se puede cambiar entre «Privado» y «Privado y amigos».
-            <View style={styles.visibility}>
-              <Text style={[styles.label, { color: colors.text }]}>¿Quién lo ve?</Text>
-              {privateOptions}
-            </View>
-          )}
-
-          {commonSection}
-
-          {/* Como «Contador común»: la casilla a la izquierda y el ⓘ a la derecha. */}
-          <View style={styles.commonRow}>
-            <Pressable
-              onPress={() => setStreakEnabled((value) => !value)}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: streakEnabled }}
-              style={styles.checkbox}
-            >
-              <Ionicons
-                name={streakEnabled ? 'checkbox' : 'square-outline'}
-                size={24}
-                color={streakEnabled ? colors.primary : colors.textMuted}
-              />
-              <Text style={[styles.optionTitle, { color: colors.text }]}>🔥 Formato racha</Text>
-            </Pressable>
-            <StreakFormatInfo inGroup={creating ? groupId !== null : Boolean(sharedGroupName)} />
+            ) : null}
+            {/* Fuera de la V1: compartir con un grupo un contador privado ya existente. */}
           </View>
-        </>
-      )}
+        ) : sharedGroupName ? (
+          <View
+            style={[styles.option, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          >
+            <Text style={[styles.optionTitle, { color: colors.text }]}>👥 {sharedGroupName}</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>Compartido con el grupo.</Text>
+          </View>
+        ) : (
+          // Al editar un individual se puede cambiar entre «Privado» y «Privado y amigos».
+          <View style={styles.visibility}>
+            <Text style={[styles.label, { color: colors.text }]}>¿Quién lo ve?</Text>
+            {privateOptions}
+          </View>
+        )}
+
+        {commonSection}
+
+        {/* Como «Contador común»: la casilla a la izquierda y el ⓘ a la derecha. */}
+        <View style={styles.commonRow}>
+          <Pressable
+            onPress={() => setStreakEnabled((value) => !value)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: streakEnabled }}
+            style={styles.checkbox}
+          >
+            <Ionicons
+              name={streakEnabled ? 'checkbox' : 'square-outline'}
+              size={24}
+              color={streakEnabled ? colors.primary : colors.textMuted}
+            />
+            <Text style={[styles.optionTitle, { color: colors.text }]}>🔥 Formato racha</Text>
+          </Pressable>
+          <StreakFormatInfo inGroup={creating ? groupId !== null : Boolean(sharedGroupName)} />
+        </View>
+      </>
 
       {error ? (
         <Text style={{ color: colors.danger, fontFamily: fonts.detail }}>
@@ -369,9 +345,7 @@ export function CounterForm({
           }}
         />
       ) : (
-        <TutorialTarget id="crear-contador" enabled={simple}>
-          <AppButton title={submitTitle} onPress={handleSubmit} loading={saving} />
-        </TutorialTarget>
+        <AppButton title={submitTitle} onPress={handleSubmit} loading={saving} />
       )}
       {footer}
     </FormScreen>

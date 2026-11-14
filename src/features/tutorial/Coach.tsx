@@ -1,4 +1,3 @@
-import { usePathname } from 'expo-router';
 import { memo, useEffect, useState, useSyncExternalStore } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedRef, useAnimatedStyle } from 'react-native-reanimated';
@@ -7,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/AppButton';
 import { displayFont, fonts, proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
+import { Demo } from './Demo';
 import { Director } from './director';
 import { HOLE_RADIUS, SIDE_MARGIN } from './layout';
 import { CARET, SEAM, VEIL_COLOR, VEIL_OPACITY, type Values } from './motion';
@@ -14,7 +14,8 @@ import { Progress } from './Progress';
 import { letsTouchTarget, showsNext, stepKind, type Step } from './steps';
 import { continueTutorial } from './store';
 
-// El tutorial apaga la app con un velo y deja un hueco sobre lo que enseña.
+// El tutorial tapa la app con una demostración fija (Demo.tsx), la apaga con un velo y deja un
+// hueco sobre lo que enseña. Solo responde lo iluminado y el bocadillo.
 //
 // Este componente solo dibuja: el velo, el anillo, el rótulo y el bocadillo leen sus valores
 // animados (motion.ts) en el hilo de la interfaz, y lo que decide cada fase de cada paso está en
@@ -24,19 +25,16 @@ type Props = {
   step: Step;
   index: number;
   total: number;
-  /** La app ha pedido que lo del paso se vaya ya (se está creando el contador). */
-  leaving: boolean;
 };
 
 /**
  * Velo, foco y bocadillo de todos los pasos. Se monta una sola vez para todo el tutorial (nunca
  * se desmonta entre pasos), también debajo de la bienvenida y del final.
  */
-export function Coach({ step, index, total, leaving }: Props) {
+export function Coach({ step, index, total }: Props) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
-  const pathname = usePathname();
   const layerRef = useAnimatedRef<Animated.View>();
   const bubbleRef = useAnimatedRef<Animated.View>();
   const [director] = useState(() => new Director(window.width, window.height));
@@ -48,11 +46,11 @@ export function Coach({ step, index, total, leaving }: Props) {
     return () => director.dispose();
   }, [director, layerRef, bubbleRef]);
   useEffect(() => {
-    director.setEnvironment(pathname, insets.top, insets.bottom);
-  }, [director, pathname, insets.top, insets.bottom]);
+    director.setInsets(insets.top, insets.bottom);
+  }, [director, insets.top, insets.bottom]);
   useEffect(() => {
-    director.goTo(step, index, leaving);
-  }, [director, step, index, leaving]);
+    director.goTo(step, index);
+  }, [director, step, index]);
   // El texto nuevo del bocadillo ya está dibujado: ya se puede medir su alto.
   useEffect(() => {
     director.contentCommitted(view.content);
@@ -98,6 +96,9 @@ export function Coach({ step, index, total, leaving }: Props) {
       pointerEvents="box-none"
       style={[StyleSheet.absoluteFill, styles.layer]}
     >
+      {/* La demostración (tapa la app de verdad: nada de ella se puede tocar). */}
+      <Demo stepId={step.id} scene={view.content?.step.scene ?? step.scene} scenes={v.scenes} />
+
       <Veil v={v} width={window.width} height={window.height} />
 
       {/* Lo que no se puede tocar: todo, salvo el hueco en los pasos de acción ya a la vista. */}

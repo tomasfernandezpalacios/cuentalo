@@ -110,3 +110,11 @@ export function dropIndex(heights: number[], from: number, dy: number): number {
   }
   return index;
 }
+
+/**
+ * Orden con `id` el primero (p. ej. un contador recién creado). Vale para las dos vistas de «Mis
+ * contadores» (filas y bloques), que comparten el orden guardado.
+ */
+export function withFirst(order: string[], id: string): string[] {
+  return [id, ...order.filter((value) => value !== id)];
+}

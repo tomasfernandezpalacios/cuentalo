@@ -2,7 +2,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useSettings } from '@/features/configuracion/settings';
-import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { formatWithUnit } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
 
@@ -19,8 +18,6 @@ type Props = {
   /** Mantener pulsado el primer botón abre la cantidad personalizada (versión compacta). */
   onLongPressAdd?: () => void;
   compact?: boolean;
-  /** El primer botón es el que ilumina el tutorial («Suma con un toque»). */
-  tutorialTarget?: boolean;
   /**
    * Contador en formato racha (versión compacta): solo el primer botón, el −1 y, en el sitio
    * del −1, los días de racha con la llama (en color si hoy ya se ha mantenido).
@@ -41,7 +38,6 @@ export function QuickAddBar({
   onCustom,
   onLongPressAdd,
   compact = false,
-  tutorialTarget = false,
   streak = null,
   maxAmounts = Infinity,
   stretch = false,
@@ -65,12 +61,7 @@ export function QuickAddBar({
   return (
     <View style={[styles.row, compact && styles.compactRow, stretch && styles.stretchRow]}>
       {amounts.map((amount, index) => (
-        <TutorialTarget
-          key={amount}
-          id="sumar"
-          enabled={tutorialTarget && index === 0}
-          style={targetStyle}
-        >
+        <View key={amount} style={targetStyle}>
           <Pressable
             onPress={() => onAdd(amount)}
             onLongPress={index === 0 ? onLongPressAdd : undefined}
@@ -96,9 +87,9 @@ export function QuickAddBar({
               +{amount}
             </Text>
           </Pressable>
-        </TutorialTarget>
+        </View>
       ))}
-      <TutorialTarget id="restar" enabled={tutorialTarget} style={targetStyle}>
+      <View style={targetStyle}>
         <Pressable
           onPress={onRemoveOne}
           disabled={!canRemove}
@@ -128,7 +119,7 @@ export function QuickAddBar({
             −1
           </Text>
         </Pressable>
-      </TutorialTarget>
+      </View>
       {onCustom ? (
         <Pressable
           onPress={onCustom}
@@ -178,7 +169,7 @@ const styles = StyleSheet.create({
   compactRow: { gap: 4 },
   button: { alignItems: 'center', justifyContent: 'center' },
   large: { flex: 1, height: 60, borderRadius: 16 },
-  // Los botones de cantidad van dentro de un envoltorio (TutorialTarget) que es quien estira.
+  // Los botones de cantidad van dentro de un envoltorio que es quien estira.
   largeInTarget: { height: 60, borderRadius: 16 },
   // En la tarjeta: estrechos para que quepan, pero altos para pulsarlos con comodidad.
   // Ancho mínimo (no fijo): «+100» con letra ancha no cabía en 36 y se cortaba.

@@ -25,6 +25,7 @@ import {
   type Rect,
   SIDE_MARGIN,
 } from './layout';
+import { SCENES } from './steps';
 import type { TargetRef } from './store';
 
 // Todo lo que se mueve en el tutorial y cómo se encadena, en el hilo de la interfaz
@@ -45,15 +46,12 @@ export const VEIL_IN_MS = 420;
 const SKIP_MS = 240;
 /** El bocadillo aparece subiendo esto. */
 const APPEAR_RISE = 10;
-/** Fotogramas seguidos sin moverse para dar por buena la medida (por si la lista se recoloca). */
-const STABLE_FRAMES = 3;
-/** Como mucho se espera esto a que el elemento se vea quieto; después se usa lo que haya. */
-const SETTLE_TIMEOUT_MS = 1200;
-/** Si el elemento no aparece en este tiempo, el paso se explica sin foco (con «Siguiente»). */
-export const MISSING_MS = 4000;
-/** Por si la navegación no avisa del final de una transición: se da por acabada tras esto. */
-export const STACK_SAFETY_MS = 1500;
-export const PAGER_SAFETY_MS = 900;
+/** Dos medidas iguales seguidas (la demostración es fija: basta para asegurarse). */
+const STABLE_FRAMES = 1;
+/** Como mucho se espera esto a la medida; después se usa lo que haya. */
+const SETTLE_TIMEOUT_MS = 600;
+/** Fundido entre dos pantallas de la demostración (con todo apagado). */
+const SCENE_MS = 220;
 export const CARET = 14;
 /** Solape entre las piezas del velo. */
 export const SEAM = 1;
@@ -86,6 +84,8 @@ export type Values = {
   ringW: SharedValue<number>;
   ringH: SharedValue<number>;
   banner: SharedValue<number>;
+  /** Opacidad de cada pantalla de la demostración (en el orden de SCENES). */
+  scenes: SharedValue<number>[];
 };
 
 /**
@@ -112,6 +112,7 @@ export function createValues(width: number, height: number): Values {
     ringW: makeMutable(0),
     ringH: makeMutable(0),
     banner: makeMutable(0),
+    scenes: SCENES.map((_, i) => makeMutable(i === 0 ? 1 : 0)),
   };
 }
 
@@ -202,6 +203,8 @@ export type EnterArgs = {
   show: 'bubble' | 'banner' | 'nothing';
   /** Anillo que late alrededor de lo que hay que tocar. */
   ring: boolean;
+  /** Pantalla de la demostración del paso (índice en SCENES). */
+  scene: number;
   onEntered: (run: number, edges: Edges, missing: boolean) => void;
 };
 
@@ -308,7 +311,27 @@ export function enterWorklet(v: Values, a: EnterArgs) {
     }
     requestAnimationFrame(frame);
   };
-  frame();
+
+  // Si el paso es en otra pantalla, primero se funde (con todo apagado) y después se mide.
+  let changes = false;
+  for (let i = 0; i < v.scenes.length; i++) {
+    const want = i === a.scene ? 1 : 0;
+    if (Math.abs(v.scenes[i]!.value - want) > 0.001) changes = true;
+  }
+  if (!changes) {
+    frame();
+    return;
+  }
+  const config = { duration: SCENE_MS, easing: Easing.inOut(Easing.quad) };
+  for (let i = 0; i < v.scenes.length; i++) {
+    if (i === a.scene) {
+      v.scenes[i]!.value = withTiming(1, config, (finished) => {
+        if (finished && v.run.value === a.run) frame();
+      });
+    } else {
+      v.scenes[i]!.value = withTiming(0, config);
+    }
+  }
 }
 
 /** «Saltar»: todo se funde a la vez y se termina. */

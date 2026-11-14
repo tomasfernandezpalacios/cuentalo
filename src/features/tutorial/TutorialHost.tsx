@@ -29,12 +29,12 @@ import { continueTutorial, nextStep, useTutorial } from './store';
  * otro nada desaparece de golpe, todo se desliza o se funde.
  */
 export function TutorialHost() {
-  const { step, index, steps, leaving } = useTutorial();
+  const { step, index, steps } = useTutorial();
   if (!step || index === null) return null;
   const kind = stepKind(step);
   return (
     <>
-      <Coach step={step} index={index} total={steps.length} leaving={leaving} />
+      <Coach step={step} index={index} total={steps.length} />
       {kind === 'welcome' ? <Welcome step={step} index={index} total={steps.length} /> : null}
       {kind === 'finish' ? <Finish step={step} index={index} total={steps.length} /> : null}
     </>

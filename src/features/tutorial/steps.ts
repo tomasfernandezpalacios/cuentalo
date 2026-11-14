@@ -1,9 +1,13 @@
-// Pasos del tutorial de bienvenida y cómo se avanza. Funciones puras para poder testearlas.
+// Guion del tutorial de bienvenida: siempre los mismos pasos, en el mismo orden, sobre una
+// demostración fija de la app (Demo.tsx). No toca la app de verdad ni la base de datos: lo que
+// se ve en cada paso sale solo del paso. Funciones puras para poder testearlas.
 
-/**
- * Elementos de la app que el tutorial puede iluminar (ver TutorialTarget). Los 'pantalla-…' son la
- * zona de contenido de una pestaña (sin su cabecera ni la barra de pestañas), para presentarla.
- */
+/** Pantallas de la demostración. */
+export type Scene = 'home-empty' | 'form' | 'home' | 'stats' | 'social';
+
+export const SCENES: Scene[] = ['home-empty', 'form', 'home', 'stats', 'social'];
+
+/** Elementos de la demostración que se pueden iluminar (ver DemoTarget). */
 export type TargetId =
   | 'nuevo-contador'
   | 'nombre'
@@ -17,10 +21,6 @@ export type TargetId =
   | 'tab-social'
   | 'pantalla-estadisticas'
   | 'pantalla-social';
-
-/** Acciones reales que hacen avanzar un paso (las avisa el código que ya existe). */
-export type TutorialEvent =
-  'form-opened' | 'counter-created' | 'entry-added' | 'entry-removed' | 'selection-opened';
 
 export type StepId =
   | 'welcome'
@@ -39,9 +39,6 @@ export type StepId =
   | 'streak'
   | 'done';
 
-/** Pantallas en las que se enseña algo. */
-export type TutorialScreen = '/' | '/contadores/nuevo' | '/estadisticas' | '/social';
-
 export type Step = {
   id: StepId;
   title: string;
@@ -54,32 +51,28 @@ export type Step = {
    * apaga todo menos `target` y explica con un bocadillo.
    */
   kind?: 'welcome' | 'banner' | 'spotlight' | 'finish';
-  /** Pantalla en la que se enseña. Si no lo dice, la principal. */
-  screen?: TutorialScreen;
+  /** Pantalla de la demostración en la que ocurre. */
+  scene: Scene;
   /** Texto del botón de los pasos a pantalla completa. */
   button?: string;
-  /**
-   * A la pantalla llega el propio usuario (p. ej. al tocar el +): el tutorial no navega. Si en
-   * vez de eso vuelve atrás, el tutorial vuelve a `fallback`.
-   */
-  userNavigates?: boolean;
-  fallback?: StepId;
   target?: TargetId;
-  /** Paso de acción: no hay «Siguiente», se avanza al hacer esto (y solo se toca el hueco). */
-  action?: TutorialEvent;
-  /** Paso de pestaña: se avanza al llegar a esta pantalla (tocando la pestaña iluminada). */
-  advanceOnScreen?: TutorialScreen;
+  /**
+   * Lo que hay que hacer con lo iluminado para seguir: tocarlo o mantenerlo pulsado. Sin
+   * acción, se sigue con «Siguiente».
+   */
+  action?: 'tap' | 'hold';
   /** Se pasa solo al siguiente tras este tiempo (sin botones). */
   autoAdvanceMs?: number;
 };
 
-/** Nombre fijo del contador que se crea en el tutorial (no se puede cambiar). */
+/** Nombre del contador de la demostración. */
 export const TUTORIAL_COUNTER_NAME = 'Mi primer contador';
 
 const ALL_STEPS: Step[] = [
   {
     id: 'welcome',
     kind: 'welcome',
+    scene: 'home-empty',
     title: 'Te damos la bienvenida a Cuéntalo',
     subtitle: 'Tu base de estadísticas vitales',
     text: 'Registra lo que haces, compártelo con tus amigos y disfruta de tus datos.',
@@ -88,97 +81,98 @@ const ALL_STEPS: Step[] = [
   {
     id: 'intro',
     kind: 'banner',
+    scene: 'home-empty',
     title: 'Esto es Cuéntalo',
     text: '',
     autoAdvanceMs: 2400,
   },
   {
     id: 'create',
+    scene: 'home-empty',
     title: 'Crea tu primer contador',
     text: 'Toca el + para empezar.',
     target: 'nuevo-contador',
-    action: 'form-opened',
+    action: 'tap',
   },
   {
     id: 'name',
-    screen: '/contadores/nuevo',
-    userNavigates: true,
-    fallback: 'create',
+    scene: 'form',
     title: 'Ponle nombre',
     text: `Aquí escribes qué quieres contar. Para empezar, lo llamaremos «${TUTORIAL_COUNTER_NAME}».`,
     target: 'nombre',
   },
   {
     id: 'submit',
-    screen: '/contadores/nuevo',
-    userNavigates: true,
-    fallback: 'create',
+    scene: 'form',
     title: 'Listo para crearlo',
     text: 'Toca «Crear contador».',
     target: 'crear-contador',
-    action: 'counter-created',
+    action: 'tap',
   },
   {
     id: 'add',
+    scene: 'home',
     title: 'Suma con un toque',
     text: 'Cada toque queda guardado en tu historial. Pruébalo.',
-    // Se llega al crear el contador (el formulario se cierra solo): el tutorial no navega.
-    userNavigates: true,
     target: 'sumar',
-    action: 'entry-added',
+    action: 'tap',
   },
   {
     id: 'remove',
+    scene: 'home',
     title: '¿Te has pasado? Resta',
     text: 'El −1 corrige el último toque. Pruébalo.',
     target: 'restar',
-    action: 'entry-removed',
+    action: 'tap',
   },
   {
     id: 'hold',
+    scene: 'home',
     title: 'Mantén pulsado el contador',
     text: 'Así aparecen más herramientas.',
     target: 'tarjeta',
-    action: 'selection-opened',
+    action: 'hold',
   },
   {
     id: 'tools',
+    scene: 'home',
     title: 'Tus herramientas',
     text: 'Borrar, añadir a una carpeta, ocultar, editar o fusionar con otros. Y arrastrando, cambias el orden.',
     target: 'herramientas',
   },
   {
     id: 'stats-tab',
+    scene: 'home',
     title: 'Estadísticas',
     text: 'Toca aquí para ver tu evolución.',
     target: 'tab-estadisticas',
-    advanceOnScreen: '/estadisticas',
+    action: 'tap',
   },
   {
     id: 'stats',
-    screen: '/estadisticas',
+    scene: 'stats',
     title: 'Tu evolución',
     text: 'Por semana, mes, año o desde siempre, en líneas o en barras. Toca la gráfica para ampliarla.',
     target: 'pantalla-estadisticas',
   },
   {
     id: 'social-tab',
-    screen: '/estadisticas',
+    scene: 'stats',
     title: 'Social',
     text: 'Toca aquí para ver a tus amigos y tus grupos.',
     target: 'tab-social',
-    advanceOnScreen: '/social',
+    action: 'tap',
   },
   {
     id: 'social',
-    screen: '/social',
+    scene: 'social',
     title: 'Juntos cuenta más',
     text: 'Añade amigos, crea grupos o únete con un código y competid en la clasificación.',
     target: 'pantalla-social',
   },
   {
     id: 'streak',
-    screen: '/estadisticas',
+    scene: 'stats',
     title: 'Tu racha 🔥',
     text: 'Cuenta los días seguidos en los que apuntas algo. Si un día no registras nada, vuelve a 0.',
     target: 'racha',
@@ -186,29 +180,20 @@ const ALL_STEPS: Step[] = [
   {
     id: 'done',
     kind: 'finish',
+    scene: 'stats',
     title: 'Todo listo',
     text: 'Empieza a dejar huella de tu vida',
   },
 ];
 
-/** Pasos del tutorial: siempre los mismos (también se crea un contador aunque ya haya). */
+/** Pasos del tutorial: siempre los mismos. */
 export function buildSteps(): Step[] {
   return ALL_STEPS;
 }
 
-/** Índice del paso siguiente al pulsar «Siguiente» (null si era el último: se termina). */
+/** Índice del paso siguiente (null si era el último: se termina). */
 export function nextIndex(steps: Step[], index: number): number | null {
   return index + 1 < steps.length ? index + 1 : null;
-}
-
-/** ¿Hace avanzar este evento el paso actual? Solo si es justo la acción que pide. */
-export function advancesOn(step: Step | undefined, event: TutorialEvent): boolean {
-  return step?.action === event;
-}
-
-/** ¿Se pasa al siguiente al llegar a esta pantalla? (pasos de pestaña) */
-export function advancesOnScreen(step: Step | undefined, pathname: string): boolean {
-  return step?.advanceOnScreen !== undefined && step.advanceOnScreen === pathname;
 }
 
 /** Cómo se dibuja un paso (spotlight si no dice otra cosa). */
@@ -216,14 +201,9 @@ export function stepKind(step: Step): NonNullable<Step['kind']> {
   return step.kind ?? 'spotlight';
 }
 
-/** Pantalla en la que se enseña el paso. */
-export function stepScreen(step: Step): TutorialScreen {
-  return step.screen ?? '/';
-}
-
-/** ¿Se puede tocar lo iluminado? En los pasos de acción y de pestaña, sí (es la tarea). */
+/** ¿Se puede tocar lo iluminado? Solo en los pasos con una acción (es la tarea). */
 export function letsTouchTarget(step: Step): boolean {
-  return Boolean(step.action || step.advanceOnScreen);
+  return step.action !== undefined;
 }
 
 /** ¿Lleva «Siguiente»? Los pasos que solo enseñan algo (o si el elemento no aparece). */
@@ -231,61 +211,39 @@ export function showsNext(step: Step, targetMissing: boolean): boolean {
   return targetMissing || !letsTouchTarget(step);
 }
 
-/** Pestañas grandes (páginas del deslizador): entre ellas se pasa deslizando, no con el Stack. */
-const TAB_SCREENS = ['/', '/estadisticas', '/social', '/perfil'];
-
-export function isTabScreen(pathname: string): boolean {
-  return TAB_SCREENS.includes(pathname);
+/** ¿Hace este gesto sobre este elemento lo que pide el paso? Cualquier otro no hace nada. */
+export function completesStep(
+  step: Step | undefined,
+  target: TargetId,
+  gesture: 'tap' | 'hold',
+): boolean {
+  return step !== undefined && step.target === target && step.action === gesture;
 }
 
 /** ¿Ilumina una pantalla entera (no un elemento)? */
 export function isWholeScreen(target: TargetId | undefined): boolean {
-  'worklet';
   return target === 'pantalla-estadisticas' || target === 'pantalla-social';
 }
 
 /**
- * ¿Se cierra el hueco (como un iris) al pasar de un paso a otro? Sí si se cambia de pantalla o
- * si lo siguiente no ilumina nada (rótulo, pantallas completas). Entre dos elementos de la misma
- * pantalla, no: el foco se desliza directamente de uno a otro. `next` null = aún no se sabe
- * cuál es (p. ej. se está creando el contador): se cierra por si acaso.
+ * ¿Se cierra el hueco (como un iris) al pasar de un paso a otro? Sí si cambia la pantalla o si
+ * lo siguiente no ilumina nada (rótulo, pantallas completas). Entre dos elementos de la misma
+ * pantalla, no: el foco se desliza directamente de uno a otro.
  */
-export function closesBetween(prev: Step | null, next: Step | null): boolean {
+export function closesBetween(prev: Step | null, next: Step): boolean {
   if (!prev || stepKind(prev) !== 'spotlight') return false;
-  if (!next || stepKind(next) !== 'spotlight') return true;
-  return stepScreen(prev) !== stepScreen(next);
+  if (stepKind(next) !== 'spotlight') return true;
+  return prev.scene !== next.scene;
 }
 
-/**
- * Pantalla a la que tiene que ir el tutorial antes de enseñar el paso (null si ya está o si a
- * ella llega el propio usuario). Solo se navega con todo apagado y quieto.
- */
-export function navigationFor(step: Step, pathname: string): TutorialScreen | null {
-  const kind = stepKind(step);
-  if (kind === 'welcome' || kind === 'finish' || step.userNavigates) return null;
-  const screen = stepScreen(step);
-  return pathname === screen ? null : screen;
-}
-
-/** Lo que el tutorial sabe de la app para decidir si ya puede enseñar el paso. */
-export type Readiness = {
-  pathname: string;
-  /** Un Stack (p. ej. el formulario) está abriéndose o cerrándose. */
-  stackBusy: boolean;
-  /** Las páginas de las pestañas se están deslizando. */
-  pagerBusy: boolean;
-  /** El elemento del paso está montado (se puede medir). */
-  targetMounted: boolean;
+/** Lo que enseña la demostración en cada paso (siempre lo mismo para el mismo paso). */
+export type DemoState = {
+  /** Total del contador de la demostración. */
+  total: number;
+  /** Modo selección (tras mantener pulsado el contador). */
+  selecting: boolean;
 };
 
-/**
- * ¿Se puede empezar a enseñar el paso? Solo con la pantalla del paso ya abierta del todo (sin
- * transiciones en marcha) y su elemento montado. Las pantallas completas, siempre.
- */
-export function readyToEnter(step: Step, r: Readiness): boolean {
-  const kind = stepKind(step);
-  if (kind === 'welcome' || kind === 'finish') return true;
-  if (r.stackBusy || r.pagerBusy || r.pathname !== stepScreen(step)) return false;
-  if (kind === 'banner' || !step.target) return true;
-  return r.targetMounted;
+export function demoState(id: StepId): DemoState {
+  return { total: id === 'remove' ? 1 : 0, selecting: id === 'tools' };
 }
