@@ -62,17 +62,16 @@ export default function SocialScreen() {
   }
 
   /** Tocar el selector: la página se desliza a su sitio. */
-  // Al llegar a Social deslizando, se entra por el lado del que se viene: desde Estadísticas a
-  // Grupos y desde Mi perfil a Amigos (y de ahí, otra vez a Grupos y a Estadísticas). Mientras las
-  // páginas grandes se mueven, la página de Social ya está en su sitio.
+  // Se entra en Social siempre por Grupos, venga de donde venga (petición del usuario): adelante
+  // Estadísticas → Grupos → Amigos → Mi perfil; atrás Mi perfil → Grupos → Estadísticas. En
+  // cuanto otra pestaña grande queda del todo en pantalla (Social ya no se ve), la página
+  // interna vuelve a Grupos sin animación, así nunca se ve el salto.
   const { position: tabPosition } = useTabAnimation();
   useEffect(() => {
     const id = tabPosition.addListener(({ value }) => {
-      if (Math.abs(value - SOCIAL_INDEX) < 0.01) return;
-      const side: Tab = value > SOCIAL_INDEX ? 'friends' : 'groups';
-      if (side === tab) return;
-      setTab(side);
-      pager.current?.scrollTo({ x: side === 'groups' ? 0 : width, animated: false });
+      if (Math.abs(value - SOCIAL_INDEX) < 0.99 || tab === 'groups') return;
+      setTab('groups');
+      pager.current?.scrollTo({ x: 0, animated: false });
     });
     return () => tabPosition.removeListener(id);
   }, [tabPosition, width, tab]);
