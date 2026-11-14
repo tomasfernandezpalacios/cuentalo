@@ -818,14 +818,17 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   **dentro de la misma pestaña** Social, con su deslizador propio como antes (petición del
   usuario; se probaron como dos páginas del deslizador principal y no le gustó): Social tiene
   `swipeEnabled: false` y, desde los bordes, deslizar a la derecha en Grupos lleva a
-  Estadísticas y a la izquierda en Amigos a Mi perfil (`onTouchEnd`). **Regla del deslizar (explicada por el
+  Estadísticas y a la izquierda en Amigos a Mi perfil. **Regla del deslizar (explicada por el
   usuario, no cambiarla):** cada pestaña grande lleva a sus adyacentes; Social se abre
   **siempre por Grupos**. Adelante: Estadísticas → Grupos → Amigos → Mi perfil. Atrás: Mi perfil
   → Grupos → Estadísticas (no se pasa por Amigos). Cuando Social deja de verse del todo
   (`useTabAnimation`), su página interna vuelve a Grupos sin animación. Dentro de Social, un
   deslizamiento **suave y despacio** pasa de subpestaña en subpestaña (y desde los bordes a la
   pestaña de al lado); uno **fuerte y grande** (≥ 30 % del ancho y ≥ 0,8 px/ms) pasa
-  directamente a la pestaña grande de al lado (`STRONG_DISTANCE`, `STRONG_SPEED`). La
+  directamente a la pestaña grande de al lado (`STRONG_DISTANCE`, `STRONG_SPEED`). Se decide en
+  `onScrollEndDrag` del deslizador de dentro (llega siempre, también en los bordes), con la
+  dirección del dedo de sus primeros movimientos (`onTouchMove`): **no usar `onTouchEnd`**, que
+  Android no manda en cuanto el deslizador toma el gesto (Social se quedaba «encerrada»). La
   barra Cine es propia (`CinemaTabBar`) y la cabecera de cada página la pinta `screenLayout` con
   el `Header` de React Navigation y las opciones de siempre (`Stack.Screen` en las pantallas
   sigue funcionando). Todas las páginas se dibujan desde el principio (`lazy: false`) y la

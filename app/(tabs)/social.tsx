@@ -28,11 +28,9 @@ type Tab = 'friends' | 'groups';
 /** Posición de Social entre las pestañas grandes (Mis contadores, Estadísticas, Social, Mi perfil). */
 const SOCIAL_INDEX = 2;
 
-/** Distancia mínima para pasar de pestaña desde un borde. */
-const EDGE_SWIPE = 60;
 /**
  * Deslizamiento «fuerte y grande» (petición del usuario): al menos este recorrido (fracción del
- * ancho) y esta velocidad (px/ms). Con él se pasa de pestaña grande aunque haya subpestaña al
+ * ancho) y esta velocidad (puntos por ms). Con él se pasa de pestaña grande aunque haya subpestaña al
  * lado; uno suave y despacio pasa de subpestaña en subpestaña.
  */
 const STRONG_DISTANCE = 0.3;
@@ -52,8 +50,9 @@ export default function SocialScreen() {
   const inbox = useInboxCount();
   const navigation = useNavigation();
   const pager = useRef<ComponentRef<typeof Animated.ScrollView>>(null);
-  // Comienzo del toque, para pasar a la pestaña de al lado desde los bordes.
-  const touchStart = useRef<{ x: number; y: number; time: number; tab: Tab } | null>(null);
+  // Para pasar a la pestaña grande de al lado: el dedo y el arrastre del deslizador de dentro.
+  const touch = useRef<{ x: number; lastX: number; tab: Tab } | null>(null);
+  const drag = useRef<{ offset: number; time: number } | null>(null);
   // Desplazamiento de las páginas: la iluminación del selector lo sigue (se desliza, no salta).
   const [scrollX] = useState(() => new Animated.Value(0));
   const position = scrollX.interpolate({
@@ -94,34 +93,51 @@ export default function SocialScreen() {
     if (next !== tab) setTab(next);
   }
 
+  // El dedo: dónde empezó y por dónde va. Android deja de mandar el toque en cuanto el
+  // deslizador de dentro toma el gesto (no llega el «soltar»), pero los primeros movimientos sí
+  // llegan y bastan para saber hacia dónde va.
   function onTouchStart(e: GestureResponderEvent) {
-    const { pageX, pageY, timestamp } = e.nativeEvent;
-    touchStart.current = { x: pageX, y: pageY, time: timestamp, tab };
+    const { pageX } = e.nativeEvent;
+    touch.current = { x: pageX, lastX: pageX, tab };
+  }
+
+  function onTouchMove(e: GestureResponderEvent) {
+    if (touch.current) touch.current.lastX = e.nativeEvent.pageX;
+  }
+
+  function onScrollBeginDrag(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    drag.current = { offset: e.nativeEvent.contentOffset.x, time: Date.now() };
   }
 
   /**
-   * Suave y despacio: de subpestaña en subpestaña (Grupos ↔ Amigos, lo hace el deslizador de
-   * dentro) y, desde los bordes, a la pestaña de al lado (Grupos → Estadísticas, Amigos → Mi
-   * perfil). Fuerte y grande: directamente a la pestaña grande de al lado, sin pasar por la otra
-   * subpestaña; el deslizador de dentro se queda donde estaba.
+   * Al soltar el deslizador de dentro (este evento llega siempre, también en los bordes):
+   * - Suave y despacio: de subpestaña en subpestaña (lo hace el propio deslizador) y, desde los
+   *   bordes, a la pestaña de al lado (Grupos → Estadísticas, Amigos → Mi perfil).
+   * - Fuerte y grande: directamente a la pestaña grande de al lado; el deslizador de dentro se
+   *   queda donde estaba.
    */
-  function onTouchEnd(e: GestureResponderEvent) {
-    const start = touchStart.current;
-    touchStart.current = null;
-    if (!start) return;
-    const dx = e.nativeEvent.pageX - start.x;
-    const dy = e.nativeEvent.pageY - start.y;
-    if (Math.abs(dx) < EDGE_SWIPE || Math.abs(dx) < 2 * Math.abs(dy)) return;
-    const elapsed = Math.max(1, e.nativeEvent.timestamp - start.time);
+  function onScrollEndDrag(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const finger = touch.current;
+    const started = drag.current;
+    drag.current = null;
+    if (!finger || !started) return;
+    const moved = e.nativeEvent.contentOffset.x - started.offset;
+    // Dedo hacia la derecha (> 0) o hacia la izquierda (< 0). Si el contenido se ha movido, eso
+    // manda; si no (en un borde), los primeros movimientos del dedo.
+    const direction = moved !== 0 ? -Math.sign(moved) : Math.sign(finger.lastX - finger.x);
+    if (direction === 0) return;
+    const elapsed = Math.max(1, Date.now() - started.time);
     const strong =
-      Math.abs(dx) >= width * STRONG_DISTANCE && Math.abs(dx) / elapsed >= STRONG_SPEED;
+      Math.abs(moved) >= width * STRONG_DISTANCE && Math.abs(moved) / elapsed >= STRONG_SPEED;
+    const atEdge =
+      (direction > 0 && finger.tab === 'groups') || (direction < 0 && finger.tab === 'friends');
+    if (!strong && !atEdge) return;
     if (strong) {
       // Deshace el paso de subpestaña que haya empezado el deslizador de dentro.
-      pager.current?.scrollTo({ x: start.tab === 'groups' ? 0 : width, animated: false });
-      setTab(start.tab);
+      pager.current?.scrollTo({ x: finger.tab === 'groups' ? 0 : width, animated: false });
+      setTab(finger.tab);
     }
-    if (dx > 0 && (strong || start.tab === 'groups')) navigation.navigate('estadisticas' as never);
-    if (dx < 0 && (strong || start.tab === 'friends')) navigation.navigate('perfil' as never);
+    navigation.navigate((direction > 0 ? 'estadisticas' : 'perfil') as never);
   }
 
   const refreshControl = (
@@ -137,7 +153,7 @@ export default function SocialScreen() {
     <View
       style={[styles.flex, { backgroundColor: colors.background }]}
       onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
+      onTouchMove={onTouchMove}
     >
       <StableScreenOptions
         options={{
@@ -180,7 +196,7 @@ export default function SocialScreen() {
             </View>
           ),
           // Entre Grupos y Amigos se desliza dentro de la pestaña (las páginas grandes no se mueven
-          // aquí); desde los bordes se pasa a la pestaña de al lado (onTouchEnd).
+          // aquí); desde los bordes se pasa a la pestaña de al lado (onScrollEndDrag).
           swipeEnabled: false,
         }}
         optionsKey={`${colors.primary}|${colors.background}|${colors.danger}|${inbox}`}
@@ -201,6 +217,8 @@ export default function SocialScreen() {
           listener: onPagerScroll,
         })}
         scrollEventThrottle={16}
+        onScrollBeginDrag={onScrollBeginDrag}
+        onScrollEndDrag={onScrollEndDrag}
         keyboardShouldPersistTaps="handled"
         style={styles.flex}
       >
