@@ -10,8 +10,12 @@ import { finishStreakCelebration, useStreakCelebration } from '../streakCelebrat
 
 /** Ancho de la franja de fuego que cruza la barra. */
 const BAND = 150;
-/** Amarillo del corazón de las llamas (el naranja es `colors.flame`). */
-const FIRE_YELLOW = '#FFC24A';
+/**
+ * Colores del fuego, vivos (petición del usuario: lo veía todo muy apagado). Naranja para la
+ * llama y el número encendidos y la barra; amarillo para alternar en la fila de llamas.
+ */
+const FIRE_ORANGE = '#FF6A00';
+const FIRE_YELLOW = '#FFC400';
 /** Llamas de la franja, de la cola (izquierda) al frente (derecha): crecen hacia el frente. */
 const FLAMES = [
   { size: 16, x: 18, yellow: false },
@@ -23,8 +27,15 @@ const FLAMES = [
 ];
 
 const IN_MS = 160;
-// Un poco más lenta que al principio (petición del usuario).
-const SWEEP_MS = 820;
+/** Tiempo para ver bien la barra gris con la racha de antes antes de que llegue el fuego. */
+const GRAY_MS = 700;
+/** Lo que tarda el fuego en cruzar la barra (más lento, petición del usuario). */
+const SWEEP_MS = 1300;
+/**
+ * Punto del recorrido en el que el fuego llega al número (va a velocidad constante y el número
+ * está en el centro): ahí se cambia por el nuevo.
+ */
+const NUMBER_AT = 0.5;
 /** Margen de la barra a cada lado (el relleno de la cápsula): el color llega hasta el borde. */
 const EDGE = 8;
 /** Centro de la llama más grande dentro de la fila: ahí está el borde del cambio de color. */
@@ -67,19 +78,21 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
     );
     const timing = (value: Animated.Value, toValue: number, duration: number) =>
       Animated.timing(value, { toValue, duration, useNativeDriver: false });
-    // Entrada y franja de fuego.
+    const travel = (toValue: number, duration: number) =>
+      Animated.timing(sweep, { toValue, duration, easing: Easing.linear, useNativeDriver: false });
+    // Entrada, un momento en gris y el fuego hasta el número.
     const first = Animated.sequence([
       Animated.parallel([timing(buttons, 0, IN_MS), timing(center, 1, IN_MS)]),
-      Animated.timing(sweep, {
-        toValue: 1,
-        duration: SWEEP_MS,
-        easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: false,
-      }),
+      Animated.delay(GRAY_MS),
+      travel(NUMBER_AT, SWEEP_MS * NUMBER_AT),
     ]);
-    // Cambio de número, un momento quieto y vuelta de los botones.
+    // Al pasar el fuego por el número, este cambia al nuevo mientras el fuego sigue; después, un
+    // momento quieto y vuelta de los botones.
     const second = Animated.sequence([
-      Animated.spring(swap, { toValue: 1, friction: 5, tension: 160, useNativeDriver: false }),
+      Animated.parallel([
+        travel(1, SWEEP_MS * (1 - NUMBER_AT)),
+        Animated.spring(swap, { toValue: 1, friction: 5, tension: 160, useNativeDriver: false }),
+      ]),
       Animated.delay(HOLD_MS),
       Animated.parallel([timing(center, 0, OUT_MS), timing(buttons, 1, OUT_MS)]),
     ]);
@@ -165,14 +178,17 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
           <Animated.View
             style={[
               styles.tint,
-              { backgroundColor: colors.textMuted, opacity: Animated.multiply(grayOpacity, 0.25) },
+              { backgroundColor: colors.textMuted, opacity: Animated.multiply(grayOpacity, 0.35) },
             ]}
           />
           <Animated.View style={[styles.center, { opacity: grayOpacity }]}>
             <Ionicons name="flame" size={30} color={colors.textMuted} />
             <View>
               <Text style={[styles.number, styles.hidden]}>{widest}</Text>
-              <View style={styles.numberSlot}>{number(from, colors.textMuted)}</View>
+              {/* El número gris se va cuando el fuego lo alcanza y entra el nuevo. */}
+              <Animated.View style={[styles.numberSlot, { opacity: oldOpacity }]}>
+                {number(from, colors.textMuted)}
+              </Animated.View>
             </View>
           </Animated.View>
           {/* Lo mismo en color fuego, descubierto a medida que pasa la franja. */}
@@ -185,12 +201,12 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
               style={[
                 styles.fill,
                 styles.fireFill,
-                { width: width + 2 * EDGE, backgroundColor: colors.flame },
+                { width: width + 2 * EDGE, backgroundColor: FIRE_ORANGE },
               ]}
             />
             <View style={[styles.fixedCenter, { width }]}>
               <Animated.View style={{ transform: [{ scale: flamePop }] }}>
-                <Ionicons name="flame" size={30} color={colors.flame} />
+                <Ionicons name="flame" size={30} color={FIRE_ORANGE} />
               </Animated.View>
               <View>
                 <Text style={[styles.number, styles.hidden]}>{widest}</Text>
@@ -200,7 +216,7 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
                     { opacity: oldOpacity, transform: [{ translateY: oldY }] },
                   ]}
                 >
-                  {number(from, colors.flame)}
+                  {number(from, FIRE_ORANGE)}
                 </Animated.View>
                 <Animated.View
                   style={[
@@ -211,7 +227,7 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
                     },
                   ]}
                 >
-                  {number(to, colors.flame)}
+                  {number(to, FIRE_ORANGE)}
                 </Animated.View>
               </View>
             </View>
@@ -238,11 +254,7 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
                   },
                 ]}
               >
-                <Ionicons
-                  name="flame"
-                  size={f.size}
-                  color={f.yellow ? FIRE_YELLOW : colors.flame}
-                />
+                <Ionicons name="flame" size={f.size} color={f.yellow ? FIRE_YELLOW : FIRE_ORANGE} />
               </Animated.View>
             ))}
           </Animated.View>
@@ -281,7 +293,7 @@ const styles = StyleSheet.create({
   },
   clip: { position: 'absolute', top: 0, bottom: 0, left: -EDGE, overflow: 'hidden' },
   fill: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 999 },
-  fireFill: { opacity: 0.25 },
+  fireFill: { opacity: 0.4 },
   number: { fontFamily: fonts.title, fontSize: 28, includeFontPadding: false },
   hidden: { opacity: 0 },
   numberSlot: {

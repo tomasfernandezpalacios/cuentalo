@@ -848,10 +848,13 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   días de la caché (la llama se pone en color sin esperar al servidor) y lanza la celebración.
   `StreakCelebrationBar` (envuelve los botones de `CinemaTabBar`): los botones se van (160 ms),
   sale en el centro el fuego y la racha de antes en gris, con **toda la barra en gris**; una fila
-  de llamas que parpadean (solo llamas) cruza de izquierda a derecha (820 ms) y lleva el cambio:
+  de llamas que parpadean (solo llamas) cruza de izquierda a derecha y lleva el cambio:
   la zona que deja atrás se vuelve color fuego (barra teñida de fuego y llama y número en
   naranja, descubiertos con un recorte que acaba en la llama mayor). **Sin brillos ni
-  resplandores** (el usuario no los quiere), el número se sustituye (el viejo sube y se va, el nuevo entra desde abajo
+  resplandores** (el usuario no los quiere), Tiempos (petición del usuario, más lento y que se vea
+  el gris): 700 ms quieto en gris, el fuego cruza en 1300 ms a velocidad constante y el número
+  cambia justo cuando el fuego llega a él (mitad del recorrido). Colores vivos propios
+  (`FIRE_ORANGE` #FF6A00, `FIRE_YELLOW` #FFC400), no `colors.flame`, que se veía apagado. el número se sustituye (el viejo sube y se va, el nuevo entra desde abajo
   con rebote; vibración de éxito), se queda 700 ms y vuelven los botones. Animaciones sin native
   driver (el recorte anima un ancho), salvo el parpadeo.
   **Temporal:** botón «Probar animación de racha» en Configuración → Información (vuelve a las
