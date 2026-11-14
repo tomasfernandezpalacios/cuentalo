@@ -818,7 +818,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   **dentro de la misma pestaña** Social, con su deslizador propio como antes (petición del
   usuario; se probaron como dos páginas del deslizador principal y no le gustó): Social tiene
   `swipeEnabled: false` y, desde los bordes, deslizar a la derecha en Grupos lleva a
-  Estadísticas y a la izquierda en Amigos a Mi perfil (`onTouchEnd`). La
+  Estadísticas y a la izquierda en Amigos a Mi perfil (`onTouchEnd`). Al llegar a Social deslizando se entra
+  por el lado del que se viene (petición del usuario): desde Estadísticas, Grupos; desde Mi
+  perfil, Amigos (la posición del deslizador principal, `useTabAnimation`, coloca la página
+  interna antes de que se vea). La
   barra Cine es propia (`CinemaTabBar`) y la cabecera de cada página la pinta `screenLayout` con
   el `Header` de React Navigation y las opciones de siempre (`Stack.Screen` en las pantallas
   sigue funcionando). Todas las páginas se dibujan desde el principio (`lazy: false`) y la

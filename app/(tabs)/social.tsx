@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useNavigation } from 'expo-router';
-import { useRef, useState, type ComponentRef } from 'react';
+import { useTabAnimation } from 'expo-router/js-top-tabs';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import {
   Animated,
   Pressable,
@@ -23,6 +24,9 @@ import { StableScreenOptions } from '@/lib/stableOptions';
 import { useThemeColors } from '@/lib/theme';
 
 type Tab = 'friends' | 'groups';
+
+/** Posición de Social entre las pestañas grandes (Mis contadores, Estadísticas, Social, Mi perfil). */
+const SOCIAL_INDEX = 2;
 
 /** Distancia mínima para pasar de pestaña desde un borde. */
 const EDGE_SWIPE = 60;
@@ -58,6 +62,21 @@ export default function SocialScreen() {
   }
 
   /** Tocar el selector: la página se desliza a su sitio. */
+  // Al llegar a Social deslizando, se entra por el lado del que se viene: desde Estadísticas a
+  // Grupos y desde Mi perfil a Amigos (y de ahí, otra vez a Grupos y a Estadísticas). Mientras las
+  // páginas grandes se mueven, la página de Social ya está en su sitio.
+  const { position: tabPosition } = useTabAnimation();
+  useEffect(() => {
+    const id = tabPosition.addListener(({ value }) => {
+      if (Math.abs(value - SOCIAL_INDEX) < 0.01) return;
+      const side: Tab = value > SOCIAL_INDEX ? 'friends' : 'groups';
+      if (side === tab) return;
+      setTab(side);
+      pager.current?.scrollTo({ x: side === 'groups' ? 0 : width, animated: false });
+    });
+    return () => tabPosition.removeListener(id);
+  }, [tabPosition, width, tab]);
+
   function selectTab(next: Tab) {
     setTab(next);
     pager.current?.scrollTo({ x: next === 'groups' ? 0 : width, animated: true });
