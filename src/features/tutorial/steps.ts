@@ -1,3 +1,5 @@
+import { DEFAULT_SHAPE, type HoleShape } from './layout';
+
 // Guion del tutorial de bienvenida: siempre los mismos pasos, en el mismo orden, sobre una
 // demostración fija de la app (Demo.tsx). No toca la app de verdad ni la base de datos: lo que
 // se ve en cada paso sale solo del paso. Funciones puras para poder testearlas.
@@ -174,7 +176,7 @@ const ALL_STEPS: Step[] = [
     id: 'streak',
     scene: 'stats',
     title: 'Tu racha 🔥',
-    text: 'Cuenta los días seguidos en los que apuntas algo. Si un día no registras nada, vuelve a 0.',
+    text: 'Cuenta los días seguidos en los que apuntas algo. Cuéntalo es más potente cuantos más días registras: no la dejes caer.',
     target: 'racha',
   },
   {
@@ -218,6 +220,29 @@ export function completesStep(
   gesture: 'tap' | 'hold',
 ): boolean {
   return step !== undefined && step.target === target && step.action === gesture;
+}
+
+/**
+ * Forma del hueco de cada elemento, para que se ajuste a lo que ilumina: las pestañas, los
+ * botones redondos y las insignias en píldora; la tarjeta y los botones con su propio radio.
+ */
+const SHAPES: Partial<Record<TargetId, HoleShape>> = {
+  'nuevo-contador': { padding: 6, radius: 0, pill: true },
+  'crear-contador': { padding: 6, radius: 0, pill: true },
+  'tab-estadisticas': { padding: 0, radius: 0, pill: true },
+  'tab-social': { padding: 0, radius: 0, pill: true },
+  racha: { padding: 6, radius: 0, pill: true },
+  herramientas: { padding: 8, radius: 0, pill: true },
+  sumar: { padding: 5, radius: 15 },
+  restar: { padding: 5, radius: 15 },
+  tarjeta: { padding: 6, radius: 30 },
+  nombre: { padding: 8, radius: 20 },
+  'pantalla-estadisticas': { padding: -8, radius: 24 },
+  'pantalla-social': { padding: -8, radius: 24 },
+};
+
+export function targetShape(target: TargetId | undefined): HoleShape {
+  return (target && SHAPES[target]) || DEFAULT_SHAPE;
 }
 
 /** ¿Ilumina una pantalla entera (no un elemento)? */

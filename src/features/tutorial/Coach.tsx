@@ -8,7 +8,7 @@ import { displayFont, fonts, proseFont, titleFont, useThemeColors } from '@/lib/
 
 import { Demo } from './Demo';
 import { Director } from './director';
-import { HOLE_RADIUS, SIDE_MARGIN } from './layout';
+import { SIDE_MARGIN } from './layout';
 import { CARET, SEAM, VEIL_COLOR, VEIL_OPACITY, type Values } from './motion';
 import { Progress } from './Progress';
 import { letsTouchTarget, showsNext, stepKind, type Step } from './steps';
@@ -81,6 +81,7 @@ export function Coach({ step, index, total }: Props) {
     top: v.ringY.value,
     width: v.ringW.value,
     height: v.ringH.value,
+    borderRadius: v.ringR.value,
     opacity: v.ring.value * (1 - 0.6 * v.pulse.value),
     transform: [{ scale: 1 + 0.05 * v.pulse.value }],
   }));
@@ -206,7 +207,20 @@ const Veil = memo(function Veil({
   height: number;
 }) {
   const big = Math.max(width, height) * 2;
-  const r = HOLE_RADIUS;
+  // Las esquinas se dibujan a tamaño CORNER y se escalan al radio de cada hueco (escalar por
+  // igual en los dos ejes mantiene el cuarto de círculo redondo). La escala es desde el centro:
+  // por eso se corrige la posición con (r − CORNER) / 2.
+  const corner = (x: number, y: number, radius: number) => {
+    'worklet';
+    const r = Math.max(radius, 0.01);
+    return {
+      transform: [
+        { translateX: x + (r - CORNER) / 2 },
+        { translateY: y + (r - CORNER) / 2 },
+        { scale: r / CORNER },
+      ],
+    };
+  };
   const group = useAnimatedStyle(() => ({ opacity: v.veil.value * VEIL_OPACITY }));
   const top = useAnimatedStyle(() => ({
     transform: [{ translateY: v.top.value - big + SEAM }],
@@ -229,18 +243,16 @@ const Veil = memo(function Veil({
       { scaleY: v.bottom.value - v.top.value + SEAM * 2 },
     ],
   }));
-  const topLeft = useAnimatedStyle(() => ({
-    transform: [{ translateX: v.left.value }, { translateY: v.top.value }],
-  }));
-  const topRight = useAnimatedStyle(() => ({
-    transform: [{ translateX: v.right.value - r }, { translateY: v.top.value }],
-  }));
-  const bottomLeft = useAnimatedStyle(() => ({
-    transform: [{ translateX: v.left.value }, { translateY: v.bottom.value - r }],
-  }));
-  const bottomRight = useAnimatedStyle(() => ({
-    transform: [{ translateX: v.right.value - r }, { translateY: v.bottom.value - r }],
-  }));
+  const topLeft = useAnimatedStyle(() => corner(v.left.value, v.top.value, v.radius.value));
+  const topRight = useAnimatedStyle(() =>
+    corner(v.right.value - v.radius.value, v.top.value, v.radius.value),
+  );
+  const bottomLeft = useAnimatedStyle(() =>
+    corner(v.left.value, v.bottom.value - v.radius.value, v.radius.value),
+  );
+  const bottomRight = useAnimatedStyle(() =>
+    corner(v.right.value - v.radius.value, v.bottom.value - v.radius.value, v.radius.value),
+  );
   return (
     <Animated.View
       pointerEvents="none"
@@ -251,13 +263,16 @@ const Veil = memo(function Veil({
       <Animated.View style={[styles.panel, { width, height: big }, bottom]} />
       <Animated.View style={[styles.panel, { width, height: 1 }, left]} />
       <Animated.View style={[styles.panel, { width, height: 1 }, right]} />
-      <Corner style={topLeft} cx={r} cy={r} />
-      <Corner style={topRight} cx={0} cy={r} />
-      <Corner style={bottomLeft} cx={r} cy={0} />
+      <Corner style={topLeft} cx={CORNER} cy={CORNER} />
+      <Corner style={topRight} cx={0} cy={CORNER} />
+      <Corner style={bottomLeft} cx={CORNER} cy={0} />
       <Corner style={bottomRight} cx={0} cy={0} />
     </Animated.View>
   );
 });
+
+/** Tamaño al que se dibujan las esquinas (después se escalan al radio de cada hueco). */
+const CORNER = 64;
 
 /**
  * Una esquina del hueco: un cuadrado opaco con un cuarto de círculo de radio r recortado
@@ -272,7 +287,7 @@ function Corner({
   cx: number;
   cy: number;
 }) {
-  const r = HOLE_RADIUS;
+  const r = CORNER;
   const ring = r * 4;
   return (
     <Animated.View style={[styles.corner, { width: r, height: r }, style]}>
@@ -345,7 +360,7 @@ const styles = StyleSheet.create({
   panel: { position: 'absolute', left: 0, top: 0, backgroundColor: VEIL_COLOR },
   corner: { position: 'absolute', left: 0, top: 0, overflow: 'hidden' },
   blocker: { position: 'absolute' },
-  ring: { position: 'absolute', borderWidth: 2, borderRadius: HOLE_RADIUS + 3 },
+  ring: { position: 'absolute', borderWidth: 2 },
   bannerBox: {
     ...StyleSheet.absoluteFill,
     alignItems: 'center',

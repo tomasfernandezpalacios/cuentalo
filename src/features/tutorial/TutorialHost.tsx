@@ -119,8 +119,9 @@ const CIRCLE = 104;
  */
 function Finish({ step, index, total }: { step: Step; index: number; total: number }) {
   const colors = useThemeColors();
-  // La promesa y «Cuéntalo»: blanco puro en oscuro y negro puro en claro (petición del usuario).
-  const pureInk = useColorMode() === 'dark' ? '#FFFFFF' : '#000000';
+  // La promesa y «Cuéntalo»: negro puro en oscuro y blanco puro en claro (petición del usuario;
+  // van sobre el color de la app, que llena la pantalla).
+  const pureInk = useColorMode() === 'dark' ? '#000000' : '#FFFFFF';
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const opacity = useFadeIn();

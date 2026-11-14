@@ -15,14 +15,7 @@ import {
   stopAll,
   type Values,
 } from './motion';
-import {
-  closesBetween,
-  isWholeScreen,
-  letsTouchTarget,
-  SCENES,
-  stepKind,
-  type Step,
-} from './steps';
+import { closesBetween, letsTouchTarget, SCENES, stepKind, targetShape, type Step } from './steps';
 import { getTarget, nextStep, skipTutorial } from './store';
 
 /** Lo que está a la vista con el paso «activo»: dónde está el hueco y si faltaba el elemento. */
@@ -182,7 +175,7 @@ export class Director {
     scheduleOnUI(enterWorklet, this.values, {
       run,
       target: ref,
-      whole: isWholeScreen(step.target),
+      shape: targetShape(step.target),
       layer: this.layer,
       bubbleRef: this.bubble,
       insetTop: this.insets.top,

@@ -12,17 +12,16 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 
 import {
-  closeAt,
   closedHole,
   type Edges,
   glideDuration,
-  holeFor,
-  holeInside,
+  type HoleShape,
   isClosed,
   isVisibleIn,
   movedEnough,
   placeBubble,
   type Rect,
+  shapedHole,
   SIDE_MARGIN,
 } from './layout';
 import { SCENES } from './steps';
@@ -84,6 +83,9 @@ export type Values = {
   ringW: SharedValue<number>;
   ringH: SharedValue<number>;
   banner: SharedValue<number>;
+  /** Radio de las esquinas del hueco (se adapta a la forma de lo iluminado). */
+  radius: SharedValue<number>;
+  ringR: SharedValue<number>;
   /** Opacidad de cada pantalla de la demostración (en el orden de SCENES). */
   scenes: SharedValue<number>[];
 };
@@ -112,6 +114,8 @@ export function createValues(width: number, height: number): Values {
     ringW: makeMutable(0),
     ringH: makeMutable(0),
     banner: makeMutable(0),
+    radius: makeMutable(0),
+    ringR: makeMutable(0),
     scenes: SCENES.map((_, i) => makeMutable(i === 0 ? 1 : 0)),
   };
 }
@@ -139,12 +143,14 @@ function currentEdges(v: Values): Edges {
 function animateEdges(
   v: Values,
   to: Edges,
+  radius: number,
   duration: number,
   easing: typeof GLIDE_EASING,
   done: (finished?: boolean) => void,
 ) {
   'worklet';
   const config = { duration, easing };
+  v.radius.value = withTiming(radius, config);
   v.left.value = withTiming(to.left, config);
   v.top.value = withTiming(to.top, config);
   v.right.value = withTiming(to.right, config);
@@ -172,7 +178,8 @@ export function leaveWorklet(
       scheduleOnRN(onLeft, run);
       return;
     }
-    animateEdges(v, closeAt(edges), CLOSE_MS, IN_EASING, (finished) => {
+    const c = { x: (edges.left + edges.right) / 2, y: (edges.top + edges.bottom) / 2 };
+    animateEdges(v, closedHole(c.x, c.y), 0, CLOSE_MS, IN_EASING, (finished) => {
       if (finished && v.run.value === run) scheduleOnRN(onLeft, run);
     });
   };
@@ -193,8 +200,8 @@ export type EnterArgs = {
   run: number;
   /** Elemento a iluminar (null: nada, el hueco se queda cerrado en el centro). */
   target: TargetRef | null;
-  /** El elemento es una pantalla entera: el hueco va por dentro. */
-  whole: boolean;
+  /** Forma del hueco (margen y esquinas) para que se ajuste al elemento. */
+  shape: HoleShape;
   layer: AnimatedRef<Animated.View>;
   bubbleRef: AnimatedRef<Animated.View>;
   insetTop: number;
@@ -227,11 +234,9 @@ export function enterWorklet(v: Values, a: EnterArgs) {
       bottom: a.insetBottom,
     };
     const missing = a.target !== null && rect === null;
-    const to = rect
-      ? a.whole
-        ? holeInside(rect)
-        : holeFor(rect)
-      : closedHole(layerWidth / 2, layerHeight / 2);
+    const hole = rect ? shapedHole(rect, a.shape) : null;
+    const to = hole ? hole.edges : closedHole(layerWidth / 2, layerHeight / 2);
+    const radius = hole ? hole.radius : 0;
     const from = currentEdges(v);
 
     const appear = () => {
@@ -252,6 +257,7 @@ export function enterWorklet(v: Values, a: EnterArgs) {
         v.ringY.value = to.top - 3;
         v.ringW.value = to.right - to.left + 6;
         v.ringH.value = to.bottom - to.top + 6;
+        v.ringR.value = radius + 3;
         v.pulse.value = 0;
         v.ring.value = withDelay(80, withTiming(1, { duration: 220, easing: OUT_EASING }));
         v.pulse.value = withDelay(
@@ -266,12 +272,13 @@ export function enterWorklet(v: Values, a: EnterArgs) {
       Math.abs(from.left - to.left) < 0.5 &&
       Math.abs(from.top - to.top) < 0.5 &&
       Math.abs(from.right - to.right) < 0.5 &&
-      Math.abs(from.bottom - to.bottom) < 0.5;
+      Math.abs(from.bottom - to.bottom) < 0.5 &&
+      Math.abs(v.radius.value - radius) < 0.5;
     if (still) {
       appear();
       return;
     }
-    animateEdges(v, to, glideDuration(from, to), GLIDE_EASING, (finished) => {
+    animateEdges(v, to, radius, glideDuration(from, to), GLIDE_EASING, (finished) => {
       if (finished) appear();
     });
   };

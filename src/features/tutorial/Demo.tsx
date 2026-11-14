@@ -76,7 +76,7 @@ function DemoTarget({
           delayLongPress={350}
           accessibilityRole="button"
           accessibilityLabel={LABELS[id]}
-          style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+          style={({ pressed }) => ({ flexGrow: 1, opacity: pressed ? 0.8 : 1 })}
         >
           {children}
         </Pressable>
@@ -150,12 +150,17 @@ export const Demo = memo(function Demo({ stepId, scene, scenes }: Props) {
             />
           </View>
           <TabIcon icon="add-circle-outline" active={activeTab === 0} colors={colors} />
-          <DemoTarget id="tab-estadisticas" gesture="tap" style={styles.tab}>
-            <TabIcon icon="bar-chart-outline" active={activeTab === 1} colors={colors} />
-          </DemoTarget>
-          <DemoTarget id="tab-social" gesture="tap" style={styles.tab}>
-            <TabIcon icon="people-outline" active={activeTab === 2} colors={colors} />
-          </DemoTarget>
+          {/* Lo que se ilumina de cada pestaña es su píldora (la forma de la barra). */}
+          <View style={styles.tab}>
+            <DemoTarget id="tab-estadisticas" gesture="tap" style={styles.tabTarget}>
+              <TabIcon icon="bar-chart-outline" active={activeTab === 1} colors={colors} />
+            </DemoTarget>
+          </View>
+          <View style={styles.tab}>
+            <DemoTarget id="tab-social" gesture="tap" style={styles.tabTarget}>
+              <TabIcon icon="people-outline" active={activeTab === 2} colors={colors} />
+            </DemoTarget>
+          </View>
           <TabIcon icon="person-circle-outline" active={false} colors={colors} />
         </View>
       </Animated.View>
@@ -687,4 +692,6 @@ const styles = StyleSheet.create({
   tabPill: { position: 'absolute', top: 8, bottom: 8, width: '25%', paddingHorizontal: 4 },
   tabPillFill: { flex: 1, borderRadius: 999, borderWidth: 1 },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // Igual que la píldora de la pestaña activa: 48 de alto y 4 de margen a cada lado.
+  tabTarget: { alignSelf: 'stretch', height: 48, marginHorizontal: 4 },
 });

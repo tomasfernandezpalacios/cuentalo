@@ -42,6 +42,29 @@ export function holeInside(page: Rect): Edges {
   };
 }
 
+/**
+ * Forma del hueco para un elemento: margen alrededor (negativo = por dentro, para pantallas
+ * enteras) y radio de las esquinas. `pill`: tan redondo como permite el hueco (botones en
+ * píldora, círculos, la barra de pestañas).
+ */
+export type HoleShape = { padding: number; radius: number; pill?: boolean };
+
+export const DEFAULT_SHAPE: HoleShape = { padding: HOLE_PADDING, radius: HOLE_RADIUS };
+
+/** Hueco con la forma del elemento: bordes y radio de las esquinas (nunca más que medio lado). */
+export function shapedHole(target: Rect, shape: HoleShape): { edges: Edges; radius: number } {
+  'worklet';
+  const p = shape.padding;
+  const edges = {
+    left: target.x - p,
+    top: target.y - p,
+    right: target.x + target.width + p,
+    bottom: target.y + target.height + p,
+  };
+  const max = Math.max(0, Math.min(edges.right - edges.left, edges.bottom - edges.top) / 2);
+  return { edges, radius: shape.pill ? max : Math.min(shape.radius, max) };
+}
+
 /** Hueco cerrado en un punto (todo apagado): desde ahí se abre el siguiente, como un iris. */
 export function closedHole(x: number, y: number): Edges {
   'worklet';

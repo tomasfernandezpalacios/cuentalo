@@ -13,6 +13,7 @@ import {
   movedEnough,
   PAGE_INSET,
   placeBubble,
+  shapedHole,
 } from '../layout';
 import { nextPhase } from '../machine';
 import {
@@ -26,6 +27,7 @@ import {
   SCENES,
   showsNext,
   stepKind,
+  targetShape,
   TUTORIAL_COUNTER_NAME,
 } from '../steps';
 
@@ -270,5 +272,34 @@ describe('cuándo se cierra el hueco', () => {
   it('desde la bienvenida o el rótulo no hay hueco que cerrar', () => {
     expect(closesBetween(null, byId.welcome!)).toBe(false);
     expect(closesBetween(byId.intro!, byId.create!)).toBe(false);
+  });
+});
+
+describe('forma del hueco', () => {
+  it('las pestañas se iluminan con su píldora, sin salirse de la barra', () => {
+    const tab = { x: 100, y: 700, width: 80, height: 48 };
+    const { edges, radius } = shapedHole(tab, targetShape('tab-estadisticas'));
+    expect(edges).toEqual({ left: 100, top: 700, right: 180, bottom: 748 });
+    expect(radius).toBe(24);
+  });
+
+  it('un botón redondo queda en un círculo', () => {
+    const plus = { x: 0, y: 0, width: 46, height: 46 };
+    const { edges, radius } = shapedHole(plus, targetShape('nuevo-contador'));
+    expect(radius).toBe((edges.right - edges.left) / 2);
+  });
+
+  it('el radio nunca pasa de medio lado', () => {
+    const thin = { x: 0, y: 0, width: 200, height: 10 };
+    expect(shapedHole(thin, { padding: 0, radius: 40 }).radius).toBe(5);
+  });
+
+  it('sin forma propia, el margen y el radio de siempre', () => {
+    const rect = { x: 10, y: 20, width: 40, height: 30 };
+    expect(shapedHole(rect, targetShape(undefined)).edges).toEqual(holeFor(rect));
+  });
+
+  it('la racha recuerda que Cuéntalo es más potente cuantos más días registras', () => {
+    expect(byId.streak?.text).toContain('más potente');
   });
 });

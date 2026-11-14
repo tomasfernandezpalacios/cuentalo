@@ -455,7 +455,14 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   `DemoTarget` (dentro de la demo), así las medidas aciertan siempre: la demo no se mueve ni
   depende de la red ni de transiciones de navegación. Duraciones: bocadillo fuera 160 ms, iris
   260 ms, fundido de pantalla 220 ms, deslizamiento 340–560 ms según la distancia
-  (`glideDuration`), bocadillo dentro 240 ms. Barra de progreso con Reanimated.
+  (`glideDuration`), bocadillo dentro 240 ms. Barra de progreso con Reanimated y **una sola
+  bolita** al final del relleno (las de cada paso están «imaginadas»: todas salían muy pegadas).
+- Forma del hueco (petición del usuario): se ajusta a lo iluminado (`targetShape` en
+  `steps.ts`, `shapedHole` en `layout.ts`): margen y radio propios por elemento, en píldora las
+  pestañas (solo su píldora, sin salirse de la barra), el + y las insignias. El radio se anima
+  con el foco; las esquinas del velo se dibujan a 64 px y se escalan al radio.
+- Final del tutorial: «"Me comprometo a registrar mi vida"» y «Cuéntalo» en **negro puro en
+  oscuro y blanco puro en claro** (petición del usuario; van sobre el color de la app).
 - Valores de `Animated` en componentes: `useState(() => new Animated.Value(0))[0]`, no
   `useRef(...).current` (la regla react-hooks/refs lo marca como error).
 
