@@ -11,6 +11,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StreakBadge } from '@/features/estadisticas/components/StreakBadge';
+import { StreakCelebrationBar } from '@/features/estadisticas/components/StreakCelebrationBar';
 import { SummaryButton } from '@/features/estadisticas/components/SummaryButton';
 import { useInboxCount } from '@/features/social/hooks';
 import type { TargetId } from '@/features/tutorial/steps';
@@ -64,54 +65,57 @@ function CinemaTabBar({
       style={[styles.bar, { backgroundColor: colors.surface, marginBottom: insets.bottom + 12 }]}
       accessibilityRole="tablist"
     >
-      <View style={styles.items} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
-        {width > 0 ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.pill,
-              {
-                width: slot - 8,
-                backgroundColor: colors.primarySoft,
-                borderColor: colors.primary,
-                transform: [{ translateX }],
-              },
-            ]}
-          />
-        ) : null}
-        {buttons.map((route, index) => {
-          const options = optionsOf(route.key);
-          const selected = index === activeSlot;
-          const color = selected ? colors.primary : colors.textMuted;
-          const button = (
-            <Pressable
-              key={route.key}
-              onPress={() => {
-                if (!selected) navigateToTab(route.key);
-              }}
-              accessibilityRole="tab"
-              accessibilityState={{ selected }}
-              accessibilityLabel={options?.title}
-              style={styles.item}
-            >
-              <View>
-                {options?.icon ? <Ionicons name={options.icon} size={24} color={color} /> : null}
-                {options?.tabBarBadge ? (
-                  <View style={styles.badge}>{options.tabBarBadge()}</View>
-                ) : null}
-              </View>
-            </Pressable>
-          );
-          const target = TUTORIAL_TARGETS[route.name];
-          return target ? (
-            <TutorialTarget key={route.key} id={target} style={styles.item}>
-              {button}
-            </TutorialTarget>
-          ) : (
-            button
-          );
-        })}
-      </View>
+      {/* Al subir la racha, los botones dejan sitio a la celebración de fuego. */}
+      <StreakCelebrationBar>
+        <View style={styles.items} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+          {width > 0 ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.pill,
+                {
+                  width: slot - 8,
+                  backgroundColor: colors.primarySoft,
+                  borderColor: colors.primary,
+                  transform: [{ translateX }],
+                },
+              ]}
+            />
+          ) : null}
+          {buttons.map((route, index) => {
+            const options = optionsOf(route.key);
+            const selected = index === activeSlot;
+            const color = selected ? colors.primary : colors.textMuted;
+            const button = (
+              <Pressable
+                key={route.key}
+                onPress={() => {
+                  if (!selected) navigateToTab(route.key);
+                }}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                accessibilityLabel={options?.title}
+                style={styles.item}
+              >
+                <View>
+                  {options?.icon ? <Ionicons name={options.icon} size={24} color={color} /> : null}
+                  {options?.tabBarBadge ? (
+                    <View style={styles.badge}>{options.tabBarBadge()}</View>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+            const target = TUTORIAL_TARGETS[route.name];
+            return target ? (
+              <TutorialTarget key={route.key} id={target} style={styles.item}>
+                {button}
+              </TutorialTarget>
+            ) : (
+              button
+            );
+          })}
+        </View>
+      </StreakCelebrationBar>
     </View>
   );
 }

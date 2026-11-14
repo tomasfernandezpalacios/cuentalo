@@ -1,9 +1,12 @@
+import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 
 import { appAlert } from '@/components/AppDialog';
+import { useUserId } from '@/features/auth/AuthProvider';
 import { showUndoToast } from '@/components/UndoToast';
 import { getSettings } from '@/features/configuracion/settings';
 import { markActiveToday } from '@/features/configuracion/reminder';
+import { markTodayActive } from '@/features/estadisticas/streakCelebration';
 import { tutorialEvent } from '@/features/tutorial/store';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount } from '@/lib/format';
@@ -31,6 +34,8 @@ export function useCounterActions() {
   const removeOne = useRemoveOne();
   const request = useRequestCommonChange();
   const undo = useUndoLastEntry();
+  const queryClient = useQueryClient();
+  const userId = useUserId();
 
   /** Aviso «+1 en Cafés · Deshacer» tras registrar (borra lo que se acaba de apuntar). */
   function offerUndo(counter: CounterWithTotal, text: string) {
@@ -90,6 +95,8 @@ export function useCounterActions() {
         onError: showError,
       },
     );
+    // Primer registro de hoy: la racha sube y la barra de pestañas lo celebra.
+    markTodayActive(queryClient, userId);
     // La suma ya se ve (optimista): la ventana de «Otra cantidad» se cierra al instante, sin
     // esperar al servidor.
     onSuccess?.();
@@ -109,6 +116,8 @@ export function useCounterActions() {
         onError: showError,
       },
     );
+    // El −1 también mantiene la racha, pero solo si de verdad resta (nunca baja de 0).
+    if (!counter.is_common && counter.myGroupTotal >= 1) markTodayActive(queryClient, userId);
   }
 
   function subtractOne(counter: CounterWithTotal) {
