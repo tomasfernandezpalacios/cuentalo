@@ -848,6 +848,9 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   (recorte que crece), el número se sustituye (el viejo sube y se va, el nuevo entra desde abajo
   con rebote; vibración de éxito), se queda 700 ms y vuelven los botones. Animaciones sin native
   driver (el recorte anima un ancho), salvo el parpadeo.
+  **Temporal:** botón «Probar animación de racha» en Configuración → Información (vuelve a las
+  pestañas y lanza `celebrateStreak(actual, actual + 1)` sin guardar nada). Quitarlo cuando el
+  usuario dé el visto bueno.
 
 ## Cambios estéticos pendientes
 

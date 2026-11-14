@@ -40,6 +40,8 @@ import {
   useUpdatePrivacy,
   type PrivacySettings,
 } from '@/features/perfil/api';
+import { useStreak } from '@/features/estadisticas/api';
+import { celebrateStreak } from '@/features/estadisticas/streakCelebration';
 import { getErrorMessage } from '@/lib/errors';
 import { accents, fonts, useColorMode, useThemeColors } from '@/lib/theme';
 
@@ -64,6 +66,7 @@ export default function SettingsScreen() {
   const counters = useCounterList();
   const deleteAccount = useDeleteAccount();
   const startTutorial = useStartTutorial();
+  const streak = useStreak();
   const logout = useMutation({
     mutationFn: signOut,
     onError: (error) => appAlert('Error', getErrorMessage(error)),
@@ -387,6 +390,18 @@ export default function SettingsScreen() {
           label="Ver tutorial"
           detail="Repasa en un minuto cómo funciona la app."
           onPress={startTutorial}
+        />
+        {/* TEMPORAL (petición del usuario): para ver la celebración de la racha sin esperar al
+            día siguiente. Vuelve a las pestañas y la lanza con la racha actual + 1, sin guardar
+            nada. Quitar cuando el usuario dé el visto bueno. */}
+        <SettingsRow
+          label="Probar animación de racha"
+          detail="Enseña en la barra de pestañas cómo se celebra la racha. No cambia tu racha."
+          onPress={() => {
+            const days = streak.data?.current ?? 0;
+            router.back();
+            setTimeout(() => celebrateStreak(days, days + 1), 450);
+          }}
         />
         <SettingsRow
           label="Privacidad y datos"
