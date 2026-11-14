@@ -16,15 +16,8 @@ const BAND = 150;
  */
 const FIRE_ORANGE = '#FF6A00';
 const FIRE_YELLOW = '#FFC400';
-/** Llamas de la franja, de la cola (izquierda) al frente (derecha): crecen hacia el frente. */
-const FLAMES = [
-  { size: 16, x: 18, yellow: false },
-  { size: 22, x: 36, yellow: true },
-  { size: 28, x: 56, yellow: false },
-  { size: 36, x: 78, yellow: true },
-  { size: 44, x: 100, yellow: false },
-  { size: 34, x: 120, yellow: true },
-];
+/** Una sola llama cruza la barra (petición del usuario); su centro marca el borde del cambio. */
+const FLAMES = [{ size: 44, x: 100, yellow: false }];
 
 const IN_MS = 160;
 /** Tiempo para ver bien la barra gris con la racha de antes antes de que llegue el fuego. */
@@ -134,7 +127,13 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
     outputRange: [0, 1, 1, 0],
   });
   // El gris (barra, llama y número) se va cuando el fuego ya lo cubre todo.
-  const grayOpacity = sweep.interpolate({ inputRange: [0.85, 1], outputRange: [1, 0] });
+  // `clamp`: sin él, antes de 0,85 la opacidad pasaba de 1 y el gris de la barra salía opaco y
+  // tapaba la llama y el número grises.
+  const grayOpacity = sweep.interpolate({
+    inputRange: [0.85, 1],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
 
   const from = celebration?.from ?? 0;
   const oldY = swap.interpolate({ inputRange: [0, 1], outputRange: [0, -26] });

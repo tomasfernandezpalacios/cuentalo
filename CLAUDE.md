@@ -850,8 +850,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   (`src/features/estadisticas/streakCelebration.ts`, `streakIncrease` con tests) añade hoy a los
   días de la caché (la llama se pone en color sin esperar al servidor) y lanza la celebración.
   `StreakCelebrationBar` (envuelve los botones de `CinemaTabBar`): los botones se van (160 ms),
-  sale en el centro el fuego y la racha de antes en gris, con **toda la barra en gris**; una fila
-  de llamas que parpadean (solo llamas) cruza de izquierda a derecha y lleva el cambio:
+  sale en el centro el fuego y la racha de antes en gris, con **toda la barra en gris**; la barra
+  con **una sola llama** que parpadea cruza de izquierda a derecha y lleva el cambio:
   la zona que deja atrás se vuelve color fuego (barra teñida de fuego y llama y número en
   naranja, descubiertos con un recorte que acaba en la llama mayor). **Sin brillos ni
   resplandores** (el usuario no los quiere), Tiempos (petición del usuario, más lento y que se vea
