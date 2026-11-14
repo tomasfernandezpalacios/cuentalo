@@ -15,6 +15,7 @@ import { StreakCelebrationBar } from '@/features/estadisticas/components/StreakC
 import { SummaryButton } from '@/features/estadisticas/components/SummaryButton';
 import { useInboxCount } from '@/features/social/hooks';
 import type { TargetId } from '@/features/tutorial/steps';
+import { setPagerBusy } from '@/features/tutorial/store';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { TITLE_GAP, useScreenTitleSize } from '@/lib/screenTitle';
 import { headerOptions, screenTitleFont, useThemeColors } from '@/lib/theme';
@@ -32,6 +33,21 @@ function pageOptions(options: PageOptions): MaterialTopTabNavigationOptions {
 const TUTORIAL_TARGETS: Record<string, TargetId> = {
   estadisticas: 'tab-estadisticas',
   social: 'tab-social',
+};
+
+/** Páginas que el tutorial presenta enteras (su contenido, sin la cabecera). */
+const TUTORIAL_PAGES: Record<string, TargetId> = {
+  estadisticas: 'pantalla-estadisticas',
+  social: 'pantalla-social',
+};
+
+/**
+ * El tutorial espera a que las páginas dejen de deslizarse para iluminar algo en ellas (las
+ * medidas no ven el deslizamiento nativo).
+ */
+const PAGER_LISTENERS = {
+  swipeStart: () => setPagerBusy(true),
+  swipeEnd: () => setPagerBusy(false),
 };
 
 /**
@@ -138,13 +154,20 @@ export default function TabsLayout() {
       <TopTabs
         tabBarPosition="bottom"
         tabBar={(props) => <CinemaTabBar {...props} insets={insets} />}
+        screenListeners={PAGER_LISTENERS}
         screenLayout={({ children, route, options }) => (
           <View style={[styles.root, { backgroundColor: colors.background }]}>
             <Header
               {...(options as PageOptions)}
               title={getHeaderTitle(options as PageOptions, route.name)}
             />
-            {children}
+            <TutorialTarget
+              id={TUTORIAL_PAGES[route.name] ?? 'pantalla-estadisticas'}
+              enabled={route.name in TUTORIAL_PAGES}
+              style={styles.root}
+            >
+              {children}
+            </TutorialTarget>
           </View>
         )}
         screenOptions={pageOptions({

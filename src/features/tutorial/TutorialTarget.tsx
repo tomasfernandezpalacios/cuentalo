@@ -1,8 +1,9 @@
-import { useCallback, useRef, type ReactNode } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { useLayoutEffect, type ReactNode } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
+import Animated, { useAnimatedRef } from 'react-native-reanimated';
 
 import type { TargetId } from './steps';
-import { registerTarget, unregisterTarget, type ViewRef } from './store';
+import { registerTarget, unregisterTarget } from './store';
 
 type Props = {
   id: TargetId;
@@ -13,29 +14,23 @@ type Props = {
 };
 
 /**
- * Marca un elemento que el tutorial puede iluminar. El TutorialHost mide su posición en la
- * pantalla (measureInWindow) mientras el paso está activo, así sigue al elemento aunque
- * cambie de sitio. collapsable={false}: en Android, sin él la vista puede «aplanarse» y no
+ * Marca un elemento que el tutorial puede iluminar. El tutorial lo mide una sola vez, en el hilo
+ * de la interfaz (`measure` de Reanimated), cuando su pantalla ya está abierta del todo.
+ *
+ * Siempre es la misma vista (aunque no esté activa) para que activarla o desactivarla no vuelva
+ * a montar lo de dentro. collapsable={false}: en Android, sin él la vista puede «aplanarse» y no
  * se podría medir.
  */
 export function TutorialTarget({ id, children, style, enabled = true }: Props) {
-  const current = useRef<ViewRef | null>(null);
-  const ref = useCallback(
-    (view: ViewRef | null) => {
-      if (view) {
-        current.current = view;
-        registerTarget(id, view);
-      } else if (current.current) {
-        unregisterTarget(id, current.current);
-        current.current = null;
-      }
-    },
-    [id],
-  );
-  if (!enabled) return <View style={style}>{children}</View>;
+  const ref = useAnimatedRef<Animated.View>();
+  useLayoutEffect(() => {
+    if (!enabled) return;
+    registerTarget(id, ref);
+    return () => unregisterTarget(id, ref);
+  }, [id, enabled, ref]);
   return (
-    <View ref={ref} collapsable={false} style={style}>
+    <Animated.View ref={ref} collapsable={false} style={style}>
       {children}
-    </View>
+    </Animated.View>
   );
 }

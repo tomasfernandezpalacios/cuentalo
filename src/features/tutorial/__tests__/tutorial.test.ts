@@ -1,24 +1,36 @@
 import {
   BUBBLE_GAP,
-  bubbleOutside,
+  closeAt,
   closedHole,
+  GLIDE_MAX,
+  GLIDE_MIN,
+  glideDuration,
   HOLE_PADDING,
   holeFor,
+  holeInside,
   isClosed,
+  isVisibleIn,
   movedEnough,
+  PAGE_INSET,
   placeBubble,
-  screenHole,
 } from '../layout';
+import { nextPhase } from '../machine';
 import {
   advancesOn,
   advancesOnScreen,
   buildSteps,
+  closesBetween,
+  isTabScreen,
+  isWholeScreen,
   letsTouchTarget,
+  navigationFor,
   nextIndex,
+  readyToEnter,
   showsNext,
   stepKind,
   stepScreen,
   TUTORIAL_COUNTER_NAME,
+  type Readiness,
 } from '../steps';
 
 const byId = Object.fromEntries(buildSteps().map((s) => [s.id, s]));
@@ -121,15 +133,39 @@ describe('foco', () => {
     expect(isClosed(holeFor({ x: 0, y: 0, width: 10, height: 10 }))).toBe(false);
   });
 
-  it('la pantalla entera queda entre la cabecera y la barra de pestañas', () => {
-    const screen = { width: 400, height: 800, top: 40, bottom: 20 };
-    expect(screenHole(screen, 64, 100)).toEqual({ left: 8, top: 104, right: 392, bottom: 700 });
+  it('una pantalla entera se ilumina por dentro de su zona de contenido', () => {
+    expect(holeInside({ x: 0, y: 100, width: 400, height: 600 })).toEqual({
+      left: PAGE_INSET,
+      top: 100 + PAGE_INSET,
+      right: 400 - PAGE_INSET,
+      bottom: 700 - PAGE_INSET,
+    });
   });
 
-  it('solo se mueve el foco si el elemento se ha movido de verdad', () => {
+  it('el iris se cierra sobre el centro del hueco', () => {
+    expect(closeAt({ left: 10, top: 20, right: 50, bottom: 60 })).toEqual(closedHole(30, 40));
+  });
+
+  it('un elemento fuera de la pantalla (otra página) no se ilumina', () => {
+    expect(isVisibleIn({ x: 10, y: 10, width: 50, height: 50 }, 400, 800)).toBe(true);
+    expect(isVisibleIn({ x: 410, y: 10, width: 50, height: 50 }, 400, 800)).toBe(false);
+    expect(isVisibleIn({ x: 10, y: 10, width: 0, height: 0 }, 400, 800)).toBe(false);
+  });
+
+  it('se considera quieto con medio píxel de diferencia', () => {
     const a = { x: 10, y: 10, width: 50, height: 50 };
-    expect(movedEnough(a, { ...a, y: 11 })).toBe(false);
-    expect(movedEnough(a, { ...a, y: 20 })).toBe(true);
+    expect(movedEnough(a, { ...a, y: 10.3 })).toBe(false);
+    expect(movedEnough(a, { ...a, y: 12 })).toBe(true);
+  });
+
+  it('el deslizamiento dura según lo que se mueve, entre un mínimo y un máximo', () => {
+    const a = { left: 0, top: 0, right: 10, bottom: 10 };
+    expect(glideDuration(a, a)).toBe(GLIDE_MIN);
+    const near = glideDuration(a, { left: 0, top: 100, right: 10, bottom: 110 });
+    const far = glideDuration(a, { left: 0, top: 800, right: 10, bottom: 810 });
+    expect(near).toBeGreaterThan(GLIDE_MIN);
+    expect(near).toBeLessThan(far);
+    expect(far).toBe(GLIDE_MAX);
   });
 });
 
@@ -142,7 +178,7 @@ describe('posición del bocadillo', () => {
     expect(result.placement).toBe('below');
     expect(result.top).toBe(110 + BUBBLE_GAP);
     expect(result.caretX).toBe(325);
-    expect(bubbleOutside(hole, result, 160)).toBe(true);
+    expect(result.caret).toBe(true);
   });
 
   it('encima si abajo no cabe (p. ej. la barra de pestañas)', () => {
@@ -150,13 +186,14 @@ describe('posición del bocadillo', () => {
     const result = placeBubble(hole, 160, screen);
     expect(result.placement).toBe('above');
     expect(result.top + 160).toBeLessThanOrEqual(700 - BUBBLE_GAP);
+    expect(result.caret).toBe(true);
   });
 
   it('si no cabe fuera (la pantalla entera), va dentro, abajo, y sin piquito', () => {
     const hole = { left: 8, top: 104, right: 392, bottom: 700 };
     const result = placeBubble(hole, 180, screen);
     expect(result.top + 180).toBeLessThanOrEqual(700);
-    expect(bubbleOutside(hole, result, 180)).toBe(false);
+    expect(result.caret).toBe(false);
   });
 
   it('nunca se sale de la pantalla ni el piquito por los lados', () => {
@@ -165,5 +202,106 @@ describe('posición del bocadillo', () => {
     expect(result.top).toBeGreaterThanOrEqual(screen.top + 16);
     expect(result.top + 400).toBeLessThanOrEqual(screen.height - screen.bottom - 16);
     expect(result.caretX).toBeLessThanOrEqual(400 - 16 - 28);
+  });
+});
+
+describe('foco cerrado', () => {
+  it('sin elemento, el bocadillo va en el centro y sin piquito', () => {
+    const screen = { width: 400, height: 800, top: 40, bottom: 30 };
+    const result = placeBubble(closedHole(200, 400), 200, screen);
+    expect(result.top).toBe(300);
+    expect(result.caret).toBe(false);
+  });
+});
+
+describe('fases de cada paso', () => {
+  it('siempre en orden: irse → esperar → entrar → a la vista', () => {
+    let phase = nextPhase('active', 'leave');
+    expect(phase).toBe('leaving');
+    phase = nextPhase(phase, 'left');
+    expect(phase).toBe('waiting');
+    phase = nextPhase(phase, 'ready');
+    expect(phase).toBe('entering');
+    phase = nextPhase(phase, 'entered');
+    expect(phase).toBe('active');
+  });
+
+  it('un aviso que llega tarde no salta fases', () => {
+    expect(nextPhase('leaving', 'ready')).toBe('leaving');
+    expect(nextPhase('leaving', 'entered')).toBe('leaving');
+    expect(nextPhase('waiting', 'entered')).toBe('waiting');
+    expect(nextPhase('active', 'left')).toBe('active');
+  });
+
+  it('un paso nuevo corta cualquier fase', () => {
+    for (const phase of ['leaving', 'waiting', 'entering', 'active'] as const) {
+      expect(nextPhase(phase, 'leave')).toBe('leaving');
+    }
+  });
+});
+
+describe('cuándo se cierra el hueco', () => {
+  it('entre elementos de la misma pantalla se desliza sin cerrarse', () => {
+    expect(closesBetween(byId.add!, byId.remove!)).toBe(false);
+    expect(closesBetween(byId.name!, byId.submit!)).toBe(false);
+    expect(closesBetween(byId.tools!, byId['stats-tab']!)).toBe(false);
+  });
+
+  it('al cambiar de pantalla, o sin paso siguiente, se cierra', () => {
+    expect(closesBetween(byId.create!, byId.name!)).toBe(true);
+    expect(closesBetween(byId.submit!, byId.add!)).toBe(true);
+    expect(closesBetween(byId.social!, byId.streak!)).toBe(true);
+    expect(closesBetween(byId.streak!, byId.done!)).toBe(true);
+    expect(closesBetween(byId.submit!, null)).toBe(true);
+  });
+
+  it('desde la bienvenida o el rótulo no hay hueco que cerrar', () => {
+    expect(closesBetween(null, byId.welcome!)).toBe(false);
+    expect(closesBetween(byId.intro!, byId.create!)).toBe(false);
+  });
+});
+
+describe('navegación y espera', () => {
+  const ready: Readiness = {
+    pathname: '/',
+    stackBusy: false,
+    pagerBusy: false,
+    targetMounted: true,
+  };
+
+  it('el tutorial solo navega a donde no llega el propio usuario', () => {
+    expect(navigationFor(byId.streak!, '/social')).toBe('/estadisticas');
+    expect(navigationFor(byId.create!, '/')).toBeNull();
+    // Al formulario y de vuelta a la lista llega el usuario.
+    expect(navigationFor(byId.name!, '/')).toBeNull();
+    expect(navigationFor(byId.add!, '/contadores/nuevo')).toBeNull();
+    expect(navigationFor(byId.welcome!, '/perfil')).toBeNull();
+  });
+
+  it('espera a que termine cualquier transición y a que el elemento esté montado', () => {
+    expect(readyToEnter(byId.add!, ready)).toBe(true);
+    expect(readyToEnter(byId.add!, { ...ready, stackBusy: true })).toBe(false);
+    expect(readyToEnter(byId.add!, { ...ready, pagerBusy: true })).toBe(false);
+    expect(readyToEnter(byId.add!, { ...ready, targetMounted: false })).toBe(false);
+    expect(readyToEnter(byId.add!, { ...ready, pathname: '/contadores/nuevo' })).toBe(false);
+    expect(readyToEnter(byId.stats!, { ...ready, pathname: '/estadisticas' })).toBe(true);
+  });
+
+  it('la bienvenida y el final no esperan a nada', () => {
+    const busy = { ...ready, stackBusy: true, pagerBusy: true, targetMounted: false };
+    expect(readyToEnter(byId.welcome!, busy)).toBe(true);
+    expect(readyToEnter(byId.done!, busy)).toBe(true);
+  });
+
+  it('las pestañas grandes son páginas; el formulario no', () => {
+    expect(isTabScreen('/estadisticas')).toBe(true);
+    expect(isTabScreen('/')).toBe(true);
+    expect(isTabScreen('/contadores/nuevo')).toBe(false);
+  });
+
+  it('las presentaciones de Estadísticas y Social iluminan la pantalla entera', () => {
+    expect(isWholeScreen(byId.stats!.target)).toBe(true);
+    expect(isWholeScreen(byId.social!.target)).toBe(true);
+    expect(isWholeScreen(byId.add!.target)).toBe(false);
   });
 });

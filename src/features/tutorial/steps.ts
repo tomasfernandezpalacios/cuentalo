@@ -1,8 +1,8 @@
 // Pasos del tutorial de bienvenida y cómo se avanza. Funciones puras para poder testearlas.
 
 /**
- * Elementos de la app que el tutorial puede iluminar (ver TutorialTarget). 'pantalla' no es un
- * elemento: es la pantalla entera (menos la cabecera y la barra de pestañas), para presentarla.
+ * Elementos de la app que el tutorial puede iluminar (ver TutorialTarget). Los 'pantalla-…' son la
+ * zona de contenido de una pestaña (sin su cabecera ni la barra de pestañas), para presentarla.
  */
 export type TargetId =
   | 'nuevo-contador'
@@ -15,7 +15,8 @@ export type TargetId =
   | 'racha'
   | 'tab-estadisticas'
   | 'tab-social'
-  | 'pantalla';
+  | 'pantalla-estadisticas'
+  | 'pantalla-social';
 
 /** Acciones reales que hacen avanzar un paso (las avisa el código que ya existe). */
 export type TutorialEvent =
@@ -121,6 +122,8 @@ const ALL_STEPS: Step[] = [
     id: 'add',
     title: 'Suma con un toque',
     text: 'Cada toque queda guardado en tu historial. Pruébalo.',
+    // Se llega al crear el contador (el formulario se cierra solo): el tutorial no navega.
+    userNavigates: true,
     target: 'sumar',
     action: 'entry-added',
   },
@@ -156,7 +159,7 @@ const ALL_STEPS: Step[] = [
     screen: '/estadisticas',
     title: 'Tu evolución',
     text: 'Por semana, mes, año o desde siempre, en líneas o en barras. Toca la gráfica para ampliarla.',
-    target: 'pantalla',
+    target: 'pantalla-estadisticas',
   },
   {
     id: 'social-tab',
@@ -171,7 +174,7 @@ const ALL_STEPS: Step[] = [
     screen: '/social',
     title: 'Juntos cuenta más',
     text: 'Añade amigos, crea grupos o únete con un código y competid en la clasificación.',
-    target: 'pantalla',
+    target: 'pantalla-social',
   },
   {
     id: 'streak',
@@ -226,4 +229,63 @@ export function letsTouchTarget(step: Step): boolean {
 /** ¿Lleva «Siguiente»? Los pasos que solo enseñan algo (o si el elemento no aparece). */
 export function showsNext(step: Step, targetMissing: boolean): boolean {
   return targetMissing || !letsTouchTarget(step);
+}
+
+/** Pestañas grandes (páginas del deslizador): entre ellas se pasa deslizando, no con el Stack. */
+const TAB_SCREENS = ['/', '/estadisticas', '/social', '/perfil'];
+
+export function isTabScreen(pathname: string): boolean {
+  return TAB_SCREENS.includes(pathname);
+}
+
+/** ¿Ilumina una pantalla entera (no un elemento)? */
+export function isWholeScreen(target: TargetId | undefined): boolean {
+  'worklet';
+  return target === 'pantalla-estadisticas' || target === 'pantalla-social';
+}
+
+/**
+ * ¿Se cierra el hueco (como un iris) al pasar de un paso a otro? Sí si se cambia de pantalla o
+ * si lo siguiente no ilumina nada (rótulo, pantallas completas). Entre dos elementos de la misma
+ * pantalla, no: el foco se desliza directamente de uno a otro. `next` null = aún no se sabe
+ * cuál es (p. ej. se está creando el contador): se cierra por si acaso.
+ */
+export function closesBetween(prev: Step | null, next: Step | null): boolean {
+  if (!prev || stepKind(prev) !== 'spotlight') return false;
+  if (!next || stepKind(next) !== 'spotlight') return true;
+  return stepScreen(prev) !== stepScreen(next);
+}
+
+/**
+ * Pantalla a la que tiene que ir el tutorial antes de enseñar el paso (null si ya está o si a
+ * ella llega el propio usuario). Solo se navega con todo apagado y quieto.
+ */
+export function navigationFor(step: Step, pathname: string): TutorialScreen | null {
+  const kind = stepKind(step);
+  if (kind === 'welcome' || kind === 'finish' || step.userNavigates) return null;
+  const screen = stepScreen(step);
+  return pathname === screen ? null : screen;
+}
+
+/** Lo que el tutorial sabe de la app para decidir si ya puede enseñar el paso. */
+export type Readiness = {
+  pathname: string;
+  /** Un Stack (p. ej. el formulario) está abriéndose o cerrándose. */
+  stackBusy: boolean;
+  /** Las páginas de las pestañas se están deslizando. */
+  pagerBusy: boolean;
+  /** El elemento del paso está montado (se puede medir). */
+  targetMounted: boolean;
+};
+
+/**
+ * ¿Se puede empezar a enseñar el paso? Solo con la pantalla del paso ya abierta del todo (sin
+ * transiciones en marcha) y su elemento montado. Las pantallas completas, siempre.
+ */
+export function readyToEnter(step: Step, r: Readiness): boolean {
+  const kind = stepKind(step);
+  if (kind === 'welcome' || kind === 'finish') return true;
+  if (r.stackBusy || r.pagerBusy || r.pathname !== stepScreen(step)) return false;
+  if (kind === 'banner' || !step.target) return true;
+  return r.targetMounted;
 }

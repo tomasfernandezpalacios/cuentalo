@@ -60,7 +60,7 @@ import {
   currentStepId,
   subscribeTutorial,
   tutorialEvent,
-  useTutorial,
+  useTutorialValue,
 } from '@/features/tutorial/store';
 import { TutorialTarget } from '@/features/tutorial/TutorialTarget';
 import { getErrorMessage } from '@/lib/errors';
@@ -172,7 +172,8 @@ export default function CountersScreen() {
   // --- Tutorial -----------------------------------------------------------------------------
   // El contador creado en el tutorial va el primero de la lista (se ve sin buscarlo) y es el que
   // se ilumina para sumar, restar y mantener pulsado.
-  const tutorialCounterId = useTutorial().counterId;
+  // Solo el id (no todo el tutorial): así un cambio de paso no vuelve a dibujar la lista.
+  const tutorialCounterId = useTutorialValue((s) => s.counterId);
   const orderedIds = ordered.map((c) => c.id).join(',');
   const movedFirstFor = useRef<string | null>(null);
   useEffect(() => {
@@ -208,12 +209,15 @@ export default function CountersScreen() {
       active.flatMap((c) => c.linkedGroups.map((g) => [g.group.id, g.group] as const)),
     ).values(),
   ].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-  // Tarjeta que ilumina el tutorial: la primera en la que se puede sumar directamente (en un
-  // común de otro, el +1 abre una solicitud y el paso «Suma con un toque» no avanzaría).
-  const tutorialCardId =
-    tutorialCounterId && shown.some((c) => c.id === tutorialCounterId)
+  // Tarjeta que ilumina el tutorial: la del contador creado en él, y solo cuando ya es la
+  // primera de la lista (antes, el tutorial espera con todo apagado en vez de iluminar otra y
+  // saltar después). Sin contador del tutorial, la primera en la que se puede sumar directamente
+  // (en un común de otro, el +1 abre una solicitud y el paso «Suma con un toque» no avanzaría).
+  const tutorialCardId = tutorialCounterId
+    ? shown[0]?.id === tutorialCounterId
       ? tutorialCounterId
-      : shown.find((c) => !(c.is_common && !c.canManage))?.id;
+      : undefined
+    : shown.find((c) => !(c.is_common && !c.canManage))?.id;
   // Los ocultos salen al final de la lista.
   const hidden = filtered.filter((c) => c.hidden);
   const selected = active.filter((c) => selectedIds.includes(c.id));

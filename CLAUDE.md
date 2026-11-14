@@ -21,6 +21,8 @@ convenciones y decisiones; anota aquí cualquier decisión menor nueva.
 - Expo cambia mucho entre SDK: consultar `https://docs.expo.dev/versions/v58.0.0/` antes de usar
   una API de Expo en vez de fiarse de la memoria.
 - Todo debe funcionar en **Expo Go** (sin módulos nativos fuera de los que incluye).
+- `react-native-reanimated` 4 + `react-native-worklets` (incluidos en Expo Go), solo para el
+  tutorial (decisión del usuario). El resto de animaciones siguen con `Animated` de RN.
 
 ## Convenciones
 
@@ -437,25 +439,46 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   solo nombre y botón, sin unidad propuesta) → «Crear contador» → sumar → restar (sin «Deshacer»
   durante el tutorial, petición del usuario) → mantener pulsado el contador → sus herramientas
   (la cabecera del modo selección, `herramientas`; al seguir, el modo selección se cierra solo)
-  → tocar Estadísticas → la pantalla entera iluminada (`pantalla`) → tocar Social → su pantalla
+  → tocar Estadísticas → la pantalla entera iluminada (`pantalla-estadisticas`) → tocar Social → su pantalla
   → la racha (en Estadísticas) → pantalla final igual que antes (huella, «"Me comprometo a
   registrar mi vida"», «Cuéntalo»). El contador creado (`counterId` del store, llega con
   `tutorialEvent('counter-created', id)`) se pone el primero de la lista y es el que se ilumina.
   Si el usuario sale del formulario a medias, vuelve al paso del + (`fallback`). Durante el
   tutorial no sale la celebración de la racha.
-- **Motor del tutorial** (`Coach.tsx`; por qué el anterior iba a trompicones: movía el foco
-  desde JS fotograma a fotograma redibujando un SVG, y la capa se desmontaba en cada cambio de
-  pantalla). Ahora: una sola capa montada todo el tutorial (también debajo de la bienvenida y
-  del final). El velo son **piezas sólidas** (4 paneles + 4 esquinas con un cuarto de círculo
-  recortado) que solo se **desplazan y estiran con el motor nativo** (`useNativeDriver`, bordes
-  `left/top/right/bottom` como `Animated.Value`), dentro de un grupo semitransparente con
-  `needsOffscreenAlphaCompositing` (los solapes no oscurecen; las piezas se solapan 1 px para no
-  dejar líneas). El elemento se mide (`measureInWindow`, restando la capa) hasta que está quieto
-  (dos medidas iguales seguidas), y entonces el foco se desliza (680 ms, ease-in-out); si el
-  paso es en otra pantalla, el hueco antes se cierra como un iris. El bocadillo se funde, se
-  coloca (debajo, encima o dentro si no cabe; piquito hacia el foco) y reaparece en la segunda
-  mitad del deslizamiento; el que se está yendo no acepta toques. Anillo que late solo en lo que
-  hay que tocar. Geometría pura en `layout.ts` (tests). Toque háptico leve en cada paso.
+- **Motor del tutorial** (tercera versión, con **Reanimated**, decisión del usuario; las dos
+  anteriores iban lentas, a tirones y con animaciones pisándose). Diagnóstico de la anterior:
+  la lista de inicio se volvía a dibujar entera en cada paso (`useTutorial()` en la pantalla),
+  la barra de progreso animaba en el hilo de JS, el foco se medía cada 90/450 ms y se
+  «retocaba» a mitad de camino, el bocadillo se colocaba con el alto del paso anterior y las
+  fases (iris, deslizamiento, fundidos) se solapaban por tiempos fijos. Además, en la nueva
+  arquitectura de RN las medidas salen del árbol de layout, que **no ve** las transiciones
+  nativas (Stack y pager): esperar «a que esté quieto midiendo» no puede funcionar. Ahora:
+  - Máquina de estados por paso (`machine.ts`, tests): `leaving` (se va el bocadillo; si se
+    cambia de pantalla, después el hueco se cierra como un iris) → `waiting` (todo quieto y
+    apagado; aquí se cambia el texto del bocadillo y, si hace falta, se navega) → `entering`
+    (una medida y un único deslizamiento) → `active` (anillo que late, se puede tocar). Cada
+    fase empieza cuando avisa la anterior; un paso nuevo invalida todo lo anterior (`run`).
+  - `director.ts`: la máquina fuera de React (clase `Director`); el Coach solo dibuja y se
+    repinta una o dos veces por paso. `motion.ts`: valores (`makeMutable`) y worklets que
+    encadenan medida → deslizamiento → bocadillo en el hilo de la interfaz sin volver a JS.
+  - Cuándo se mide: con la ruta del paso, sin transiciones en marcha y el elemento montado
+    (`readyToEnter`). Transiciones: el formulario avisa con `useTutorialStackScreen`
+    (`transitionStart/End`; `markStackLeaving` antes de `router.back()`) y las pestañas con
+    `screenListeners` `swipeStart/swipeEnd` (`setPagerBusy`); con tiempo de seguridad (1,5 s y
+    0,9 s). Después, `measure` en el hilo de la interfaz hasta 3 fotogramas quietos (máx.
+    1,2 s). Sin vigilar después: el foco no se recoloca nunca. Si el elemento no llega en 4 s,
+    el paso se explica con «Siguiente».
+  - `TutorialTarget` es siempre un `Animated.View` de Reanimated (activarlo no vuelve a montar
+    lo de dentro) y registra su `useAnimatedRef`. Las pantallas enteras son la zona de
+    contenido de la pestaña (`pantalla-estadisticas`, `pantalla-social`, en `screenLayout`).
+  - La tarjeta iluminada es la del contador del tutorial **solo cuando ya es la primera** (antes
+    se esperaba apagado, en vez de iluminar otra y saltar). Al tocar «Crear contador», el
+    bocadillo se va ya (`beginTutorialLeave`; `cancelTutorialLeave` si falla).
+  - Las pantallas de la app leen el tutorial con `useTutorialValue(selector)`: solo se repintan
+    si cambia ese dato. Velo de piezas sólidas como antes (4 paneles + 4 esquinas, grupo con
+    `needsOffscreenAlphaCompositing`). Duraciones: bocadillo fuera 160 ms, iris 260 ms,
+    deslizamiento 340–560 ms según la distancia (`glideDuration`), bocadillo dentro 240 ms.
+    Barra de progreso con Reanimated, avanza al aparecer el paso. Toque háptico en cada paso.
 - Valores de `Animated` en componentes: `useState(() => new Animated.Value(0))[0]`, no
   `useRef(...).current` (la regla react-hooks/refs lo marca como error).
 
@@ -660,13 +683,6 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   `useMergeCounters`). Si queda uno de grupo, solo nombre y emoticono, personales (alias): la
   foto cambiaría la de todo el grupo.
 
-- **Tutorial fluido** (iba a trompicones): el foco ya no pasa por React en cada fotograma.
-  `useGlide` (en `TutorialHost`) mueve anillo, flecha y bocadillo con valores animados y
-  redibuja el oscurecido (Path de SVG) con `setNativeProps` una vez por fotograma
-  (`requestAnimationFrame`). Antes `useGlidingHole` hacía `setState` en cada fotograma y se
-  volvía a pintar todo el tutorial. Un cambio pequeño de posición (las medidas cada 250 ms)
-  hace un retoque corto en vez de reiniciar el deslizamiento largo. Latidos de anillo y flecha
-  siguen en el hilo nativo, en una vista interior (no se mezclan con los valores del hilo JS).
 
 - Campos de texto (TextField, buscadores, emoticono propio) con `fonts.detail`, también el
   texto de ejemplo (petición del usuario). Unidad: «ej. cervezas, libros, km» (sin «déjalo
