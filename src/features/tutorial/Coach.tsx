@@ -208,19 +208,17 @@ const Veil = memo(function Veil({
 }) {
   const big = Math.max(width, height) * 2;
   // Las esquinas se dibujan a tamaño CORNER y se escalan al radio de cada hueco (escalar por
-  // igual en los dos ejes mantiene el cuarto de círculo redondo). La escala es desde el centro:
-  // por eso se corrige la posición con (r − CORNER) / 2.
-  const corner = (x: number, y: number, radius: number) => {
+  // igual en los dos ejes mantiene el cuarto de círculo redondo). Mover y escalar van en dos
+  // vistas distintas (una solo se desplaza, la otra solo se escala desde su esquina de arriba a
+  // la izquierda): juntos en la misma transformación, Android aplicaba el desplazamiento escalado
+  // y el círculo salía deformado.
+  const at = (x: number, y: number) => {
     'worklet';
-    const r = Math.max(radius, 0.01);
-    return {
-      transform: [
-        { translateX: x + (r - CORNER) / 2 },
-        { translateY: y + (r - CORNER) / 2 },
-        { scale: r / CORNER },
-      ],
-    };
+    return { transform: [{ translateX: x }, { translateY: y }] };
   };
+  const scaled = useAnimatedStyle(() => ({
+    transform: [{ scale: Math.max(v.radius.value, 0.01) / CORNER }],
+  }));
   const group = useAnimatedStyle(() => ({ opacity: v.veil.value * VEIL_OPACITY }));
   const top = useAnimatedStyle(() => ({
     transform: [{ translateY: v.top.value - big + SEAM }],
@@ -243,15 +241,11 @@ const Veil = memo(function Veil({
       { scaleY: v.bottom.value - v.top.value + SEAM * 2 },
     ],
   }));
-  const topLeft = useAnimatedStyle(() => corner(v.left.value, v.top.value, v.radius.value));
-  const topRight = useAnimatedStyle(() =>
-    corner(v.right.value - v.radius.value, v.top.value, v.radius.value),
-  );
-  const bottomLeft = useAnimatedStyle(() =>
-    corner(v.left.value, v.bottom.value - v.radius.value, v.radius.value),
-  );
+  const topLeft = useAnimatedStyle(() => at(v.left.value, v.top.value));
+  const topRight = useAnimatedStyle(() => at(v.right.value - v.radius.value, v.top.value));
+  const bottomLeft = useAnimatedStyle(() => at(v.left.value, v.bottom.value - v.radius.value));
   const bottomRight = useAnimatedStyle(() =>
-    corner(v.right.value - v.radius.value, v.bottom.value - v.radius.value, v.radius.value),
+    at(v.right.value - v.radius.value, v.bottom.value - v.radius.value),
   );
   return (
     <Animated.View
@@ -263,10 +257,10 @@ const Veil = memo(function Veil({
       <Animated.View style={[styles.panel, { width, height: big }, bottom]} />
       <Animated.View style={[styles.panel, { width, height: 1 }, left]} />
       <Animated.View style={[styles.panel, { width, height: 1 }, right]} />
-      <Corner style={topLeft} cx={CORNER} cy={CORNER} />
-      <Corner style={topRight} cx={0} cy={CORNER} />
-      <Corner style={bottomLeft} cx={CORNER} cy={0} />
-      <Corner style={bottomRight} cx={0} cy={0} />
+      <Corner position={topLeft} scale={scaled} cx={CORNER} cy={CORNER} />
+      <Corner position={topRight} scale={scaled} cx={0} cy={CORNER} />
+      <Corner position={bottomLeft} scale={scaled} cx={CORNER} cy={0} />
+      <Corner position={bottomRight} scale={scaled} cx={0} cy={0} />
     </Animated.View>
   );
 });
@@ -279,30 +273,34 @@ const CORNER = 64;
  * alrededor de (cx, cy). El círculo es un aro grueso (borde) cuyo hueco es el círculo.
  */
 function Corner({
-  style,
+  position,
+  scale,
   cx,
   cy,
 }: {
-  style: ReturnType<typeof useAnimatedStyle>;
+  position: ReturnType<typeof useAnimatedStyle>;
+  scale: ReturnType<typeof useAnimatedStyle>;
   cx: number;
   cy: number;
 }) {
   const r = CORNER;
   const ring = r * 4;
   return (
-    <Animated.View style={[styles.corner, { width: r, height: r }, style]}>
-      <View
-        style={{
-          position: 'absolute',
-          left: cx - ring / 2,
-          top: cy - ring / 2,
-          width: ring,
-          height: ring,
-          borderRadius: ring / 2,
-          borderWidth: r,
-          borderColor: VEIL_COLOR,
-        }}
-      />
+    <Animated.View style={[styles.cornerAnchor, position]}>
+      <Animated.View style={[styles.corner, { width: r, height: r }, scale]}>
+        <View
+          style={{
+            position: 'absolute',
+            left: cx - ring / 2,
+            top: cy - ring / 2,
+            width: ring,
+            height: ring,
+            borderRadius: ring / 2,
+            borderWidth: r,
+            borderColor: VEIL_COLOR,
+          }}
+        />
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -358,7 +356,15 @@ function Blocker({ style }: { style: object }) {
 const styles = StyleSheet.create({
   layer: { zIndex: 1000, elevation: 1000 },
   panel: { position: 'absolute', left: 0, top: 0, backgroundColor: VEIL_COLOR },
-  corner: { position: 'absolute', left: 0, top: 0, overflow: 'hidden' },
+  // El ancla solo se desplaza; dentro, la esquina solo se escala desde arriba a la izquierda.
+  cornerAnchor: { position: 'absolute', left: 0, top: 0, width: CORNER, height: CORNER },
+  corner: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    overflow: 'hidden',
+    transformOrigin: 'left top',
+  },
   blocker: { position: 'absolute' },
   ring: { position: 'absolute', borderWidth: 2 },
   bannerBox: {
