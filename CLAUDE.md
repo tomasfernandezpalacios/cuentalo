@@ -814,21 +814,13 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 - **Pestañas como páginas** (petición del usuario: deslizar suave, siguiendo al dedo; a medias
   se ven las dos): `app/(tabs)/_layout.tsx` usa `TopTabs` de `expo-router/js-top-tabs`
   (react-native-tab-view + react-native-pager-view, incluido en Expo Go) con `tabBarPosition:
-  'bottom'`. Páginas: Mis contadores, Estadísticas, Social y Mi perfil. Grupos y Amigos van
-  **dentro de la misma pestaña** Social, con su deslizador propio como antes (petición del
-  usuario; se probaron como dos páginas del deslizador principal y no le gustó): Social tiene
-  `swipeEnabled: false` y, desde los bordes, deslizar a la derecha en Grupos lleva a
-  Estadísticas y a la izquierda en Amigos a Mi perfil. **Regla del deslizar (explicada por el
-  usuario, no cambiarla):** cada pestaña grande lleva a sus adyacentes; Social se abre
-  **siempre por Grupos**. Adelante: Estadísticas → Grupos → Amigos → Mi perfil. Atrás: Mi perfil
-  → Grupos → Estadísticas (no se pasa por Amigos). Cuando Social deja de verse del todo
-  (`useTabAnimation`), su página interna vuelve a Grupos sin animación. Dentro de Social, un
-  deslizamiento **suave y despacio** pasa de subpestaña en subpestaña (y desde los bordes a la
-  pestaña de al lado); uno **fuerte y grande** (≥ 30 % del ancho y ≥ 0,8 px/ms) pasa
-  directamente a la pestaña grande de al lado (`STRONG_DISTANCE`, `STRONG_SPEED`). Se decide en
-  `onScrollEndDrag` del deslizador de dentro (llega siempre, también en los bordes), con la
-  dirección del dedo de sus primeros movimientos (`onTouchMove`): **no usar `onTouchEnd`**, que
-  Android no manda en cuanto el deslizador toma el gesto (Social se quedaba «encerrada»). La
+  'bottom'`. Páginas: Mis contadores, Estadísticas, Social y Mi perfil. **Regla del
+  deslizar (decisión final del usuario, no cambiarla):** deslizar el dedo solo pasa entre las 4
+  pestañas grandes, también desde Social en cualquiera de sus subpestañas. Grupos y Amigos se
+  cambian **solo con el selector** (el deslizador de dentro tiene `scrollEnabled={false}` y se
+  mueve con `scrollTo` animado). Social se abre siempre por Grupos (al dejar de verse vuelve a
+  Grupos sin animación). Se probaron antes reglas de bordes y de «fuerte o suave» dentro de
+  Social: con el deslizador anidado, salir de Social no seguía al dedo. La
   barra Cine es propia (`CinemaTabBar`) y la cabecera de cada página la pinta `screenLayout` con
   el `Header` de React Navigation y las opciones de siempre (`Stack.Screen` en las pantallas
   sigue funcionando). Todas las páginas se dibujan desde el principio (`lazy: false`) y la

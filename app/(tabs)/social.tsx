@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
-import { router, useNavigation } from 'expo-router';
+import { router } from 'expo-router';
 import { useTabAnimation } from 'expo-router/js-top-tabs';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import {
@@ -11,7 +11,6 @@ import {
   StyleSheet,
   useWindowDimensions,
   View,
-  type GestureResponderEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
@@ -28,14 +27,6 @@ type Tab = 'friends' | 'groups';
 /** Posición de Social entre las pestañas grandes (Mis contadores, Estadísticas, Social, Mi perfil). */
 const SOCIAL_INDEX = 2;
 
-/**
- * Deslizamiento «fuerte y grande» (petición del usuario): al menos este recorrido (fracción del
- * ancho) y esta velocidad (puntos por ms). Con él se pasa de pestaña grande aunque haya subpestaña al
- * lado; uno suave y despacio pasa de subpestaña en subpestaña.
- */
-const STRONG_DISTANCE = 0.3;
-const STRONG_SPEED = 0.8;
-
 const TABS: { value: Tab; label: string }[] = [
   { value: 'groups', label: 'Grupos' },
   { value: 'friends', label: 'Amigos' },
@@ -48,11 +39,7 @@ export default function SocialScreen() {
   const [tab, setTab] = useState<Tab>('groups');
   const [refreshing, setRefreshing] = useState(false);
   const inbox = useInboxCount();
-  const navigation = useNavigation();
   const pager = useRef<ComponentRef<typeof Animated.ScrollView>>(null);
-  // Para pasar a la pestaña grande de al lado: el dedo y el arrastre del deslizador de dentro.
-  const touch = useRef<{ x: number; lastX: number; tab: Tab } | null>(null);
-  const drag = useRef<{ offset: number; time: number } | null>(null);
   // Desplazamiento de las páginas: la iluminación del selector lo sigue (se desliza, no salta).
   const [scrollX] = useState(() => new Animated.Value(0));
   const position = scrollX.interpolate({
@@ -67,11 +54,8 @@ export default function SocialScreen() {
     setRefreshing(false);
   }
 
-  /** Tocar el selector: la página se desliza a su sitio. */
-  // Se entra en Social siempre por Grupos, venga de donde venga (petición del usuario): adelante
-  // Estadísticas → Grupos → Amigos → Mi perfil; atrás Mi perfil → Grupos → Estadísticas. En
-  // cuanto otra pestaña grande queda del todo en pantalla (Social ya no se ve), la página
-  // interna vuelve a Grupos sin animación, así nunca se ve el salto.
+  // Social se abre siempre por Grupos (petición del usuario): en cuanto otra pestaña grande queda
+  // del todo en pantalla (Social ya no se ve), la subpestaña vuelve a Grupos sin animación.
   const { position: tabPosition } = useTabAnimation();
   useEffect(() => {
     const id = tabPosition.addListener(({ value }) => {
@@ -82,62 +66,16 @@ export default function SocialScreen() {
     return () => tabPosition.removeListener(id);
   }, [tabPosition, width, tab]);
 
+  /** Tocar el selector: la subpestaña se desliza a su sitio (es la única forma de cambiarla). */
   function selectTab(next: Tab) {
     setTab(next);
     pager.current?.scrollTo({ x: next === 'groups' ? 0 : width, animated: true });
   }
 
-  /** Al deslizar, el selector cambia en cuanto se pasa la mitad (sin esperar a que pare). */
+  /** Mientras se desliza la subpestaña, el selector cambia en cuanto se pasa la mitad. */
   function onPagerScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const next: Tab = e.nativeEvent.contentOffset.x > width / 2 ? 'friends' : 'groups';
     if (next !== tab) setTab(next);
-  }
-
-  // El dedo: dónde empezó y por dónde va. Android deja de mandar el toque en cuanto el
-  // deslizador de dentro toma el gesto (no llega el «soltar»), pero los primeros movimientos sí
-  // llegan y bastan para saber hacia dónde va.
-  function onTouchStart(e: GestureResponderEvent) {
-    const { pageX } = e.nativeEvent;
-    touch.current = { x: pageX, lastX: pageX, tab };
-  }
-
-  function onTouchMove(e: GestureResponderEvent) {
-    if (touch.current) touch.current.lastX = e.nativeEvent.pageX;
-  }
-
-  function onScrollBeginDrag(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    drag.current = { offset: e.nativeEvent.contentOffset.x, time: Date.now() };
-  }
-
-  /**
-   * Al soltar el deslizador de dentro (este evento llega siempre, también en los bordes):
-   * - Suave y despacio: de subpestaña en subpestaña (lo hace el propio deslizador) y, desde los
-   *   bordes, a la pestaña de al lado (Grupos → Estadísticas, Amigos → Mi perfil).
-   * - Fuerte y grande: directamente a la pestaña grande de al lado; el deslizador de dentro se
-   *   queda donde estaba.
-   */
-  function onScrollEndDrag(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const finger = touch.current;
-    const started = drag.current;
-    drag.current = null;
-    if (!finger || !started) return;
-    const moved = e.nativeEvent.contentOffset.x - started.offset;
-    // Dedo hacia la derecha (> 0) o hacia la izquierda (< 0). Si el contenido se ha movido, eso
-    // manda; si no (en un borde), los primeros movimientos del dedo.
-    const direction = moved !== 0 ? -Math.sign(moved) : Math.sign(finger.lastX - finger.x);
-    if (direction === 0) return;
-    const elapsed = Math.max(1, Date.now() - started.time);
-    const strong =
-      Math.abs(moved) >= width * STRONG_DISTANCE && Math.abs(moved) / elapsed >= STRONG_SPEED;
-    const atEdge =
-      (direction > 0 && finger.tab === 'groups') || (direction < 0 && finger.tab === 'friends');
-    if (!strong && !atEdge) return;
-    if (strong) {
-      // Deshace el paso de subpestaña que haya empezado el deslizador de dentro.
-      pager.current?.scrollTo({ x: finger.tab === 'groups' ? 0 : width, animated: false });
-      setTab(finger.tab);
-    }
-    navigation.navigate((direction > 0 ? 'estadisticas' : 'perfil') as never);
   }
 
   const refreshControl = (
@@ -150,11 +88,7 @@ export default function SocialScreen() {
   );
 
   return (
-    <View
-      style={[styles.flex, { backgroundColor: colors.background }]}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-    >
+    <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <StableScreenOptions
         options={{
           // collapsable={false}: con varios botones en la cabecera nativa de Android, sin él los
@@ -195,17 +129,13 @@ export default function SocialScreen() {
               </Pressable>
             </View>
           ),
-          // Entre Grupos y Amigos se desliza dentro de la pestaña (las páginas grandes no se mueven
-          // aquí); desde los bordes se pasa a la pestaña de al lado (onScrollEndDrag).
-          swipeEnabled: false,
         }}
         optionsKey={`${colors.primary}|${colors.background}|${colors.danger}|${inbox}`}
       />
       <View style={styles.selector}>
         <SegmentedControl options={TABS} value={tab} onChange={selectTab} position={position} />
       </View>
-      {/* Grupos y Amigos, una al lado de la otra: se pasa de una a otra deslizando de lado como
-          en una galería (desplazamiento nativo, sigue al dedo y se asienta solo). Cada página
+      {/* Grupos y Amigos, una al lado de la otra: el selector desliza de una a otra. Cada página
           tiene su propio desplazamiento vertical. */}
       <Animated.ScrollView
         ref={pager}
@@ -217,8 +147,9 @@ export default function SocialScreen() {
           listener: onPagerScroll,
         })}
         scrollEventThrottle={16}
-        onScrollBeginDrag={onScrollBeginDrag}
-        onScrollEndDrag={onScrollEndDrag}
+        // Grupos y Amigos se cambian solo con el selector (petición del usuario): deslizar el dedo
+        // es siempre para pasar a la pestaña grande de al lado, esté en la subpestaña que esté.
+        scrollEnabled={false}
         keyboardShouldPersistTaps="handled"
         style={styles.flex}
       >
