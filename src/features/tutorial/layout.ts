@@ -47,7 +47,13 @@ export function holeInside(page: Rect): Edges {
  * enteras) y radio de las esquinas. `pill`: tan redondo como permite el hueco (botones en
  * píldora, círculos, la barra de pestañas).
  */
-export type HoleShape = { padding: number; radius: number; pill?: boolean };
+export type HoleShape = {
+  padding: number;
+  radius: number;
+  pill?: boolean;
+  /** Lo que el hueco crece hacia arriba además del margen. */
+  extendTop?: number;
+};
 
 export const DEFAULT_SHAPE: HoleShape = { padding: HOLE_PADDING, radius: HOLE_RADIUS };
 
@@ -57,7 +63,7 @@ export function shapedHole(target: Rect, shape: HoleShape): { edges: Edges; radi
   const p = shape.padding;
   const edges = {
     left: target.x - p,
-    top: target.y - p,
+    top: target.y - p - (shape.extendTop ?? 0),
     right: target.x + target.width + p,
     bottom: target.y + target.height + p,
   };

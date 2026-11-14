@@ -302,4 +302,17 @@ describe('forma del hueco', () => {
   it('la racha recuerda que Cuéntalo es más potente cuantos más días registras', () => {
     expect(byId.streak?.text).toContain('más potente');
   });
+
+  it('el + queda en un círculo pegado a su tamaño', () => {
+    const plus = { x: 0, y: 0, width: 46, height: 46 };
+    expect(shapedHole(plus, targetShape('nuevo-contador')).radius).toBe(26);
+  });
+
+  it('la pantalla de Estadísticas se ilumina un poco más alta por arriba', () => {
+    const page = { x: 0, y: 100, width: 400, height: 500 };
+    const stats = shapedHole(page, targetShape('pantalla-estadisticas')).edges;
+    const social = shapedHole(page, targetShape('pantalla-social')).edges;
+    expect(stats.top).toBeLessThan(social.top);
+    expect(stats.bottom).toBe(social.bottom);
+  });
 });

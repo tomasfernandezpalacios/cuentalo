@@ -227,7 +227,8 @@ export function completesStep(
  * botones redondos y las insignias en píldora; la tarjeta y los botones con su propio radio.
  */
 const SHAPES: Partial<Record<TargetId, HoleShape>> = {
-  'nuevo-contador': { padding: 6, radius: 0, pill: true },
+  // Pegado al círculo del + (46 px): 3 px de margen.
+  'nuevo-contador': { padding: 3, radius: 0, pill: true },
   'crear-contador': { padding: 6, radius: 0, pill: true },
   'tab-estadisticas': { padding: 0, radius: 0, pill: true },
   'tab-social': { padding: 0, radius: 0, pill: true },
@@ -237,7 +238,8 @@ const SHAPES: Partial<Record<TargetId, HoleShape>> = {
   restar: { padding: 5, radius: 15 },
   tarjeta: { padding: 6, radius: 30 },
   nombre: { padding: 8, radius: 20 },
-  'pantalla-estadisticas': { padding: -8, radius: 24 },
+  // Un poco más alto por arriba para que se vea la pantalla entera (petición del usuario).
+  'pantalla-estadisticas': { padding: -8, radius: 24, extendTop: 20 },
   'pantalla-social': { padding: -8, radius: 24 },
 };
 
