@@ -120,14 +120,8 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
     inputRange: [0, 0.08, 0.9, 1],
     outputRange: [0, 1, 1, 0],
   });
-  // El gris se va cuando el fuego ya lo cubre todo.
-  // Gris apagado (a media opacidad) para que el paso a fuego se note mucho.
-  const grayOpacity = sweep.interpolate({ inputRange: [0.85, 1], outputRange: [0.5, 0] });
-  // Resplandor de fuego en toda la cápsula, más fuerte mientras pasa la franja.
-  const glow = Animated.add(
-    center.interpolate({ inputRange: [0, 1], outputRange: [0, 0.1] }),
-    sweep.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0.14, 0.06] }),
-  );
+  // El gris (barra, llama y número) se va cuando el fuego ya lo cubre todo.
+  const grayOpacity = sweep.interpolate({ inputRange: [0.85, 1], outputRange: [1, 0] });
 
   const from = celebration?.from ?? 0;
   const oldY = swap.interpolate({ inputRange: [0, 1], outputRange: [0, -26] });
@@ -146,10 +140,7 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
   const flamePop = swap.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.35, 1] });
 
   const number = (value: number, color: string) => (
-    <Text
-      style={[styles.number, color === colors.flame && styles.fireGlow, { color }]}
-      maxFontSizeMultiplier={1.2}
-    >
+    <Text style={[styles.number, { color }]} maxFontSizeMultiplier={1.2}>
       {value}
     </Text>
   );
@@ -170,8 +161,13 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
           style={[StyleSheet.absoluteFill, { opacity: center }]}
           importantForAccessibility="no-hide-descendants"
         >
-          <Animated.View style={[styles.glow, { backgroundColor: colors.flame, opacity: glow }]} />
-          {/* Racha actual en gris. */}
+          {/* Racha actual en gris, con toda la barra en gris (sin brillos, petición del usuario). */}
+          <Animated.View
+            style={[
+              styles.tint,
+              { backgroundColor: colors.textMuted, opacity: Animated.multiply(grayOpacity, 0.25) },
+            ]}
+          />
           <Animated.View style={[styles.center, { opacity: grayOpacity }]}>
             <Ionicons name="flame" size={30} color={colors.textMuted} />
             <View>
@@ -181,13 +177,20 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
           </Animated.View>
           {/* Lo mismo en color fuego, descubierto a medida que pasa la franja. */}
           <Animated.View style={[styles.clip, { width: clipWidth }]}>
-            {/* Fondo de fuego de la cápsula en la zona ya recorrida. */}
+            {/* La barra se vuelve color fuego en la zona ya recorrida (tapa el gris). */}
             <View
-              style={[styles.fireFill, { width: width + 2 * EDGE, backgroundColor: colors.flame }]}
+              style={[styles.fill, { width: width + 2 * EDGE, backgroundColor: colors.surface }]}
+            />
+            <View
+              style={[
+                styles.fill,
+                styles.fireFill,
+                { width: width + 2 * EDGE, backgroundColor: colors.flame },
+              ]}
             />
             <View style={[styles.fixedCenter, { width }]}>
               <Animated.View style={{ transform: [{ scale: flamePop }] }}>
-                <Ionicons name="flame" size={32} color={colors.flame} style={styles.fireGlow} />
+                <Ionicons name="flame" size={30} color={colors.flame} />
               </Animated.View>
               <View>
                 <Text style={[styles.number, styles.hidden]}>{widest}</Text>
@@ -251,7 +254,8 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  glow: { position: 'absolute', top: 0, bottom: 0, left: -8, right: -8, borderRadius: 999 },
+  // Toda la cápsula (también su relleno a los lados).
+  tint: { position: 'absolute', top: 0, bottom: 0, left: -EDGE, right: -EDGE, borderRadius: 999 },
   center: {
     position: 'absolute',
     top: 0,
@@ -276,13 +280,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   clip: { position: 'absolute', top: 0, bottom: 0, left: -EDGE, overflow: 'hidden' },
-  fireFill: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 999, opacity: 0.22 },
-  // Resplandor de fuego alrededor de la llama y del número ya encendidos.
-  fireGlow: {
-    textShadowColor: 'rgba(255, 120, 30, 0.9)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 12,
-  },
+  fill: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 999 },
+  fireFill: { opacity: 0.25 },
   number: { fontFamily: fonts.title, fontSize: 28, includeFontPadding: false },
   hidden: { opacity: 0 },
   numberSlot: {
