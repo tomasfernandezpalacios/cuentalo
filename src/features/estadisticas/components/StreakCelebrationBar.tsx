@@ -1,6 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
@@ -24,7 +23,12 @@ const FLAMES = [
 ];
 
 const IN_MS = 160;
-const SWEEP_MS = 680;
+// Un poco más lenta que al principio (petición del usuario).
+const SWEEP_MS = 820;
+/** Margen de la barra a cada lado (el relleno de la cápsula): el color llega hasta el borde. */
+const EDGE = 8;
+/** Centro de la llama más grande dentro de la fila: ahí está el borde del cambio de color. */
+const FRONT_X = 100;
 const HOLD_MS = 700;
 const OUT_MS = 240;
 
@@ -105,18 +109,20 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
     inputRange: [0, 1],
     outputRange: [-BAND / 2, width + BAND / 2],
   });
-  const startCovering = BAND / 2 / Math.max(1, travel);
+  // La zona que deja atrás la llama se vuelve color fuego (el recorte llega justo a la llama).
+  const startCovering = (BAND / 2 - EDGE) / Math.max(1, travel);
   const clipWidth = sweep.interpolate({
     inputRange: [0, startCovering, 1],
-    outputRange: [0, 0, width + BAND / 2],
+    outputRange: [0, 0, width + BAND / 2 + EDGE],
   });
-  const bandX = Animated.subtract(front, BAND * 0.8);
+  const bandX = Animated.subtract(front, FRONT_X);
   const bandOpacity = sweep.interpolate({
     inputRange: [0, 0.08, 0.9, 1],
     outputRange: [0, 1, 1, 0],
   });
   // El gris se va cuando el fuego ya lo cubre todo.
-  const grayOpacity = sweep.interpolate({ inputRange: [0.85, 1], outputRange: [1, 0] });
+  // Gris apagado (a media opacidad) para que el paso a fuego se note mucho.
+  const grayOpacity = sweep.interpolate({ inputRange: [0.85, 1], outputRange: [0.5, 0] });
   // Resplandor de fuego en toda la cápsula, más fuerte mientras pasa la franja.
   const glow = Animated.add(
     center.interpolate({ inputRange: [0, 1], outputRange: [0, 0.1] }),
@@ -140,7 +146,10 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
   const flamePop = swap.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.35, 1] });
 
   const number = (value: number, color: string) => (
-    <Text style={[styles.number, { color }]} maxFontSizeMultiplier={1.2}>
+    <Text
+      style={[styles.number, color === colors.flame && styles.fireGlow, { color }]}
+      maxFontSizeMultiplier={1.2}
+    >
       {value}
     </Text>
   );
@@ -172,9 +181,13 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
           </Animated.View>
           {/* Lo mismo en color fuego, descubierto a medida que pasa la franja. */}
           <Animated.View style={[styles.clip, { width: clipWidth }]}>
+            {/* Fondo de fuego de la cápsula en la zona ya recorrida. */}
+            <View
+              style={[styles.fireFill, { width: width + 2 * EDGE, backgroundColor: colors.flame }]}
+            />
             <View style={[styles.fixedCenter, { width }]}>
               <Animated.View style={{ transform: [{ scale: flamePop }] }}>
-                <Ionicons name="flame" size={30} color={colors.flame} />
+                <Ionicons name="flame" size={32} color={colors.flame} style={styles.fireGlow} />
               </Animated.View>
               <View>
                 <Text style={[styles.number, styles.hidden]}>{widest}</Text>
@@ -200,22 +213,10 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
               </View>
             </View>
           </Animated.View>
-          {/* Fila de fuego en movimiento. */}
+          {/* Fila de llamas en movimiento (solo llamas): lleva el cambio de color. */}
           <Animated.View
             style={[styles.band, { opacity: bandOpacity, transform: [{ translateX: bandX }] }]}
           >
-            <LinearGradient
-              colors={[
-                `${colors.flame}00`,
-                `${colors.flame}55`,
-                `${colors.flame}AA`,
-                `${FIRE_YELLOW}EE`,
-                `${colors.flame}00`,
-              ]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={styles.gradient}
-            />
             {FLAMES.map((f, i) => (
               <Animated.View
                 key={f.x}
@@ -267,13 +268,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     bottom: 0,
-    left: 0,
+    // El recorte empieza EDGE antes: así queda justo encima de la copia gris.
+    left: EDGE,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  clip: { position: 'absolute', top: 0, bottom: 0, left: 0, overflow: 'hidden' },
+  clip: { position: 'absolute', top: 0, bottom: 0, left: -EDGE, overflow: 'hidden' },
+  fireFill: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 999, opacity: 0.22 },
+  // Resplandor de fuego alrededor de la llama y del número ya encendidos.
+  fireGlow: {
+    textShadowColor: 'rgba(255, 120, 30, 0.9)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
+  },
   number: { fontFamily: fonts.title, fontSize: 28, includeFontPadding: false },
   hidden: { opacity: 0 },
   numberSlot: {
@@ -287,6 +296,5 @@ const styles = StyleSheet.create({
   },
   // Más alta que la barra: las llamas asoman por arriba.
   band: { position: 'absolute', top: -18, bottom: 0, left: 0, width: BAND },
-  gradient: { position: 'absolute', top: 18, bottom: 0, left: 0, right: 0, borderRadius: 999 },
   flame: { position: 'absolute', bottom: 8 },
 });
