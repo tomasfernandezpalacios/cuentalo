@@ -609,11 +609,19 @@ begin
   select count(*) into n from public.counters where id = '10000000-0000-0000-0000-000000000002';
   if n <> 1 then raise exception 'FALLO: tras salir no se ve el contador en las estadísticas'; end if;
 
+  -- Lo tiene enlazado con el del grupo 2: el +1 va solo allí, nunca al grupo que ha dejado.
+  -- (Se prueba y se deshace, para no cambiar los totales de las pruebas siguientes.)
+  select count(*) into n from public.entries
+   where counter_id = '10000000-0000-0000-0000-000000000002';
   begin
     perform public.log_to_counter('10000000-0000-0000-0000-000000000002', 1);
-    raise exception 'FALLO: tras salir del grupo se puede seguir registrando';
+    if (select count(*) from public.entries
+         where counter_id = '10000000-0000-0000-0000-000000000002') <> n then
+      raise exception 'FALLO: tras salir del grupo se puede seguir registrando';
+    end if;
+    raise exception 'deshacer';
   exception when raise_exception then
-    if sqlerrm <> 'cannot_log' then raise; end if;
+    if sqlerrm <> 'deshacer' then raise; end if;
   end;
 end $$;
 
