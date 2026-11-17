@@ -488,8 +488,10 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   la columna `counters.archived` se borró (migración `20261204`, junto con
   `profiles.avatar_url` y `profiles.hide_counters_from_friends`, que no se usaban).
 - Textos: no dar por hecho que el primer botón rápido es +1 (se configura).
-- La racha de uso de la app se mantiene con cualquier registro, también un −1 (decisión del
-  usuario: basta con interactuar).
+- La racha de uso de la app solo se mantiene **sumando en positivo** (+N) en algún contador
+  (decisión del usuario, 2026-11-17; antes valía cualquier registro, también un −1). El trigger
+  `track_activity_day` ignora los registros con `amount <= 0` (migración `20261217120000`) y la
+  app solo celebra la racha y quita el recordatorio de hoy tras un +N.
 
 - **Avisos al salir de un grupo** (migración `20261127`, `leave_group_as`): al abandonar un
   grupo o eliminar la cuenta, los demás reciben «X ha abandonado el grupo» (`member_left`). Si
@@ -848,7 +850,7 @@ submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón ab
   con tests) mientras no se toque el campo.
 
 - **Celebración de la racha en la barra de pestañas** (petición del usuario: intensa, rápida,
-  fluida). Con el primer registro del día (+N, o −1 que de verdad reste), `markTodayActive`
+  fluida). Con la primera suma del día (+N; el −1 no cuenta), `markTodayActive`
   (`src/features/estadisticas/streakCelebration.ts`, `streakIncrease` con tests) añade hoy a los
   días de la caché (la llama se pone en color sin esperar al servidor) y lanza la celebración.
   `StreakCelebrationBar` (envuelve los botones de `CinemaTabBar`): los botones se van (160 ms),

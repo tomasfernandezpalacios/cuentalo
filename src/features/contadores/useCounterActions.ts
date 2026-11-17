@@ -68,16 +68,20 @@ export function useCounterActions() {
       return;
     }
     tap();
+    // Solo una suma en positivo mantiene la racha (decisión del usuario).
+    const positive = input.amount > 0;
     addEntry.mutate(
       { counterId: counter.id, input, common: counter.is_common },
       {
         // Hoy ya hay registro: el recordatorio de la racha de hoy sobra.
-        onSuccess: () => markActiveToday(),
+        onSuccess: () => {
+          if (positive) markActiveToday();
+        },
         onError: showError,
       },
     );
-    // Primer registro de hoy: la racha sube y la barra de pestañas lo celebra.
-    markTodayActive(queryClient, userId);
+    // Primera suma de hoy: la racha sube y la barra de pestañas lo celebra.
+    if (positive) markTodayActive(queryClient, userId);
     // La suma ya se ve (optimista): la ventana de «Otra cantidad» se cierra al instante, sin
     // esperar al servidor.
     onSuccess?.();
@@ -85,15 +89,8 @@ export function useCounterActions() {
 
   function doSubtract(counter: CounterWithTotal) {
     tap();
-    removeOne.mutate(
-      { counterId: counter.id, common: counter.is_common },
-      {
-        onSuccess: () => markActiveToday(),
-        onError: showError,
-      },
-    );
-    // El −1 también mantiene la racha, pero solo si de verdad resta (nunca baja de 0).
-    if (!counter.is_common && counter.myGroupTotal >= 1) markTodayActive(queryClient, userId);
+    // El −1 no cuenta para la racha (solo sumar en positivo, decisión del usuario).
+    removeOne.mutate({ counterId: counter.id, common: counter.is_common }, { onError: showError });
   }
 
   function subtractOne(counter: CounterWithTotal) {
