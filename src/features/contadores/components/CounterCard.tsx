@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useState } from 'react';
 import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { withAlpha } from '@/lib/color';
@@ -150,21 +151,7 @@ export function CounterCard({
                 {unit}
               </View>
             </View>
-            <View style={styles.gridName}>
-              {/* Con el icono grande, si hay línea de grupos el nombre ocupa una sola línea para
-                  que todo quepa en el cuadrado. */}
-              <Text
-                style={[styles.nameText, { color: colors.text }]}
-                numberOfLines={subtitle ? 1 : 2}
-              >
-                {counter.name}
-              </Text>
-              {subtitle ? (
-                <Text style={[styles.unit, { color: colors.textMuted }]} numberOfLines={1}>
-                  {subtitle}
-                </Text>
-              ) : null}
-            </View>
+            <GridName name={counter.name} subtitle={subtitle} />
             {selectionMode ? <View style={styles.gridCheck}>{check}</View> : quickAdd}
           </>
         ) : (
@@ -193,6 +180,42 @@ export function CounterCard({
           </>
         )}
       </Pressable>
+    </View>
+  );
+}
+
+/**
+ * Nombre (y grupos) de un bloque de la cuadrícula, en el hueco que dejan el icono, el total y los
+ * botones. El cuadrado tiene alto fijo: en móviles estrechos o con la letra del sistema grande no
+ * siempre cabe todo, y antes la línea de los grupos se salía por encima de los botones. Ahora el
+ * hueco recorta lo que sobra y la línea de los grupos solo sale si cabe entera.
+ */
+function GridName({ name, subtitle }: { name: string; subtitle: string }) {
+  const colors = useThemeColors();
+  const [space, setSpace] = useState(0);
+  const [nameHeight, setNameHeight] = useState(0);
+  const [subtitleHeight, setSubtitleHeight] = useState(0);
+  const fits = space > 0 && nameHeight + 2 + subtitleHeight <= space;
+  return (
+    <View style={styles.gridName} onLayout={(e) => setSpace(e.nativeEvent.layout.height)}>
+      {/* Con el icono grande, si hay línea de grupos el nombre ocupa una sola línea para que
+          todo quepa en el cuadrado. */}
+      <Text
+        style={[styles.nameText, { color: colors.text }]}
+        numberOfLines={subtitle ? 1 : 2}
+        onLayout={(e) => setNameHeight(e.nativeEvent.layout.height)}
+      >
+        {name}
+      </Text>
+      {subtitle ? (
+        <Text
+          style={[styles.unit, { color: colors.textMuted }, !fits && styles.measuring]}
+          numberOfLines={1}
+          onLayout={(e) => setSubtitleHeight(e.nativeEvent.layout.height)}
+        >
+          {subtitle}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -245,7 +268,10 @@ const styles = StyleSheet.create({
   // Sin el relleno de fuente de Android y con altura de línea ajustada: centrado de verdad.
   centered: { textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false },
   gridTotal: { ...displayFont(isCinema ? 34 : 26), lineHeight: isCinema ? 38 : 30 },
-  gridName: { flex: 1, justifyContent: 'center', gap: 2 },
+  // Ocupa lo que dejan libre el resto y recorta lo que no quepa (nunca encima de los botones).
+  gridName: { flex: 1, minHeight: 0, overflow: 'hidden', justifyContent: 'center', gap: 2 },
+  // La línea de grupos que no cabe se sigue midiendo, pero fuera del flujo y sin verse.
+  measuring: { position: 'absolute', left: 0, right: 0, opacity: 0 },
   gridCheck: { alignItems: 'flex-end' },
   name: { flex: 1, gap: 2 },
   nameText: { fontSize: 17, fontFamily: fonts.title },

@@ -640,6 +640,8 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
 submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón abajo.
 - Bloques de la cuadrícula: icono más grande (52); si hay línea de grupos, el nombre va en una
   sola línea para que todo quepa en el cuadrado.
+  El hueco del nombre (`GridName`) recorta lo que no quepa y la línea de grupos solo sale si
+  cabe entera: en móviles estrechos o con letra grande se montaba sobre los botones.
 
 - **Entrar con email o nombre de usuario** (petición del usuario; migración `20261213`): si lo
   escrito no lleva @ es un nombre de usuario y la RPC `login_email_for_username` (SECURITY
@@ -743,6 +745,10 @@ submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón ab
 - Selector Grupos / Amigos: la píldora iluminada **se desliza** siguiendo el desplazamiento de
   las páginas (`SegmentedControl position`, una `Animated` del desplazamiento horizontal con
   native driver), en vez de saltar al cambiar.
+- Color de la pestaña activa (barra de pestañas y selector Grupos / Amigos): sigue a la píldora,
+  no al índice. En la barra, cada icono tiene su versión dorada encima con la opacidad según
+  `position`; en Social, el selector ya no cambia con el desplazamiento (se marca al tocar).
+  Antes el color parpadeaba: se encendía, se apagaba un momento y volvía.
 - Fotos de contador en el perfil de otros (migración `20261215`): `get_user_counters` devuelve
   `photo_path` y `can_see_counter_photo` deja ver también las de los contadores de grupos con
   algún amigo dentro (los que enseña su perfil).

@@ -11,8 +11,6 @@ import {
   StyleSheet,
   useWindowDimensions,
   View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
 } from 'react-native';
 
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -66,16 +64,14 @@ export default function SocialScreen() {
     return () => tabPosition.removeListener(id);
   }, [tabPosition, width, tab]);
 
-  /** Tocar el selector: la subpestaña se desliza a su sitio (es la única forma de cambiarla). */
+  /**
+   * Tocar el selector: la subpestaña se desliza a su sitio (es la única forma de cambiarla). La
+   * elegida queda marcada desde el toque; el desplazamiento ya no la cambia (antes, al empezar a
+   * moverse, volvía un momento a la de antes y el color parpadeaba).
+   */
   function selectTab(next: Tab) {
     setTab(next);
     pager.current?.scrollTo({ x: next === 'groups' ? 0 : width, animated: true });
-  }
-
-  /** Mientras se desliza la subpestaña, el selector cambia en cuanto se pasa la mitad. */
-  function onPagerScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const next: Tab = e.nativeEvent.contentOffset.x > width / 2 ? 'friends' : 'groups';
-    if (next !== tab) setTab(next);
   }
 
   const refreshControl = (
@@ -144,7 +140,6 @@ export default function SocialScreen() {
         showsHorizontalScrollIndicator={false}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
           useNativeDriver: true,
-          listener: onPagerScroll,
         })}
         scrollEventThrottle={16}
         // Grupos y Amigos se cambian solo con el selector (petición del usuario): deslizar el dedo

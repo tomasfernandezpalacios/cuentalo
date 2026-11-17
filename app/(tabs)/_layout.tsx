@@ -77,7 +77,14 @@ function CinemaTabBar({
           {buttons.map((route, index) => {
             const options = optionsOf(route.key);
             const selected = index === activeSlot;
-            const color = selected ? colors.primary : colors.textMuted;
+            // El dorado del icono sigue a la píldora (`position`), no al índice: mientras el
+            // deslizador se asienta el índice puede pasar un momento por otra pestaña y el color
+            // parpadeaba. Así se enciende al llegar la píldora y se queda.
+            const lit = position.interpolate({
+              inputRange: [index - 1, index, index + 1],
+              outputRange: [0, 1, 0],
+              extrapolate: 'clamp',
+            });
             return (
               <Pressable
                 key={route.key}
@@ -90,7 +97,14 @@ function CinemaTabBar({
                 style={styles.item}
               >
                 <View>
-                  {options?.icon ? <Ionicons name={options.icon} size={24} color={color} /> : null}
+                  {options?.icon ? (
+                    <>
+                      <Ionicons name={options.icon} size={24} color={colors.textMuted} />
+                      <Animated.View style={[StyleSheet.absoluteFill, { opacity: lit }]}>
+                        <Ionicons name={options.icon} size={24} color={colors.primary} />
+                      </Animated.View>
+                    </>
+                  ) : null}
                   {options?.tabBarBadge ? (
                     <View style={styles.badge}>{options.tabBarBadge()}</View>
                   ) : null}
