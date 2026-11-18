@@ -787,10 +787,13 @@ begin
      and n.actor_id = p_actor
      and n.visible_from > now();
 
+  -- El aviso de quien suma («Has sumado…») nace leído: está en su lista, pero no enciende el
+  -- punto rojo (migración 20261219120000).
   insert into public.notifications
-    (user_id, kind, actor_id, actor_name, counter_id, counter_name, group_name, amount, visible_from)
+    (user_id, kind, actor_id, actor_name, counter_id, counter_name, group_name, amount,
+     visible_from, read_at)
   select m.user_id, 'group_activity', p_actor, v_actor_name, p_counter_id, v_counter_name,
-         v_group_name, p_amount, v_until
+         v_group_name, p_amount, v_until, case when m.user_id = p_actor then now() end
     from public.group_members m
    where m.group_id = v_group
      and m.status = 'active'

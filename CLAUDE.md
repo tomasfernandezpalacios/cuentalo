@@ -320,7 +320,15 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   contador, de amistad e invitaciones), avisos (`notifications`: amistad aceptada, solicitud
   aceptada/rechazada, contador o grupo borrado) e historial de solicitudes de amistad. Punto
   rojo en el icono y en la pestaña mientras haya algo pendiente o sin leer (`useInboxCount`);
-  los avisos se marcan como leídos al abrir el buzón. Un rechazo de amistad no se avisa. Al
+  los avisos se marcan como leídos al abrir el buzón. Un rechazo de amistad no se avisa.
+  **Punto rojo que guía** (petición del usuario, 2026-11-18): pestaña Social → sobre del buzón →
+  pestaña «Pendientes» o «Avisos» (su punto se ve aunque esté elegida) → el aviso nuevo,
+  resaltado (fondo suave y borde del color de la app, punto rojo y «Nuevo»). Al ver la pestaña
+  «Avisos» se marcan leídos **solo los que se ven** (`markNoticesRead(ids)`) y el punto se va al
+  momento, pero siguen resaltados mientras el buzón está abierto (`markRead.variables`); la
+  próxima vez salen como los demás. Al abrir el buzón se vuelve a pedir todo (nada de puntos con
+  datos viejos). El aviso de tus propias sumas en grupo («Has sumado…») nace leído (migración
+  `20261219120000`): antes encendía el punto por algo que habías hecho tú. Al
   aceptar una amistad avisan a los dos (migración `20261205`): `friend_accepted` a quien la
   envió y `friend_you_accepted` a quien la acepta.
 - **Avisos de actividad en grupo** (petición del usuario; migración `20261207`): al sumar o

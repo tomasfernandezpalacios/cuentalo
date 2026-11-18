@@ -395,10 +395,13 @@ export async function decideCounterRequest(id: string, approve: boolean): Promis
   if (error) throw error;
 }
 
-export async function markNoticesRead(): Promise<void> {
+/** Marca como leídos estos avisos (solo los que se han visto, no los que lleguen después). */
+export async function markNoticesRead(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
   const { error } = await supabase
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
+    .in('id', ids)
     .is('read_at', null);
   if (error) throw error;
 }

@@ -272,17 +272,20 @@ export function useDecideCounterRequest() {
   });
 }
 
-/** Al abrir el buzón, los avisos dejan de contar como nuevos al instante (adiós punto rojo). */
+/**
+ * Al ver la pestaña «Avisos», los que se ven dejan de contar como nuevos al instante (adiós punto
+ * rojo). La pantalla los sigue resaltando mientras está abierta (con `variables`).
+ */
 export function useMarkNoticesRead() {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return useMutation({
     mutationFn: markNoticesRead,
-    ...optimisticHandlers(queryClient, async () => {
+    ...optimisticHandlers(queryClient, async (ids: string[]) => {
       const now = new Date().toISOString();
       return [
         await optimistic<Notice[]>(queryClient, socialKeys.notices(userId), (list) =>
-          list.map((n) => (n.read_at ? n : { ...n, read_at: now })),
+          list.map((n) => (n.read_at || !ids.includes(n.id) ? n : { ...n, read_at: now })),
         ),
       ];
     }),

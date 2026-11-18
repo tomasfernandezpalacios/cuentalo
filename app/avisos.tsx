@@ -105,9 +105,24 @@ export default function InboxScreen() {
     (requests.data ?? []).length;
   const tab: Tab = chosenTab ?? (pendingTotal === 0 && unread > 0 ? 'notices' : 'pending');
 
-  // Los avisos se dan por leídos al ver su pestaña (los pendientes siguen hasta responderlos).
+  // Al abrir el buzón se vuelve a preguntar al servidor: el punto rojo nunca se queda con datos
+  // viejos (un aviso ya leído o una solicitud ya respondida).
   useEffect(() => {
-    if (tab === 'notices' && unread > 0) markRead.mutate();
+    friendships.refetch();
+    groups.refetch();
+    requests.refetch();
+    notices.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir el buzón
+  }, []);
+
+  // Los avisos se dan por leídos al ver su pestaña (los pendientes siguen hasta responderlos):
+  // solo los que se ven, y el punto rojo se va al momento. Mientras el buzón sigue abierto, los
+  // que eran nuevos salen resaltados (`markRead.variables`); la próxima vez, como los demás.
+  const unreadIds = (notices.data ?? []).filter((n) => n.read_at === null).map((n) => n.id);
+  const highlighted = new Set([...(markRead.variables ?? []), ...unreadIds]);
+  useEffect(() => {
+    if (tab !== 'notices' || unreadIds.length === 0) return;
+    markRead.mutate([...new Set([...(markRead.variables ?? []), ...unreadIds])]);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar pestaña o número
   }, [tab, unread]);
 
@@ -171,9 +186,7 @@ export default function InboxScreen() {
               >
                 {t.label}
               </Text>
-              {t.dot && !selected ? (
-                <View style={[styles.tabDot, { backgroundColor: colors.danger }]} />
-              ) : null}
+              {t.dot ? <View style={[styles.tabDot, { backgroundColor: colors.danger }]} /> : null}
             </Pressable>
           );
         })}
@@ -302,22 +315,38 @@ export default function InboxScreen() {
                 Todavía no tienes avisos.
               </Text>
             ) : (
-              (notices.data ?? []).map((n) => (
-                <View key={n.id} style={[styles.notice, { borderBottomColor: colors.border }]}>
+              (notices.data ?? []).map((n) => {
+                // Nuevo: resaltado con el color de la app y su punto rojo.
+                const isNew = highlighted.has(n.id);
+                return (
                   <View
+                    key={n.id}
+                    accessibilityLabel={isNew ? `Nuevo. ${noticeText(n)}` : undefined}
                     style={[
-                      styles.dot,
-                      { backgroundColor: n.read_at === null ? colors.danger : 'transparent' },
+                      styles.notice,
+                      { borderBottomColor: colors.border },
+                      isNew && [
+                        styles.noticeNew,
+                        { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+                      ],
                     ]}
-                  />
-                  <View style={styles.flex}>
-                    <Text style={[styles.text, { color: colors.text }]}>{noticeText(n)}</Text>
-                    <Text style={[styles.muted, { color: colors.textMuted }]}>
-                      {formatDateTime(n.created_at)}
-                    </Text>
+                  >
+                    <View
+                      style={[
+                        styles.dot,
+                        { backgroundColor: isNew ? colors.danger : 'transparent' },
+                      ]}
+                    />
+                    <View style={styles.flex}>
+                      <Text style={[styles.text, { color: colors.text }]}>{noticeText(n)}</Text>
+                      <Text style={[styles.muted, { color: colors.textMuted }]}>
+                        {isNew ? 'Nuevo · ' : ''}
+                        {formatDateTime(n.created_at)}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              ))
+                );
+              })
             )}
           </View>
         ) : null}
@@ -379,6 +408,14 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  // Aviso nuevo: tarjeta del color suave de la app (sin línea de abajo, con borde).
+  noticeNew: {
+    borderBottomWidth: 1,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    marginVertical: 3,
   },
   dot: { width: 8, height: 8, borderRadius: 4, marginTop: 7 },
 });
