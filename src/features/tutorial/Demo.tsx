@@ -35,6 +35,8 @@ import { demoGesture, registerTarget, unregisterTarget } from './store';
 
 const HEADER = 64;
 const TAB_BAR = 64;
+/** El + de la cabecera (como en la app). */
+const ADD_SIZE = 46;
 
 /** Etiquetas para el lector de pantalla de lo que se puede tocar en la demostración. */
 const LABELS: Partial<Record<TargetId, string>> = {
@@ -55,11 +57,14 @@ function DemoTarget({
   id,
   gesture,
   style,
+  fill = false,
   children,
 }: {
   id: TargetId;
   gesture?: 'tap' | 'hold';
   style?: StyleProp<ViewStyle>;
+  /** La zona táctil ocupa todo el elemento (cuando tiene un tamaño fijo mayor que lo de dentro). */
+  fill?: boolean;
   children: ReactNode;
 }) {
   const ref = useAnimatedRef<Animated.View>();
@@ -76,7 +81,7 @@ function DemoTarget({
           delayLongPress={350}
           accessibilityRole="button"
           accessibilityLabel={LABELS[id]}
-          style={({ pressed }) => ({ flexGrow: 1, opacity: pressed ? 0.8 : 1 })}
+          style={({ pressed }) => [fill && styles.fill, { opacity: pressed ? 0.8 : 1 }]}
         >
           {children}
         </Pressable>
@@ -152,12 +157,12 @@ export const Demo = memo(function Demo({ stepId, scene, scenes }: Props) {
           <TabIcon icon="add-circle-outline" active={activeTab === 0} colors={colors} />
           {/* Lo que se ilumina de cada pestaña es su píldora (la forma de la barra). */}
           <View style={styles.tab}>
-            <DemoTarget id="tab-estadisticas" gesture="tap" style={styles.tabTarget}>
+            <DemoTarget id="tab-estadisticas" gesture="tap" fill style={styles.tabTarget}>
               <TabIcon icon="bar-chart-outline" active={activeTab === 1} colors={colors} />
             </DemoTarget>
           </View>
           <View style={styles.tab}>
-            <DemoTarget id="tab-social" gesture="tap" style={styles.tabTarget}>
+            <DemoTarget id="tab-social" gesture="tap" fill style={styles.tabTarget}>
               <TabIcon icon="people-outline" active={activeTab === 2} colors={colors} />
             </DemoTarget>
           </View>
@@ -275,7 +280,8 @@ function HomeScene({
         <View style={styles.headerActions}>
           {filters}
           {empty ? (
-            <DemoTarget id="nuevo-contador" gesture="tap">
+            // Con el tamaño exacto del botón: el foco es un círculo justo a su alrededor.
+            <DemoTarget id="nuevo-contador" gesture="tap" style={styles.addTarget}>
               <AddButton colors={colors} />
             </DemoTarget>
           ) : (
@@ -547,10 +553,12 @@ const styles = StyleSheet.create({
   selectionTitle: { flex: 1, fontSize: 18, fontFamily: fonts.title },
   tools: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 2 },
   back: { marginRight: -4 },
+  fill: { flex: 1 },
+  addTarget: { width: ADD_SIZE, height: ADD_SIZE },
   addButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: ADD_SIZE,
+    height: ADD_SIZE,
+    borderRadius: ADD_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
