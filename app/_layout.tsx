@@ -15,12 +15,12 @@ import { usePendingInvite } from '@/features/social/pendingInvite';
 import { TutorialHost } from '@/features/tutorial/TutorialHost';
 import { useTutorialAutoStart } from '@/features/tutorial/useTutorialAutoStart';
 import { usePrefetchMain } from '@/lib/prefetch';
-import { fontsFor } from '@/lib/fontSources';
+import { appFonts } from '@/lib/fontSources';
 import { isEntryChange, offlinePersister, setupOffline } from '@/lib/offline';
 import { queryClient } from '@/lib/queryClient';
 import { HeaderTitle } from '@/components/HeaderTitle';
 import { TitleMeasurer, useScreenTitleSize } from '@/lib/screenTitle';
-import { headerOptions, isCinema, typography, useColorMode, useThemeColors } from '@/lib/theme';
+import { headerOptions, isCinema, useColorMode, useThemeColors } from '@/lib/theme';
 
 // La pantalla de carga (icono sobre fondo liso, ver app.json) se mantiene hasta tener las
 // fuentes y saber si hay sesión, para no enseñar un parpadeo de pantallas a medio cargar.
@@ -28,7 +28,6 @@ import { headerOptions, isCinema, typography, useColorMode, useThemeColors } fro
 setupOffline(queryClient);
 
 // Solo las cuatro letras de la tipografía elegida (se fija al arrancar, src/lib/theme.ts).
-const startupFonts = fontsFor(typography);
 
 SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ fade: true, duration: 200 });
@@ -119,6 +118,8 @@ function RootNavigator() {
           options={{ title: 'Gráfica de Estadísticas' }}
         />
         <Stack.Screen name="configuracion/privacidad" options={{ title: 'Privacidad y datos' }} />
+        <Stack.Screen name="configuracion/bloqueados" options={{ title: 'Usuarios bloqueados' }} />
+        <Stack.Screen name="denunciar" options={{ title: 'Denunciar', presentation: 'modal' }} />
         <Stack.Screen name="nueva-contrasena" options={{ title: 'Nueva contraseña' }} />
         <Stack.Screen
           name="perfil/editar"
@@ -144,7 +145,7 @@ function ThemedStatusBar() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts(startupFonts);
+  const [fontsLoaded, fontError] = useFonts(appFonts);
 
   // Si las fuentes fallan seguimos con las del sistema en vez de bloquear la app.
   if (!fontsLoaded && !fontError) return null;

@@ -1,4 +1,4 @@
-// Cuentas de color (funciones puras) para el color de acento personalizado.
+// Cuentas de color (funciones puras).
 
 export type Hsv = { h: number; s: number; v: number };
 type Rgb = [number, number, number];
@@ -56,50 +56,6 @@ function luminance(hex: string): number {
 export function contrastRatio(a: string, b: string): number {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
   return (hi + 0.05) / (lo + 0.05);
-}
-
-/** Mezcla `hex` con `toward` (0 = nada, 1 = todo `toward`). */
-function mix(hex: string, toward: string, amount: number): string {
-  const a = hexToRgb(hex);
-  const b = hexToRgb(toward);
-  return rgbToHex(a.map((c, i) => c + ((b[i] ?? 0) - c) * amount) as Rgb);
-}
-
-/**
- * Oscurece (`toward` negro) o aclara (blanco) el color poco a poco hasta que tenga un contraste
- * AA (≥ 4,5) con `against`, el color del texto de los botones.
- */
-function withContrast(hex: string, against: string, toward: string): string {
-  for (let step = 0; step <= 20; step++) {
-    const candidate = mix(hex, toward, step / 20);
-    if (contrastRatio(candidate, against) >= 4.5) return candidate;
-  }
-  return toward;
-}
-
-/**
- * Del color elegido salen los de los dos modos, como los de serie: `primary` (botones, con texto
- * encima legible) y `primarySoft` (fondos suaves).
- */
-export function customAccent(
-  hex: string,
-  base: {
-    lightBackground: string;
-    darkBackground: string;
-    lightOnPrimary: string;
-    darkOnPrimary: string;
-  },
-) {
-  return {
-    light: {
-      primary: withContrast(hex, base.lightOnPrimary, '#000000'),
-      primarySoft: mix(hex, base.lightBackground, 0.86),
-    },
-    dark: {
-      primary: withContrast(hex, base.darkOnPrimary, '#FFFFFF'),
-      primarySoft: mix(hex, base.darkBackground, 0.8),
-    },
-  };
 }
 
 /** El mismo color con transparencia (0–1), como rgba(); si no es #RRGGBB, se devuelve tal cual. */

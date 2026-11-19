@@ -1,4 +1,4 @@
-import { isCinema, startAccent } from './theme';
+import { isCinema } from './theme';
 
 // Colores para distinguir contadores en las gráficas. Elegidos para verse bien sobre fondo claro
 // y oscuro y distinguirse entre sí; el primero es el morado de la app. En el estilo Cine, el
@@ -31,8 +31,7 @@ const CLASSIC_COLORS = [
 ];
 
 const BASE_COLORS = isCinema ? CINEMA_COLORS : CLASSIC_COLORS;
-// Con una paleta de prueba, la primera serie va en su color de destaque.
-export const CHART_COLORS = startAccent ? [startAccent, ...BASE_COLORS.slice(1)] : BASE_COLORS;
+export const CHART_COLORS = BASE_COLORS;
 
 /** Color estable para la posición `index` (se repiten si hay más contadores que colores). */
 export function chartColor(index: number): string {

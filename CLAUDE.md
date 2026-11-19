@@ -100,6 +100,12 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   comunes (`comprobaciones.mjs`). Informe por ejecución en `scripts/bots/informes/` y lista
   acumulada en `hallazgos.md`. `npm run bots:limpiar` borra las cuentas (delete_my_account).
   Las cuentas las crea el usuario al ejecutarlo (Claude no crea cuentas en servicios reales).
+- **Bots con vida** (petición del usuario, 2026-11-14; `scripts/bots/vida/`, ver su README):
+  las mismas cinco cuentas pasan a ser Lucía, Marcos, Sofía, Daniel y Carla, con dos meses de
+  historia coherente desde el 14-09-2026 (`mundo.mjs`), tres grupos (Gimnasio, Piso Lavapiés,
+  Club de lectura) y solicitudes de amistad a `tomasito1889`. `npm run bots:vida` los pone al
+  día; lo lanza cada noche la tarea de Windows «Cuentalo bots» (21:30). No ejecutar `npm run
+  bots` (el modo al azar) sobre ellas: desordena ese mundo.
 - Petición del usuario (tras la Fase 2): la tarjeta de la lista es «nombre · +1 +5 −1 · total»
   (el +10 se quitó a petición del usuario), sin número de registros; mantener pulsado +1 abre otra cantidad. El detalle tiene los
   mismos botones más «Otra». Las actualizaciones optimistas tocan lista y detalle a la vez.
@@ -204,10 +210,7 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   registros de los demás. Doble confirmación en la app; después `signOut({ scope: 'local' })`.
 - Fase 5: perfil con nombre, @usuario, email (solo lo ve uno mismo), grupos, editar perfil,
   cerrar sesión y eliminar cuenta.
-- Icono «+1» en Instrument Serif dorado (`#E9C46A`) sobre negro cálido (`#0B0A09`), estilo
-  Cine; adaptativo de Android con fondo `#0B0A09` y la pantalla de carga en dorado medio sobre
-  `#F3EEE4` (claro) o `#0B0A09` (oscuro). Se genera con `python scripts/generar-icono.py`
-  (Pillow): rehacerlo si cambian colores o letra. (Antes: «+1» Ubuntu Bold sobre `#5B4BDB`.) Splash con `expo-splash-screen`: se mantiene hasta tener las
+- **Logotipo e icono de Kuentio** (la app se llamará Kuentio., petición del usuario): «Kuentio.» en Fraunces ExtraBold con el punto en dorado. El icono es el logotipo **entero** (decisión del usuario, «en principio») sobre **fondo dorado** para que destaque entre los iconos del móvil, todo con colores de Cine: fondo dorado `#E9C46A`, nombre en negro `#0B0A09` y punto en el dorado oscuro de la app `#7E611B` (`cinemaPalette.light.primary`); adaptativo de Android con fondo dorado. (Se probaron antes hueso y dorado sobre negro y tinta sobre papel `#F3EEE4`.) Notificaciones: «K.» en blanco (`notification-icon.png`; el logotipo no se leería). Pantalla de carga: el logotipo sin fondo, tinta `#1A1714` y punto `#7E611B` en claro (`splash-icon.png`) y hueso y dorado en oscuro (`splash-icon-dark.png`). Descartados: «K.», «+K», un + solo, «+.», K de palotes, + que se abre en K, el punto solo, el punto con +, palotes de cinco, puntos que crecen, «+1» y contador mecánico. Se genera con `python scripts/generar-icono.py` (Pillow): rehacerlo si cambian colores o letra. (Antes: «+1» Ubuntu Bold sobre `#5B4BDB`.) Splash con `expo-splash-screen`: se mantiene hasta tener las
   fuentes y la sesión; fondo claro/oscuro según el sistema.
 - Fase 5: un enlace de invitación abierto sin sesión se recuerda (`usePendingInvite`) y se abre
   tras iniciar sesión.
@@ -326,7 +329,9 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   resaltado (fondo suave y borde del color de la app, punto rojo y «Nuevo»). Al ver la pestaña
   «Avisos» se marcan leídos **solo los que se ven** (`markNoticesRead(ids)`) y el punto se va al
   momento, pero siguen resaltados mientras el buzón está abierto (`markRead.variables`); la
-  próxima vez salen como los demás. Al abrir el buzón se vuelve a pedir todo (nada de puntos con
+  próxima vez salen como los demás. El punto de la pestaña «Avisos» también sigue mientras haya
+  avisos resaltados (con un anillo del color de la barra para verse sobre la pestaña elegida), y
+  el aviso resaltado lleva el borde también por abajo (`borderBottomColor`). Al abrir el buzón se vuelve a pedir todo (nada de puntos con
   datos viejos). El aviso de tus propias sumas en grupo («Has sumado…») nace leído (migración
   `20261219120000`): antes encendía el punto por algo que habías hecho tú. Al
   aceptar una amistad avisan a los dos (migración `20261205`): `friend_accepted` a quien la
@@ -417,7 +422,7 @@ la zona horaria del móvil (ver «Hora del móvil» abajo).
   persona con + para enviarle solicitud; si me la envió él (o la rechacé), la acepta; si se la
   envié yo, un reloj.
 
-- **Formato racha** en contadores (petición del usuario, p. ej. «días sin fumar»; individuales
+- **(Sustituido: ver «Racha en todos los contadores» más abajo.)** **Formato racha** en contadores (petición del usuario, p. ej. «días sin fumar»; individuales
   y de grupo): casilla «🔥 Formato racha» (`counters.streak_enabled`). El contador **no** vuelve
   a 0: cuenta como uno normal y además lleva una racha de **días** seguidos (Madrid) en los que
   lo sumado en el día es +1 o más; un día que no llega rompe la racha (no el contador). La de
@@ -882,6 +887,42 @@ submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón ab
   pestañas y lanza `celebrateStreak(actual, actual + 1)` sin guardar nada). Quitarlo cuando el
   usuario dé el visto bueno.
 
+- **Preparación legal** (2026-11-17; análisis en `docs/legal/2026-11-17-analisis-legal.md`,
+  migración `20261218120000`):
+  - **Web legal** en `web/` (privacidad, condiciones, aviso legal; HTML estático) publicada con
+    GitHub Pages por `.github/workflows/web.yml` (hay que activar Pages → «GitHub Actions» una
+    vez). URL en `LEGAL_BASE_URL` (`src/features/legal/legal.ts`). Los datos del titular (nombre,
+    email, domicilio, NIF) están marcados `[EN AMARILLO]` hasta que el usuario los rellene. Si
+    cambia algo que la política describe (datos, quién los ve, plazos, proveedores), actualizarla
+    y subir `TERMS_VERSION`.
+  - **Registro**: fecha de nacimiento obligatoria (edad mínima `MIN_AGE` = 14, art. 7 LOPDGDD; hay
+    un proyecto de ley que la subiría a 16: cambiarla en `legal.ts` y en `public.minimum_age()`) y
+    casilla de aceptar condiciones y política. `handle_new_user` lo vuelve a comprobar y guarda
+    `birth_date`, `terms_accepted_at` y `terms_version` en `profile_private` (sin ellos no se crea
+    la cuenta, tampoco desde el panel de Supabase sin esos metadatos). Los bots los mandan.
+  - **Bloquear** (`user_blocks`, RPC `block_user`; Apple 1.2 y DSA): desde «…» en el perfil de
+    otro. Borra la amistad y las invitaciones entre los dos; un trigger (`check_not_blocked`)
+    impide solicitudes e invitaciones; no salen en sugerencias ni en la búsqueda. Los grupos
+    compartidos siguen igual. Lista y «Desbloquear» en Configuración → Privacidad →
+    `app/configuracion/bloqueados.tsx`. Al bloquear, quien bloquea recibe en el buzón el aviso
+    `user_blocked` («Has bloqueado a X», nace leído; migración `20261220120000`) y al final de
+    Amigos hay un desplegable «Bloqueados (N)» cerrado, como «Ocultos», con «Desbloquear»
+    (petición del usuario).
+  - **Denunciar** (`reports`, RPC `report_content`, 20 al día): usuario (menú «…» del perfil) o
+    grupo (botón abajo en el grupo, si no eres el líder) → `app/denunciar.tsx`. La app no puede
+    leerlas; se revisan en el panel de Supabase (tabla `reports`, con copia de lo denunciado).
+  - **Agenda**: `pg_cron` borra cada noche (`borrar-resumenes-de-agenda`, 03:15) los
+    `contact_lookups` de días anteriores y los `login_attempts` de más de un día.
+  - Configuración → Información enlaza la política, las condiciones y el aviso legal.
+
+- **Apariencia definitiva** (petición del usuario, 2026-11-19): en Configuración → Apariencia
+  solo queda **Tema** (automático, claro, oscuro). Se quitaron las paletas de prueba, las
+  tipografías de prueba y los colores de destaque: el color es siempre el dorado de Cine y la
+  tipografía es siempre Fraunces ExtraBold + Plus Jakarta Sans (`src/lib/typography.ts`, letras
+  en `src/lib/fontSources.ts`). El claro es el papel cálido de Cine con el mismo dorado. Todo lo
+  quitado (paletas, selectores, colores de destaque, otras tipografías) está en la etiqueta de
+  Git `opciones-apariencia`.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)
@@ -912,3 +953,27 @@ submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón ab
     primera publicación**; después es para siempre), `versionCode`/`buildNumber`,
     `WRITE_CONTACTS` bloqueado (solo se lee la agenda), plugin de `expo-notifications` con el
     icono monocromo y `eas.json` básico.
+
+- **Racha en todos los contadores** (petición del usuario, 2026-11-19; migración
+  `20261221120000`): ya no existe el «Formato racha» (`counters.streak_enabled` borrada). Todos
+  los contadores tienen mi racha: días seguidos en los que lo sumado ese día es +1 o más
+  (`my_counter_streaks` para todos). Casilla **«🔥 Mostrar racha»** en crear/editar (desmarcada
+  de serie, ⓘ `ShowStreakInfo`), **personal**: tabla `shown_counter_streaks` (como
+  `hidden_counters`; viene en `get_my_home` como `streak_shown`, campo `showStreak`). Con ella,
+  la racha sale **a la derecha del nombre** en «Mis contadores» (filas y bloques, `NameStreak`),
+  hay recordatorio de ese contador, aviso «Perderías la racha» al restar y «🔥 N días» en la
+  clasificación del grupo. En el detalle sale **siempre** junto al nombre de la cabecera
+  (`HeaderTitle badge`) y debajo del total el récord. Los botones de la tarjeta vuelven a ser
+  los de siempre en todos. Quien veía la racha de un antiguo «formato racha» la sigue viendo.
+  Además, en el detalle de cualquier contador, bajo el récord, hay una casilla «Mostrar racha en
+  Mis contadores» (`useSetStreakShown`, optimista): así la marca también quien no administra un
+  contador de grupo (no abre su formulario). Es de cada uno, nunca cambia la de los demás.
+  La racha del contador cambia **al instante** con +N/−1, como el total (`bumpStreak` en
+  `streakOptimistic.ts`, con tests, aplicado en `applyOptimistic` vía `withStreak`; solo si el
+  registro es de hoy): la primera suma del día la alarga y la ilumina, y un −1 que deja hoy por
+  debajo de +1 la devuelve a lo de ayer. El servidor la corrige al acabar la ráfaga.
+- **Calendario del año** en el detalle de cada contador (petición del usuario), entre
+  «Evolución» y el historial (o la clasificación): `CounterYearCalendar`, una fila por mes y un
+  cuadrado por día (365/366), iluminado si ese día registré algo en él (da igual la cantidad;
+  sale de `useMyDailyTotals`), hoy con borde, días futuros apagados y flechas para años
+  anteriores (desde el primer registro). Cálculos en `yearGrid.ts` (con tests).

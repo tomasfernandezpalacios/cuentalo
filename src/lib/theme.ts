@@ -1,43 +1,15 @@
 import { Appearance, useColorScheme } from 'react-native';
 
-import { type AccentName, getSettings, useSettings } from '@/features/configuracion/settings';
+import { getSettings, useSettings } from '@/features/configuracion/settings';
 import { withAlpha } from '@/lib/color';
-import { PALETTES } from '@/lib/palettes';
-import { TYPOGRAPHIES } from '@/lib/typography';
+import { typography } from '@/lib/typography';
 
-const palette = {
-  light: {
-    background: '#F7F7FA',
-    surface: '#FFFFFF',
-    text: '#14141A',
-    textMuted: '#6B6B78',
-    border: '#E4E4EC',
-    elevated: '#FFFFFF',
-    primary: '#5B4BDB',
-    primarySoft: '#ECE9FC',
-    flame: '#F2711C',
-    onPrimary: '#FFFFFF',
-    danger: '#D93A3A',
-  },
-  dark: {
-    background: '#0E0E12',
-    surface: '#1A1A21',
-    text: '#F2F2F5',
-    textMuted: '#9A9AA8',
-    border: '#2A2A33',
-    elevated: '#1A1A21',
-    primary: '#8B7DFF',
-    primarySoft: '#262240',
-    flame: '#FF8A3D',
-    onPrimary: '#0E0E12',
-    danger: '#FF6B6B',
-  },
-};
+export { typography };
 
 /**
  * Estilo de la app: «Cine» (decisión del usuario, es el único). Cálido y editorial: serif para
  * títulos y cifras, Redaction 10 para el resto, tarjetas muy redondeadas, botones en píldora.
- * Claro u oscuro y con el color de destaque que se elija (dorado de serie).
+ * Claro u oscuro (Configuración → Tema); dorado como único color de destaque.
  *
  * El estilo anterior («clásico», morado) sigue en las ramas `isCinema ? … : …` por si hiciera
  * falta volver, y entero en las etiquetas de Git `diseno-clasico` (antes de Cine) y
@@ -48,7 +20,7 @@ export const isCinema = true;
 /**
  * Paletas de Cine. Oscuro: «cuaderno de noche con luz de lámpara» (negro cálido, blanco hueso).
  * Claro: papel cálido (nunca blanco puro) con tinta casi negra. El color de destaque se añade
- * encima (accents).
+ * encima.
  */
 const cinemaPalette = {
   light: {
@@ -89,20 +61,8 @@ const startMode: 'light' | 'dark' = (() => {
   return Appearance.getColorScheme() === 'light' ? 'light' : 'dark';
 })();
 
-/**
- * Color del texto con el que arrancó la app (para el engrosado de la serif, que se calcula una
- * vez): el de la paleta de prueba, si hay una, o el de Cine en su modo.
- */
-// Una paleta que no existe (o ajustes sin ella) cuenta como la de siempre.
-const startPalette = PALETTES[getSettings().palette as keyof typeof PALETTES]
-  ? (getSettings().palette as keyof typeof PALETTES)
-  : 'cine';
-const startText =
-  startPalette !== 'cine' ? PALETTES[startPalette].colors.text : cinemaPalette[startMode].text;
-
-/** Color de destaque con el que arrancó la app (primera serie de las gráficas). */
-export const startAccent =
-  startPalette !== 'cine' ? PALETTES[startPalette].colors.primary : undefined;
+/** Color del texto con el que arrancó la app (para el engrosado de la serif, que se calcula una vez). */
+const startText = cinemaPalette[startMode].text;
 
 /**
  * Tipografías (cargadas en app/_layout.tsx). Con fuentes personalizadas no se usa
@@ -113,9 +73,6 @@ export const startAccent =
  *   Serif, el toque editorial).
  * - prose: explicaciones largas y avisos (clásico: Redaction; cine: Instrument Serif itálica).
  */
-/** Combinación de tipografías elegida (Configuración → «Tipografía (prueba)»), fija al arrancar. */
-export const typography = TYPOGRAPHIES[getSettings().typography] ?? TYPOGRAPHIES.editorial;
-
 export const fonts = isCinema
   ? typography.fonts
   : ({
@@ -253,66 +210,16 @@ export const shape = isCinema
   ? { card: 24, button: 999, chip: 999 }
   : { card: 16, button: 12, chip: 18 };
 
-export type ThemeColors = typeof palette.light;
-
-type AccentColors = Pick<ThemeColors, 'primary' | 'primarySoft'>;
-
-/**
- * Colores de destaque de Configuración: seis clásicos y sobrios (el dorado es el de serie). Todos
- * tienen un contraste de al menos 4,5:1 con el texto de los botones (AA) en su modo.
- */
-export const accents: Record<
-  AccentName,
-  { label: string; light: AccentColors; dark: AccentColors }
-> = {
-  dorado: {
-    label: 'Dorado (recomendado)',
-    light: { primary: cinemaPalette.light.primary, primarySoft: cinemaPalette.light.primarySoft },
-    dark: { primary: cinemaPalette.dark.primary, primarySoft: cinemaPalette.dark.primarySoft },
-  },
-  burdeos: {
-    label: 'Burdeos',
-    light: { primary: '#7A2333', primarySoft: '#F0DEDF' },
-    dark: { primary: '#D27A86', primarySoft: '#2E1A1D' },
-  },
-  verde: {
-    label: 'Verde inglés',
-    light: { primary: '#2F5D46', primarySoft: '#DDE8DF' },
-    dark: { primary: '#8DBF9E', primarySoft: '#18261D' },
-  },
-  azul: {
-    label: 'Azul tinta',
-    light: { primary: '#2C4A72', primarySoft: '#DCE3EE' },
-    dark: { primary: '#8FAFD6', primarySoft: '#17202D' },
-  },
-  terracota: {
-    label: 'Terracota',
-    light: { primary: '#9E452B', primarySoft: '#F3E0D7' },
-    dark: { primary: '#E0896A', primarySoft: '#2D1B14' },
-  },
-  plata: {
-    label: 'Plata',
-    light: { primary: '#55565A', primarySoft: '#E3E2DE' },
-    dark: { primary: '#C8C6C0', primarySoft: '#232220' },
-  },
-};
+export type ThemeColors = typeof cinemaPalette.light;
 
 /** 'light' o 'dark' según el ajuste de tema (o el del sistema si es automático). */
 export function useColorMode(): 'light' | 'dark' {
   const system = useColorScheme();
-  const { theme, palette: paletteName } = useSettings();
-  // Una paleta de prueba decide por sí misma si es clara u oscura.
-  if (paletteName !== 'cine') return PALETTES[paletteName].mode;
+  const { theme } = useSettings();
   if (theme !== 'system') return theme;
   return system === 'dark' ? 'dark' : 'light';
 }
 
 export function useThemeColors(): ThemeColors {
-  const mode = useColorMode();
-  const { accent, palette: paletteName } = useSettings();
-  // Paleta de prueba 60-30-10: sustituye a todos los colores (tema y destaque incluidos).
-  if (paletteName !== 'cine') return PALETTES[paletteName].colors;
-  const chosen = accents[accent] ?? accents.dorado;
-  const base = isCinema ? cinemaPalette : palette;
-  return { ...base[mode], ...chosen[mode] };
+  return cinemaPalette[useColorMode()];
 }

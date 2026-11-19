@@ -12,30 +12,14 @@ describe('parseSettings', () => {
   it('mezcla lo guardado con lo que falta', () => {
     const s = parseSettings(JSON.stringify({ theme: 'dark', reminder: { enabled: true } }));
     expect(s.theme).toBe('dark');
-    expect(s.accent).toBe('dorado');
     expect(s.reminder).toEqual({ enabled: true, counters: false, hour: 21, minute: 0 });
   });
 
-  it('pasa una vez al dorado y al oscuro a quien tenía lo de antes de serie', () => {
-    const old = parseSettings(JSON.stringify({ accent: 'morado', theme: 'system' }));
-    expect(old.accent).toBe('dorado');
-    expect(old.theme).toBe('dark');
-    const chosen = parseSettings(JSON.stringify({ accent: 'azul', theme: 'light' }));
-    expect(chosen.accent).toBe('azul');
-    expect(chosen.theme).toBe('light');
-    const after = parseSettings(
-      JSON.stringify({ accent: 'burdeos', theme: 'system', cineDefaults: true }),
-    );
-    expect(after.accent).toBe('burdeos');
-    expect(after.theme).toBe('system');
-  });
-
-  it('un color que ya no existe (personalizado, morado…) vuelve al dorado', () => {
-    expect(parseSettings(JSON.stringify({ accent: 'custom', cineDefaults: true })).accent).toBe(
-      'dorado',
-    );
-    expect(parseSettings(JSON.stringify({ accent: 'rosa', cineDefaults: true })).accent).toBe(
-      'dorado',
+  it('pasa una vez al oscuro a quien tenía el tema del sistema de serie', () => {
+    expect(parseSettings(JSON.stringify({ theme: 'system' })).theme).toBe('dark');
+    expect(parseSettings(JSON.stringify({ theme: 'light' })).theme).toBe('light');
+    expect(parseSettings(JSON.stringify({ theme: 'system', cineDefaults: true })).theme).toBe(
+      'system',
     );
   });
 

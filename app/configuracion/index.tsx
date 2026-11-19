@@ -1,8 +1,8 @@
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
+import { openLegalPage } from '@/features/legal/legal';
 import { useStartTutorial } from '@/features/tutorial/useTutorialAutoStart';
 import { useMutation } from '@tanstack/react-query';
-import { reloadAppAsync } from 'expo';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -17,16 +17,10 @@ import {
   SettingsRow,
   SwitchRow,
 } from '@/features/configuracion/components';
-import { PalettePicker } from '@/features/configuracion/PalettePicker';
-import { TypographyPicker } from '@/features/configuracion/TypographyPicker';
 import { requestReminderPermission } from '@/features/configuracion/reminder';
 import {
-  type AccentChoice,
-  type AccentName,
   MAX_QUICK_AMOUNTS,
   QUICK_AMOUNT_OPTIONS,
-  type PaletteName,
-  type TypographyName,
   type ThemeMode,
   toggleQuickAmount,
   updateSettings,
@@ -43,7 +37,7 @@ import {
 import { useStreak } from '@/features/estadisticas/api';
 import { celebrateStreak } from '@/features/estadisticas/streakCelebration';
 import { getErrorMessage } from '@/lib/errors';
-import { accents, fonts, useColorMode, useThemeColors } from '@/lib/theme';
+import { fonts, useColorMode, useThemeColors } from '@/lib/theme';
 
 const THEMES: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'Automático' },
@@ -112,34 +106,7 @@ export default function SettingsScreen() {
     });
   }
 
-  /** El tema se aplica al momento, sin reiniciar (el usuario lo comprobó). */
-  /**
-   * Los colores cambian al momento; el engrosado de los títulos y el primer color de las
-   * gráficas se fijan al arrancar, así que se ofrece reiniciar para verlo todo perfecto.
-   */
-  function changePalette(palette: PaletteName) {
-    if (palette === settings.palette) return;
-    updateSettings({ palette });
-    appAlert(
-      'Paleta cambiada',
-      'Reinicia la app para que los títulos y las gráficas también cambien.',
-      [
-        { text: 'Más tarde', style: 'cancel' },
-        { text: 'Reiniciar ahora', onPress: () => void reloadAppAsync('Cambio de paleta') },
-      ],
-    );
-  }
-
-  /** Las letras de toda la app se fijan al arrancar: se guarda y se ofrece reiniciar. */
-  function changeTypography(typography: TypographyName) {
-    if (typography === settings.typography) return;
-    updateSettings({ typography });
-    appAlert('Tipografía cambiada', 'Reinicia la app para ver las letras nuevas.', [
-      { text: 'Más tarde', style: 'cancel' },
-      { text: 'Reiniciar ahora', onPress: () => void reloadAppAsync('Cambio de tipografía') },
-    ]);
-  }
-
+  /** El tema se aplica al momento, sin reiniciar. */
   function changeTheme(theme: ThemeMode) {
     if (theme !== settings.theme) updateSettings({ theme });
   }
@@ -207,45 +174,15 @@ export default function SettingsScreen() {
       <SettingsGroup title="Apariencia">
         <SettingsRow
           first
-          label="Paleta (prueba)"
-          detail="Regla 60-30-10: el primer color llena la app, el segundo acompaña y el tercero destaca. «Cine» es el estilo de siempre."
-          below={<PalettePicker value={settings.palette} onChange={changePalette} />}
-        />
-        <SettingsRow
-          label="Tipografía (prueba)"
-          detail="Una letra llamativa para los títulos y otra que la acompaña en el resto. Se aplica al reiniciar."
-          below={<TypographyPicker value={settings.typography} onChange={changeTypography} />}
-        />
-        {/* Con una paleta de prueba, el tema y el color los decide ella. */}
-        {settings.palette === 'cine' ? (
-          <>
-            <SettingsRow
-              label="Tema"
-              below={
-                <OptionChips
-                  options={THEMES}
-                  isSelected={(v) => v === settings.theme}
-                  onPress={changeTheme}
-                />
-              }
+          label="Tema"
+          below={
+            <OptionChips
+              options={THEMES}
+              isSelected={(v) => v === settings.theme}
+              onPress={changeTheme}
             />
-            <SettingsRow
-              label="Color"
-              detail="Botones, pestañas y detalles de la app."
-              below={
-                <OptionChips<AccentChoice>
-                  options={(Object.keys(accents) as AccentName[]).map((name) => ({
-                    value: name as AccentChoice,
-                    label: accents[name].label,
-                    color: accents[name][mode].primary,
-                  }))}
-                  isSelected={(v) => v === settings.accent}
-                  onPress={(accent) => updateSettings({ accent })}
-                />
-              }
-            />
-          </>
-        ) : null}
+          }
+        />
       </SettingsGroup>
 
       <SettingsGroup title="Contadores">
@@ -297,7 +234,7 @@ export default function SettingsScreen() {
         />
         <SwitchRow
           label="Recordatorio de contadores de racha"
-          detail="Un aviso por cada contador en formato racha que ese día aún no hayas mantenido."
+          detail="Un aviso por cada contador con «Mostrar racha» que ese día aún no hayas mantenido."
           value={reminder.counters}
           onChange={(value) => toggleReminder('counters', value)}
         />
@@ -355,6 +292,11 @@ export default function SettingsScreen() {
             />
           }
         />
+        <SettingsRow
+          label="Usuarios bloqueados"
+          detail="No pueden enviarte solicitudes ni invitarte a grupos."
+          onPress={() => router.push('/configuracion/bloqueados')}
+        />
       </SettingsGroup>
 
       <SettingsGroup title="Cuenta">
@@ -408,6 +350,9 @@ export default function SettingsScreen() {
           detail="Qué guarda Cuéntalo y quién lo ve."
           onPress={() => router.push('/configuracion/privacidad')}
         />
+        <SettingsRow label="Política de privacidad" onPress={() => openLegalPage('privacy')} />
+        <SettingsRow label="Condiciones de uso" onPress={() => openLegalPage('terms')} />
+        <SettingsRow label="Aviso legal y contacto" onPress={() => openLegalPage('notice')} />
       </SettingsGroup>
     </ScrollView>
   );
