@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react';
 
 import { counterKeys } from '@/features/contadores/hooks';
 import { isTutorialActive } from '@/features/tutorial/store';
+import { setAnimationBusy } from '@/lib/animationGate';
 
 import { localToday } from './periods';
 import { currentStreak } from './streaks';
@@ -33,6 +34,7 @@ export function useStreakCelebration(): StreakCelebration | null {
 
 export function celebrateStreak(from: number, to: number) {
   current = { id: nextId++, from, to };
+  setAnimationBusy(true);
   emit();
 }
 
@@ -40,6 +42,7 @@ export function celebrateStreak(from: number, to: number) {
 export function finishStreakCelebration(id: number) {
   if (current?.id !== id) return;
   current = null;
+  setAnimationBusy(false);
   emit();
 }
 

@@ -22,16 +22,21 @@ import {
   mergeCounters,
   requestCommonChange,
   setHidden,
+  setStreakShown,
   setRemovedFromHome,
   setParticipants,
+  removeCounterAlias,
+  saveCounterAlias,
   updateCounter,
   updateEntry,
+  type CounterAlias,
   type CounterInput,
   type CounterWithTotal,
   type Entry,
   type EntryInput,
   type LeaderboardPeriod,
 } from './api';
+import { whenAnimationIdle } from '@/lib/animationGate';
 import { optimistic, optimisticHandlers, refreshAll, type Undo } from '@/lib/queryClient';
 
 import {
@@ -46,6 +51,8 @@ import {
 import { localToday, type DailyTotal } from '@/features/estadisticas/periods';
 
 import { applyCounterPhoto, type CounterPhotoChange } from './photos';
+import { type AliasPlan, isEmptyAlias } from './alias';
+import { bumpStreak } from './streakOptimistic';
 
 export const counterKeys = {
   all: ['counters'] as const,
@@ -231,24 +238,71 @@ export function useUpdateCounter(id: string) {
     // El nombre, la unidad y el emoticono nuevos se ven al instante en la lista y el detalle.
     ...optimisticHandlers(queryClient, (patch: Partial<CounterInput>) =>
       patchCounters(queryClient, [id], (c) => {
-        // Con un alias personal, lo que veo es el alias: solo cambia el nombre compartido.
-        const hasAliasName = c.name !== c.sharedName;
-        const hasAliasEmoji = c.emoji !== c.sharedEmoji;
+        // Con versión personal, lo que veo es la mía: solo cambia lo compartido (y lo que no
+        // he personalizado).
+        const alias = c.alias;
+        const ownImage = alias !== null && (alias.emoji !== null || alias.photoPath !== null);
         const name = patch.name?.trim();
         const emoji = patch.emoji === undefined ? undefined : patch.emoji.trim() || null;
+        const unit = patch.unit === undefined ? undefined : patch.unit.trim() || null;
         return {
           ...c,
-          ...(name ? { sharedName: name, name: hasAliasName ? c.name : name } : {}),
-          ...(emoji !== undefined
-            ? { sharedEmoji: emoji, emoji: hasAliasEmoji ? c.emoji : emoji }
-            : {}),
-          ...(patch.unit !== undefined ? { unit: patch.unit.trim() || null } : {}),
-          ...(patch.streakEnabled !== undefined ? { streak_enabled: patch.streakEnabled } : {}),
+          ...(name ? { sharedName: name, name: alias?.name ?? name } : {}),
+          ...(emoji !== undefined ? { sharedEmoji: emoji, emoji: ownImage ? c.emoji : emoji } : {}),
+          ...(unit !== undefined ? { sharedUnit: unit, unit: alias?.unit ?? unit } : {}),
+          ...(patch.showStreak !== undefined ? { showStreak: patch.showStreak } : {}),
           ...(patch.hiddenFromFriends !== undefined
             ? { hidden_from_friends: patch.hiddenFromFriends }
             : {}),
         };
       }),
+    ),
+  });
+}
+
+/** Cómo se ve un contador con esta versión personal (o sin ninguna). */
+function withAlias(c: CounterWithTotal, alias: CounterAlias | null): CounterWithTotal {
+  const ownImage = alias !== null && (alias.emoji !== null || alias.photoPath !== null);
+  return {
+    ...c,
+    alias,
+    name: alias?.name ?? c.sharedName,
+    unit: alias?.unit ?? c.sharedUnit,
+    emoji: ownImage ? alias.emoji : c.sharedEmoji,
+    photo_path: ownImage ? alias.photoPath : c.sharedPhotoPath,
+  };
+}
+
+/**
+ * «Para mí»: guarda mi versión personal de un contador de grupo (nombre, imagen y unidad). Se ve
+ * al instante; la foto nueva, cuando termina de subirse.
+ */
+export function useSaveCounterAlias(id: string) {
+  const queryClient = useQueryClient();
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: ({ plan, previous }: { plan: AliasPlan; previous: CounterAlias | null }) =>
+      saveCounterAlias(id, userId, plan, previous),
+    ...optimisticHandlers(
+      queryClient,
+      ({ plan }: { plan: AliasPlan; previous: CounterAlias | null }) =>
+        patchCounters(queryClient, [id], (c) => {
+          const alias = plan.upload
+            ? { ...plan.alias, photoPath: c.alias?.photoPath ?? null }
+            : plan.alias;
+          return withAlias(c, isEmptyAlias(alias) && !plan.upload ? null : alias);
+        }),
+    ),
+  });
+}
+
+/** «Ver como en el grupo»: quita mi versión personal. */
+export function useRemoveCounterAlias(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (previous: CounterAlias | null) => removeCounterAlias(id, previous),
+    ...optimisticHandlers(queryClient, () =>
+      patchCounters(queryClient, [id], (c) => withAlias(c, null)),
     ),
   });
 }
@@ -283,6 +337,17 @@ export function useSetHidden() {
     mutationFn: ({ ids, hidden }: { ids: string[]; hidden: boolean }) => setHidden(ids, hidden),
     ...optimisticHandlers(queryClient, ({ ids, hidden }: { ids: string[]; hidden: boolean }) =>
       patchCounters(queryClient, ids, (c) => ({ ...c, hidden })),
+    ),
+  });
+}
+
+/** «Mostrar racha» (personal): mi racha de ese contador junto a su nombre en «Mis contadores». */
+export function useSetStreakShown() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, shown }: { ids: string[]; shown: boolean }) => setStreakShown(ids, shown),
+    ...optimisticHandlers(queryClient, ({ ids, shown }: { ids: string[]; shown: boolean }) =>
+      patchCounters(queryClient, ids, (c) => ({ ...c, showStreak: shown })),
     ),
   });
 }
@@ -384,6 +449,16 @@ function applyAmount(c: CounterWithTotal, amount: number, userId: string): Count
   };
 }
 
+/**
+ * La racha del contador también cambia al instante (se ilumina con la primera suma del día), como
+ * el total. Solo si el registro es de hoy; lo que cuenta es lo que cambia «lo mío».
+ */
+function withStreak(before: CounterWithTotal, after: CounterWithTotal, today: boolean) {
+  const delta = after.myTotal - before.myTotal;
+  if (!today || delta === 0) return after;
+  return { ...after, streak: bumpStreak(before.streak, delta) };
+}
+
 function rollback(queryClient: QueryClient, context: OptimisticContext | undefined) {
   if (!context) return;
   queryClient.setQueryData(context.detailKey, context.previousDetail);
@@ -431,7 +506,12 @@ function scheduleRefreshAfterEntry(queryClient: QueryClient) {
   refreshTimer = setTimeout(() => {
     refreshTimer = null;
     if (queryClient.isMutating({ mutationKey: entryMutationKey }) > 0) return;
-    refreshAfterEntries(queryClient);
+    // Si la barra está celebrando la racha, el refresco (y el repintado de toda la app) espera a
+    // que acabe: si no, se come el hilo de JS justo mientras corre la mascota.
+    whenAnimationIdle(() => {
+      if (queryClient.isMutating({ mutationKey: entryMutationKey }) > 0) return;
+      refreshAfterEntries(queryClient);
+    });
   }, REFRESH_DELAY_MS);
 }
 
@@ -449,8 +529,9 @@ export function useAddEntry() {
     mutationFn: sendAddEntry,
     onMutate: ({ counterId, input }: AddEntryVariables) => {
       cancelScheduledRefresh();
+      const today = localToday(new Date(input.loggedAt)) === localToday();
       return applyOptimistic(queryClient, userId, counterId, (c) =>
-        applyAmount(c, input.amount, userId),
+        withStreak(c, applyAmount(c, input.amount, userId), today),
       );
     },
     onError: (_error, _variables, context) => rollback(queryClient, context),
@@ -472,11 +553,7 @@ export function useRemoveOne() {
     onMutate: ({ counterId }: RemoveOneVariables) => {
       cancelScheduledRefresh();
       return applyOptimistic(queryClient, userId, counterId, (c) =>
-        c.is_common
-          ? applyAmount(c, -1, userId)
-          : c.myGroupTotal < 1
-            ? c
-            : applyAmount(c, -1, userId),
+        c.is_common || c.myGroupTotal >= 1 ? withStreak(c, applyAmount(c, -1, userId), true) : c,
       );
     },
     onError: (_error, _variables, context) => rollback(queryClient, context),

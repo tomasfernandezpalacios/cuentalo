@@ -883,9 +883,22 @@ submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón ab
   (`FIRE_ORANGE` #FF6A00, `FIRE_YELLOW` #FFC400), no `colors.flame`, que se veía apagado. el número se sustituye (el viejo sube y se va, el nuevo entra desde abajo
   con rebote; vibración de éxito), se queda 700 ms y vuelven los botones. Animaciones sin native
   driver (el recorte anima un ancho), salvo el parpadeo.
-  **Temporal:** botón «Probar animación de racha» en Configuración → Información (vuelve a las
-  pestañas y lanza `celebrateStreak(actual, actual + 1)` sin guardar nada). Quitarlo cuando el
-  usuario dé el visto bueno.
+  **El botón «Probar animación de racha» de Configuración → Información se queda** (el usuario
+  lo pidió expresamente el 2026-11-19, aunque antes se dijo que era temporal): no quitarlo.
+- **La mascota protagoniza la celebración de la racha** (petición del usuario, 2026-11-19;
+  sustituye a la llama que cruzaba la barra; lo demás de arriba sigue igual: botones fuera, barra
+  y racha de antes en gris, número que cambia, 700 ms quieto y botones de vuelta). La mascota es
+  una **bola dorada con brazos y patas** (`src/features/mascota/`: `pose.ts` con el movimiento
+  como función pura `pose(fotograma)`, con tests, y `Mascot.tsx` dibujada con react-native-svg).
+  Guion: entra rodando rápido desde la izquierda por la barra; a medida que pasa por encima la
+  barra se vuelve naranja (`coverFraction` de su x) y, al pasar por el número (`CENTER_FRAME`),
+  este cambia (vibración de éxito); al 70 % de la barra salta **sin frenar** (misma velocidad
+  horizontal, parábola), en el aire le salen brazos y patas, celebra y sale por la derecha sin
+  aterrizar. Se lee con `requestAnimationFrame` y el reloj a 30 fotogramas/s (sin Reanimated, que
+  queda solo para el tutorial) y se dibuja encima de la barra sin recortarse. El movimiento viene
+  del proyecto Remotion `C:\Users\tomas\Desktop\Personal\kuentio-mascota` (`src/mascota/`): si se
+  cambia allí, cambiarlo aquí también. Colores de la mascota: dorado `#E4BB57`, boca `#7A5C12`,
+  ojos hueso `#F5F0E3`. Pendiente de probar en el móvil (que no la recorte la barra o la página).
 
 - **Preparación legal** (2026-11-17; análisis en `docs/legal/2026-11-17-analisis-legal.md`,
   migración `20261218120000`):
@@ -977,3 +990,11 @@ submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón ab
   cuadrado por día (365/366), iluminado si ese día registré algo en él (da igual la cantidad;
   sale de `useMyDailyTotals`), hoy con borde, días futuros apagados y flechas para años
   anteriores (desde el primer registro). Cálculos en `yearGrid.ts` (con tests).
+
+- **Celebración de la racha fluida** (petición del usuario, 2026-11-19; iba a tirones): todo lo
+  que se mueve (recorrido de la mascota, barrido naranja, cambio de número) sale de **una sola
+  línea de tiempo nativa** (`progress`, `useNativeDriver: true`, interpolaciones; el recorte ya
+  no anima el ancho sino una máscara que se desliza). En JS solo se redibujan extremidades y cara
+  (30/s, `Mascot` dibuja centrada en su caja y la vista que la envuelve lleva x, y, giro y
+  escala). `src/lib/animationGate.ts`: mientras dura, el refresco de datos tras +N
+  (`scheduleRefreshAfterEntry`) espera a que acabe. Sigue sin usarse Reanimated fuera del tutorial.
