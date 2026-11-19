@@ -209,12 +209,15 @@ const Veil = memo(function Veil({
   const big = Math.max(width, height) * 2;
   // Las esquinas se dibujan a tamaño CORNER y se escalan al radio de cada hueco (escalar por
   // igual en los dos ejes mantiene el cuarto de círculo redondo). Mover y escalar van en dos
-  // vistas distintas (una solo se desplaza, la otra solo se escala desde su esquina de arriba a
-  // la izquierda): juntos en la misma transformación, Android aplicaba el desplazamiento escalado
-  // y el círculo salía deformado.
-  const at = (x: number, y: number) => {
+  // vistas distintas: el ancla solo se desplaza y, dentro, la esquina solo se escala desde su
+  // centro (lo que hace siempre Android; `transformOrigin` no se respetaba con la escala animada
+  // y el hueco salía como un óvalo más grande). Como al escalar desde el centro la esquina se
+  // queda en medio del ancla, el ancla se coloca (r − CORNER) / 2 antes: así la esquina ocupa
+  // justo de x a x + r.
+  const at = (x: number, y: number, radius: number) => {
     'worklet';
-    return { transform: [{ translateX: x }, { translateY: y }] };
+    const offset = (Math.max(radius, 0.01) - CORNER) / 2;
+    return { transform: [{ translateX: x + offset }, { translateY: y + offset }] };
   };
   const scaled = useAnimatedStyle(() => ({
     transform: [{ scale: Math.max(v.radius.value, 0.01) / CORNER }],
@@ -241,11 +244,15 @@ const Veil = memo(function Veil({
       { scaleY: v.bottom.value - v.top.value + SEAM * 2 },
     ],
   }));
-  const topLeft = useAnimatedStyle(() => at(v.left.value, v.top.value));
-  const topRight = useAnimatedStyle(() => at(v.right.value - v.radius.value, v.top.value));
-  const bottomLeft = useAnimatedStyle(() => at(v.left.value, v.bottom.value - v.radius.value));
+  const topLeft = useAnimatedStyle(() => at(v.left.value, v.top.value, v.radius.value));
+  const topRight = useAnimatedStyle(() =>
+    at(v.right.value - v.radius.value, v.top.value, v.radius.value),
+  );
+  const bottomLeft = useAnimatedStyle(() =>
+    at(v.left.value, v.bottom.value - v.radius.value, v.radius.value),
+  );
   const bottomRight = useAnimatedStyle(() =>
-    at(v.right.value - v.radius.value, v.bottom.value - v.radius.value),
+    at(v.right.value - v.radius.value, v.bottom.value - v.radius.value, v.radius.value),
   );
   return (
     <Animated.View
@@ -356,14 +363,13 @@ function Blocker({ style }: { style: object }) {
 const styles = StyleSheet.create({
   layer: { zIndex: 1000, elevation: 1000 },
   panel: { position: 'absolute', left: 0, top: 0, backgroundColor: VEIL_COLOR },
-  // El ancla solo se desplaza; dentro, la esquina solo se escala desde arriba a la izquierda.
+  // El ancla solo se desplaza; dentro, la esquina solo se escala (desde su centro).
   cornerAnchor: { position: 'absolute', left: 0, top: 0, width: CORNER, height: CORNER },
   corner: {
     position: 'absolute',
     left: 0,
     top: 0,
     overflow: 'hidden',
-    transformOrigin: 'left top',
   },
   blocker: { position: 'absolute' },
   ring: { position: 'absolute', borderWidth: 2 },
