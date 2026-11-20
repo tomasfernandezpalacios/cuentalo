@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { useSyncExternalStore } from 'react';
 
 import { counterKeys } from '@/features/contadores/hooks';
+import { getProgress } from '@/features/progreso/demoStore';
 import { isTutorialActive } from '@/features/tutorial/store';
 import { setAnimationBusy } from '@/lib/animationGate';
 
@@ -53,9 +54,13 @@ export function finishStreakCelebration(id: number) {
 export function streakIncrease(
   days: readonly string[],
   today: string,
+  shieldedDays: readonly string[] = [],
 ): { from: number; to: number } | null {
   if (days.includes(today)) return null;
-  return { from: currentStreak(days, today), to: currentStreak([today, ...days], today) };
+  return {
+    from: currentStreak(days, today, shieldedDays),
+    to: currentStreak([today, ...days], today, shieldedDays),
+  };
 }
 
 /**
@@ -69,7 +74,7 @@ export function markTodayActive(queryClient: QueryClient, userId: string) {
   const days = queryClient.getQueryData<string[]>(key);
   if (!days) return;
   const today = localToday();
-  const increase = streakIncrease(days, today);
+  const increase = streakIncrease(days, today, getProgress().shieldedDays);
   if (!increase) return;
   queryClient.setQueryData(key, [today, ...days]);
   // Durante el tutorial no: escondería los botones de la barra que el tutorial va a enseñar.

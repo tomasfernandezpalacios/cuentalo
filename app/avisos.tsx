@@ -57,6 +57,10 @@ function noticeText(n: Notice): string {
       return `${who} es el nuevo líder del grupo${n.group_name ? ` «${n.group_name}»` : ''}.`;
     case 'you_are_leader':
       return `Eres el nuevo líder del grupo${n.group_name ? ` «${n.group_name}»` : ''}.`;
+    case 'counter_edited':
+      return `${who} ha editado ${counter}${group}. Si tienes tu propia versión, la sigues viendo igual fuera del grupo.`;
+    case 'user_blocked':
+      return `Has bloqueado a ${who}. No podrá enviarte solicitudes ni invitarte a grupos. Para desbloquear, ve al final de Amigos.`;
     case 'group_admin':
       return `${who} te ha hecho líder del grupo${n.group_name ? ` «${n.group_name}»` : ''}.`;
     case 'group_activity': {
@@ -153,7 +157,9 @@ export default function InboxScreen() {
       label: pendingTotal > 0 ? `Pendientes (${pendingTotal})` : 'Pendientes',
       dot: pendingTotal > 0,
     },
-    { value: 'notices', label: 'Avisos', dot: unread > 0 },
+    // El punto sigue en «Avisos» mientras haya avisos nuevos resaltados (aunque ya se hayan
+    // marcado como leídos al verlos): indica dónde está la novedad mientras el buzón está abierto.
+    { value: 'notices', label: 'Avisos', dot: unread > 0 || highlighted.size > 0 },
     { value: 'friends', label: 'Amistad', dot: false },
   ];
 
@@ -186,7 +192,15 @@ export default function InboxScreen() {
               >
                 {t.label}
               </Text>
-              {t.dot ? <View style={[styles.tabDot, { backgroundColor: colors.danger }]} /> : null}
+              {t.dot ? (
+                <View
+                  style={[
+                    styles.tabDot,
+                    // Anillo del color del fondo de la barra: se ve también sobre la pestaña elegida.
+                    { backgroundColor: colors.danger, borderColor: colors.surface },
+                  ]}
+                />
+              ) : null}
             </Pressable>
           );
         })}
@@ -327,7 +341,13 @@ export default function InboxScreen() {
                       { borderBottomColor: colors.border },
                       isNew && [
                         styles.noticeNew,
-                        { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+                        // borderBottomColor también: si no, el gris de la línea de abajo
+                        // (más concreto que borderColor) tapaba el borde por abajo.
+                        {
+                          backgroundColor: colors.primarySoft,
+                          borderColor: colors.primary,
+                          borderBottomColor: colors.primary,
+                        },
                       ],
                     ]}
                   >
@@ -397,7 +417,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   tabText: { fontSize: 13, fontFamily: fonts.title },
-  tabDot: { position: 'absolute', top: 4, right: 8, width: 8, height: 8, borderRadius: 4 },
+  tabDot: {
+    position: 'absolute',
+    top: 2,
+    right: 6,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    borderWidth: 1.5,
+  },
   card: { padding: 14, borderRadius: 16, borderWidth: 1, gap: 6 },
   text: { ...proseFont(15, 21) },
   muted: { fontSize: 13, fontFamily: fonts.detail },

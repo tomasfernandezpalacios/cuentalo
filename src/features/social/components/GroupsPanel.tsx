@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
@@ -20,6 +20,7 @@ import { fetchGroup, fetchInviteCode, normalizeInviteCode, type MyGroup } from '
 import { GroupAvatar } from './GroupAvatar';
 import { GroupHeaderCard, shareInvite } from './GroupHeaderCard';
 import { socialKeys, useAcceptInvitation, useMyGroups, useRemoveMember } from '../hooks';
+import { Tappable } from '@/components/Tappable';
 
 function showError(error: unknown) {
   appAlert('Error', getErrorMessage(error));
@@ -211,7 +212,7 @@ export function JoinByCode() {
 export function GroupRow({ group }: { group: MyGroup }) {
   const colors = useThemeColors();
   return (
-    <Pressable
+    <Tappable
       onPress={() => router.push({ pathname: '/grupos/[id]', params: { id: group.id } })}
       accessibilityRole="button"
       accessibilityLabel={`Grupo ${group.name}`}
@@ -234,7 +235,7 @@ export function GroupRow({ group }: { group: MyGroup }) {
         ) : null}
       </View>
       <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-    </Pressable>
+    </Tappable>
   );
 }
 

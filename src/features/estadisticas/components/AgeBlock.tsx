@@ -1,9 +1,10 @@
 import { type ReactNode, useEffect, useState } from 'react';
-import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { type GestureResponderEvent, StyleSheet, Text, View } from 'react-native';
 
 import { displayFont, fonts, serifWeight, shape, titleFont, useThemeColors } from '@/lib/theme';
 
 import { ageBreakdown, birthStart } from '../age';
+import { Tappable } from '@/components/Tappable';
 
 type Props = {
   /** 'AAAA-MM-DD' */
@@ -44,7 +45,7 @@ export function AgeBlock({ birthDate, action, onPress, onLongPress, onPressOut }
   ];
 
   return (
-    <Pressable
+    <Tappable
       onPress={onPress}
       onLongPress={onLongPress}
       onPressOut={onPressOut}
@@ -71,7 +72,7 @@ export function AgeBlock({ birthDate, action, onPress, onLongPress, onPressOut }
           </View>
         ))}
       </View>
-    </Pressable>
+    </Tappable>
   );
 }
 

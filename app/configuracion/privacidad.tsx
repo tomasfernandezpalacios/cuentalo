@@ -1,10 +1,12 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 
+import { AppButton } from '@/components/AppButton';
 import { Section } from '@/components/Section';
+import { openLegalPage } from '@/features/legal/legal';
 import { proseFont, useThemeColors } from '@/lib/theme';
 
-// Resumen de qué datos guarda la app y quién los ve. La política de privacidad completa (la que
-// piden las tiendas) se redactará en la Fase 6.
+// Resumen de qué datos guarda la app y quién los ve. La política completa está en la web legal
+// (`web/privacidad.html`, ver src/features/legal/legal.ts).
 const SECTIONS: { title: string; body: string }[] = [
   {
     title: 'Qué guardamos',
@@ -30,7 +32,20 @@ const SECTIONS: { title: string; body: string }[] = [
     title: 'Tus derechos',
     body:
       'Puedes descargar todos tus registros con «Exportar mis datos» y borrar tu cuenta y todos ' +
-      'tus datos con «Eliminar cuenta», en Configuración.',
+      'tus datos con «Eliminar cuenta», en Configuración. Para cualquier otra petición, escríbenos ' +
+      '(el contacto está en el aviso legal).',
+  },
+  {
+    title: 'Tu agenda',
+    body:
+      'Si sincronizas tus contactos, sus números se comparan en forma de resumen cifrado y nunca ' +
+      'se guardan la agenda ni los nombres. Los resúmenes se borran solos cada noche.',
+  },
+  {
+    title: 'Bloquear y denunciar',
+    body:
+      'Desde el perfil de cualquier persona (botón «…») puedes bloquearla o denunciarla, y un ' +
+      'grupo desde su pantalla. Las denuncias son anónimas para la persona denunciada.',
   },
 ];
 
@@ -46,6 +61,11 @@ export default function PrivacyScreen() {
           <Text style={[styles.body, { color: colors.textMuted }]}>{section.body}</Text>
         </Section>
       ))}
+      <AppButton
+        title="Leer la política de privacidad completa"
+        variant="secondary"
+        onPress={() => openLegalPage('privacy')}
+      />
     </ScrollView>
   );
 }

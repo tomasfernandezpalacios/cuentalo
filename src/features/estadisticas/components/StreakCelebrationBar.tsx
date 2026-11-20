@@ -27,8 +27,6 @@ const FIRE_ORANGE = '#FF6A00';
 const IN_MS = 160;
 /** Tiempo para ver bien la barra gris con la racha de antes antes de que llegue la mascota. */
 const GRAY_MS = 700;
-/** Margen de la barra a cada lado (el relleno de la cápsula): el color llega hasta el borde. */
-const EDGE = 8;
 const HOLD_MS = 700;
 const OUT_MS = 240;
 /** Duración de todo el recorrido de la mascota. */
@@ -59,7 +57,18 @@ const SWAP_KEYS: [number, number][] = [
  * extremidades y la cara (30 veces por segundo, solo al cambiar de fotograma). Y mientras dura,
  * `animationGate` retrasa el refresco de datos de la app.
  */
-export function StreakCelebrationBar({ children }: { children: ReactNode }) {
+export function StreakCelebrationBar({
+  children,
+  edge = 0,
+  bottomInset = 0,
+}: {
+  children: ReactNode;
+  /** Relleno de la barra a cada lado: el gris y el fuego llegan hasta el borde de la pantalla. */
+  edge?: number;
+  /** Zona segura bajo los botones: la barra la cubre, así que el color también. */
+  bottomInset?: number;
+}) {
+  const EDGE = edge;
   const colors = useThemeColors();
   const celebration = useStreakCelebration();
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -200,7 +209,7 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
       scale: map(scales),
       rotate: map(tilts),
     };
-  }, [progress, unit, height]);
+  }, [progress, unit, height, EDGE]);
 
   // El gris (barra, llama y número) se va cuando el fuego ya lo cubre todo.
   // `clamp`: sin él, antes de 0,85 la opacidad pasaba de 1 y el gris de la barra salía opaco y
@@ -267,7 +276,13 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
           <Animated.View
             style={[
               styles.tint,
-              { backgroundColor: colors.textMuted, opacity: Animated.multiply(grayOpacity, 0.35) },
+              {
+                left: -EDGE,
+                right: -EDGE,
+                bottom: -bottomInset,
+                backgroundColor: colors.textMuted,
+                opacity: Animated.multiply(grayOpacity, 0.35),
+              },
             ]}
           />
           <Animated.View style={[styles.center, { opacity: grayOpacity }]}>
@@ -281,7 +296,7 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
             </View>
           </Animated.View>
           {/* Lo mismo en color fuego, descubierto a medida que pasa la bola. */}
-          <View style={[styles.clip, { width: barWidth }]}>
+          <View style={[styles.clip, { left: -EDGE, bottom: -bottomInset, width: barWidth }]}>
             <Animated.View
               style={[styles.mask, { width: barWidth, transform: [{ translateX: maskX }] }]}
             >
@@ -297,7 +312,7 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
                     { width: barWidth, backgroundColor: FIRE_ORANGE },
                   ]}
                 />
-                <View style={[styles.fixedCenter, { width }]}>
+                <View style={[styles.fixedCenter, { left: EDGE, width, height }]}>
                   <Animated.View style={{ transform: [{ scale: flamePop }] }}>
                     <Ionicons name="flame" size={30} color={FIRE_ORANGE} />
                   </Animated.View>
@@ -358,8 +373,9 @@ export function StreakCelebrationBar({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  // Toda la cápsula (también su relleno a los lados).
-  tint: { position: 'absolute', top: 0, bottom: 0, left: -EDGE, right: -EDGE, borderRadius: 999 },
+  // Toda la barra: también su relleno a los lados y la zona segura de abajo (recta, sin esquinas
+  // redondeadas, como la barra).
+  tint: { position: 'absolute', top: 0 },
   center: {
     position: 'absolute',
     top: 0,
@@ -371,22 +387,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
-  // Igual que `center` pero con el ancho de toda la barra, dentro del recorte que crece.
+  // Igual que `center` (mismo ancho y alto que los botones), dentro del recorte que crece; el
+  // recorte empieza `edge` antes, así queda justo encima de la copia gris.
   fixedCenter: {
     position: 'absolute',
     top: 0,
-    bottom: 0,
-    // El recorte empieza EDGE antes: así queda justo encima de la copia gris.
-    left: EDGE,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
   // Ventana fija de toda la barra; lo que se desliza dentro solo se ve donde ya ha pasado la bola.
-  clip: { position: 'absolute', top: 0, bottom: 0, left: -EDGE, overflow: 'hidden' },
+  clip: { position: 'absolute', top: 0, overflow: 'hidden' },
   mask: { position: 'absolute', top: 0, bottom: 0, left: 0, overflow: 'hidden' },
-  fill: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 999 },
+  fill: { position: 'absolute', top: 0, bottom: 0, left: 0 },
   fireFill: { opacity: 0.4 },
   number: { fontFamily: fonts.title, fontSize: 28, includeFontPadding: false },
   hidden: { opacity: 0 },

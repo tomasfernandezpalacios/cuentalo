@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { type GestureResponderEvent, StyleSheet, Text, View } from 'react-native';
 
 import { displayFont, fonts, shape, useThemeColors } from '@/lib/theme';
 
 import { useStreak } from '../api';
 import { localToday } from '../periods';
 import { weekProgress } from '../streaks';
+import { Tappable } from '@/components/Tappable';
 
 type Props = {
   /** Si se pasa, la tarjeta se puede pulsar (en Estadísticas y el perfil lleva a la racha). */
@@ -28,7 +29,7 @@ export function StreakCard({ onPress, onLongPress, onPressOut }: Props) {
   const active = streak.data?.todayDone ?? false;
 
   return (
-    <Pressable
+    <Tappable
       onPress={onPress}
       onLongPress={onLongPress}
       onPressOut={onPressOut}
@@ -68,7 +69,7 @@ export function StreakCard({ onPress, onLongPress, onPressOut }: Props) {
         {onPress ? <Ionicons name="chevron-forward" size={22} color={colors.textMuted} /> : null}
       </View>
       {streak.data ? <WeekBar days={streak.data.days} /> : null}
-    </Pressable>
+    </Tappable>
   );
 }
 

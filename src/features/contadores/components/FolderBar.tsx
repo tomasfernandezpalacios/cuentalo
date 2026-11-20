@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { chipColors, fonts, useThemeColors } from '@/lib/theme';
 
 import type { CounterLayout } from '@/features/configuracion/settings';
 
 import type { Folder } from '../folders';
+import { Tappable } from '@/components/Tappable';
 
 type Props = {
   folders: Folder[];
@@ -40,7 +41,7 @@ export function FolderBar({
   const colors = useThemeColors();
 
   const layoutButton = layout ? (
-    <Pressable
+    <Tappable
       onPress={layout.onToggle}
       accessibilityRole="button"
       accessibilityLabel={
@@ -61,7 +62,7 @@ export function FolderBar({
         size={18}
         color={colors.text}
       />
-    </Pressable>
+    </Tappable>
   ) : null;
 
   if (selection) {
@@ -107,7 +108,7 @@ export function FolderBar({
   ) {
     const role = options.role ?? 'tab';
     return (
-      <Pressable
+      <Tappable
         key={key}
         onPress={onPress}
         onLongPress={onLongPress}
@@ -136,7 +137,7 @@ export function FolderBar({
         >
           {label}
         </Text>
-      </Pressable>
+      </Tappable>
     );
   }
 
@@ -165,7 +166,7 @@ export function FolderBar({
             () => onLongPressFolder(folder),
           ),
         )}
-        <Pressable
+        <Tappable
           onPress={onNewFolder}
           accessibilityRole="button"
           accessibilityLabel="Nueva carpeta"
@@ -175,7 +176,7 @@ export function FolderBar({
           <Text style={[styles.label, { color: colors.primary }]} maxFontSizeMultiplier={1.3}>
             Nueva carpeta
           </Text>
-        </Pressable>
+        </Tappable>
       </ScrollView>
       {layoutButton}
     </View>

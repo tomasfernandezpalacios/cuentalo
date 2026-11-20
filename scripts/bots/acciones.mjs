@@ -83,13 +83,19 @@ export const ACTIONS = {
         name: def.name,
         unit: def.unit,
         emoji: def.emoji,
-        streak_enabled: def.streak,
         hidden_from_friends: chance(bot.rng, 0.2),
       })
       .select('id')
       .single();
     check(res, 'crear contador');
-    return `crea el contador «${def.name}»${def.streak ? ' (formato racha)' : ''}`;
+    // «Mostrar racha» (personal): ver su racha junto al nombre.
+    if (def.streak) {
+      check(
+        await bot.db.from('shown_counter_streaks').insert({ counter_id: res.data.id }),
+        'mostrar racha',
+      );
+    }
+    return `crea el contador «${def.name}»${def.streak ? ' (con su racha a la vista)' : ''}`;
   },
 
   async sumar(bot) {
@@ -161,7 +167,7 @@ export const ACTIONS = {
 
   async fusionar(bot) {
     const h = await home(bot);
-    const mine = myCounters(h, bot).filter((c) => !c.streak_enabled);
+    const mine = myCounters(h, bot);
     if (mine.length < 2) return null;
     const [a, b] = [...mine].sort(() => bot.rng() - 0.5);
     const res = await bot.db.rpc('merge_counters', {
@@ -316,7 +322,7 @@ export const ACTIONS = {
     const name = pick(bot.rng, ['Flexiones', 'Cafés', 'Pasos', 'Cervezas', 'Horas de estudio']);
     const res = await bot.db
       .from('counters')
-      .insert({ name, group_id: groupId, emoji: '🏆', streak_enabled: chance(bot.rng, 0.2) })
+      .insert({ name, group_id: groupId, emoji: '🏆' })
       .select('id')
       .single();
     check(res, 'crear contador de grupo');
@@ -436,7 +442,7 @@ export const ACTIONS = {
     if (!c) return null;
     const period = pick(bot.rng, ['week', 'month', 'year', 'all']);
     check(await bot.db.rpc('get_leaderboard', { counter_id: c.id, period }), 'get_leaderboard');
-    if (c.streak_enabled) {
+    if ((h.streak_shown ?? []).includes(c.id)) {
       check(
         await bot.db.rpc('get_streak_leaderboard', { p_counter_id: c.id }),
         'get_streak_leaderboard',

@@ -1,3 +1,5 @@
+import type { Gesture } from '@/features/mascota/gestures';
+
 import { DEFAULT_SHAPE, type HoleShape } from './layout';
 
 // Guion del tutorial de bienvenida: siempre los mismos pasos, en el mismo orden, sobre una
@@ -43,6 +45,8 @@ export type StepId =
 
 export type Step = {
   id: StepId;
+  /** Lo que hace la mascota al decir este paso (gesto y postura). */
+  gesture: Gesture;
   title: string;
   /** Solo en la bienvenida: la frase destacada bajo el título. */
   subtitle?: string;
@@ -73,23 +77,26 @@ export const TUTORIAL_COUNTER_NAME = 'Mi primer contador';
 const ALL_STEPS: Step[] = [
   {
     id: 'welcome',
+    gesture: 'wave',
     kind: 'welcome',
     scene: 'home-empty',
-    title: 'Te damos la bienvenida a Cuéntalo',
+    title: 'Te damos la bienvenida a Kuentio',
     subtitle: 'Tu base de estadísticas vitales',
     text: 'Registra lo que haces, compártelo con tus amigos y disfruta de tus datos.',
     button: 'Seguir',
   },
   {
     id: 'intro',
+    gesture: 'hello',
     kind: 'banner',
     scene: 'home-empty',
-    title: 'Esto es Cuéntalo',
+    title: 'Esto es Kuentio',
     text: '',
     autoAdvanceMs: 2400,
   },
   {
     id: 'create',
+    gesture: 'pointUp',
     scene: 'home-empty',
     title: 'Crea tu primer contador',
     text: 'Toca el + para empezar.',
@@ -98,6 +105,7 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'name',
+    gesture: 'think',
     scene: 'form',
     title: 'Ponle nombre',
     text: `Aquí escribes qué quieres contar. Para empezar, lo llamaremos «${TUTORIAL_COUNTER_NAME}».`,
@@ -105,6 +113,7 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'submit',
+    gesture: 'cheer',
     scene: 'form',
     title: 'Listo para crearlo',
     text: 'Toca «Crear contador».',
@@ -113,6 +122,7 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'add',
+    gesture: 'hop',
     scene: 'home',
     title: 'Suma con un toque',
     text: 'Cada toque queda guardado en tu historial. Pruébalo.',
@@ -121,6 +131,7 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'remove',
+    gesture: 'oops',
     scene: 'home',
     title: '¿Te has pasado? Resta',
     text: 'El −1 corrige el último toque. Pruébalo.',
@@ -129,6 +140,7 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'hold',
+    gesture: 'press',
     scene: 'home',
     title: 'Mantén pulsado el contador',
     text: 'Así aparecen más herramientas.',
@@ -137,6 +149,7 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'tools',
+    gesture: 'present',
     scene: 'home',
     title: 'Tus herramientas',
     text: 'Borrar, añadir a una carpeta, ocultar, editar o fusionar con otros. Y arrastrando, cambias el orden.',
@@ -144,6 +157,7 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'stats-tab',
+    gesture: 'pointDown',
     scene: 'home',
     title: 'Estadísticas',
     text: 'Toca aquí para ver tu evolución.',
@@ -152,6 +166,7 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'stats',
+    gesture: 'read',
     scene: 'stats',
     title: 'Tu evolución',
     text: 'Por semana, mes, año o desde siempre, en líneas o en barras. Toca la gráfica para ampliarla.',
@@ -159,6 +174,7 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'social-tab',
+    gesture: 'pointDown',
     scene: 'stats',
     title: 'Social',
     text: 'Toca aquí para ver a tus amigos y tus grupos.',
@@ -167,6 +183,7 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'social',
+    gesture: 'friends',
     scene: 'social',
     title: 'Juntos cuenta más',
     text: 'Añade amigos, crea grupos o únete con un código y competid en la clasificación.',
@@ -174,13 +191,15 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'streak',
+    gesture: 'fire',
     scene: 'stats',
     title: 'Tu racha 🔥',
-    text: 'Cuenta los días seguidos en los que apuntas algo. Cuéntalo es más potente cuantos más días registras: no la dejes caer.',
+    text: 'Cuenta los días seguidos en los que apuntas algo. Kuentio es más potente cuantos más días registras: no la dejes caer.',
     target: 'racha',
   },
   {
     id: 'done',
+    gesture: 'cheer',
     kind: 'finish',
     scene: 'stats',
     title: 'Todo listo',

@@ -63,3 +63,21 @@ export function useCounterPhotoUrl(path: string | null) {
     },
   });
 }
+
+/**
+ * Foto de mi versión personal de un contador de grupo: 'personal/<user_id>/<counter_id>-<ts>'
+ * en el mismo bucket. Solo la ve y la toca su dueño (migración 20261222120000).
+ */
+export async function uploadPersonalCounterPhoto(
+  userId: string,
+  counterId: string,
+  photo: PickedPhoto,
+): Promise<string> {
+  const extension = photo.mimeType.split('/')[1] ?? 'jpg';
+  const path = `personal/${userId}/${counterId}-${Date.now()}.${extension}`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, base64ToBytes(photo.base64), { contentType: photo.mimeType });
+  if (error) throw error;
+  return path;
+}

@@ -22,7 +22,6 @@ function counter(overrides: Partial<Counter>): Counter {
     group_id: null,
     is_common: false,
     hidden_from_friends: false,
-    streak_enabled: false,
     created_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
@@ -96,7 +95,9 @@ describe('enrich', () => {
   });
 
   it('un alias cambia lo que veo pero conserva el nombre compartido', () => {
-    const aliases = new Map([['c1', { name: 'Mis cañas', emoji: '🍻' }]]);
+    const aliases = new Map([
+      ['c1', { name: 'Mis cañas', emoji: '🍻', unit: null, photoPath: null }],
+    ]);
     const shared = counter({ group_id: 'g1', emoji: '🍺' });
     const result = enrich(shared, totals, groups, ME, new Map(), aliases);
     expect(result).toMatchObject({
@@ -108,30 +109,62 @@ describe('enrich', () => {
     });
   });
 
+  it('versión personal: unidad propia y mi foto en vez de la imagen del grupo', () => {
+    const aliases = new Map([
+      ['c1', { name: null, emoji: null, unit: 'cañas', photoPath: 'personal/me/c1.jpg' }],
+    ]);
+    const shared = counter({ group_id: 'g1', emoji: '🍺', unit: 'cervezas', photo_path: 'g.jpg' });
+    const result = enrich(shared, totals, groups, ME, new Map(), aliases);
+    expect(result).toMatchObject({
+      name: 'Cervezas',
+      unit: 'cañas',
+      emoji: null,
+      photo_path: 'personal/me/c1.jpg',
+      sharedUnit: 'cervezas',
+      sharedPhotoPath: 'g.jpg',
+      sharedEmoji: '🍺',
+    });
+  });
+
+  it('sin versión personal se ve como en el grupo', () => {
+    const shared = counter({ group_id: 'g1', emoji: '🍺', unit: 'cervezas', photo_path: 'g.jpg' });
+    const result = enrich(shared, totals, groups, ME);
+    expect(result).toMatchObject({
+      emoji: '🍺',
+      unit: 'cervezas',
+      photo_path: 'g.jpg',
+      alias: null,
+    });
+  });
+
   it('de un grupo del que salí: no sale en la lista ni se puede editar', () => {
     const result = enrich(counter({ group_id: 'g-left' }), totals, groups, ME);
     expect(result).toMatchObject({ isActive: false, canManage: false, group: null });
   });
 });
 
-describe('enrich: formato racha', () => {
+describe('enrich: racha de cada contador', () => {
   const streaks = new Map([['c1', { current: 4, best: 9, todayDone: true, todayAmount: 1 }]]);
+  const shown = new Set(['c1']);
   const args = [new Map(), new Map(), new Set<string>(), new Set<string>(), streaks] as const;
 
-  it('el contador sigue con su total y lleva la racha aparte', () => {
-    const result = enrich(counter({ streak_enabled: true }), totals, groups, ME, ...args);
+  it('todos los contadores llevan su racha aparte del total', () => {
+    const result = enrich(counter({}), totals, groups, ME, ...args);
     expect(result.displayTotal).toBe(3);
     expect(result.streak).toEqual({ current: 4, best: 9, todayDone: true, todayAmount: 1 });
   });
 
   it('sin días buenos la racha es 0 y hoy no está hecha', () => {
-    const result = enrich(counter({ id: 'c2', streak_enabled: true }), totals, groups, ME, ...args);
+    const result = enrich(counter({ id: 'c2' }), totals, groups, ME, ...args);
     expect(result.streak).toEqual({ current: 0, best: 0, todayDone: false, todayAmount: 0 });
   });
 
-  it('un contador normal no tiene racha', () => {
-    const result = enrich(counter({}), totals, groups, ME, ...args);
-    expect(result.streak).toBeNull();
+  it('«Mostrar racha» solo en los que he marcado (de serie, no)', () => {
+    expect(enrich(counter({}), totals, groups, ME, ...args, shown).showStreak).toBe(true);
+    expect(enrich(counter({ id: 'c2' }), totals, groups, ME, ...args, shown).showStreak).toBe(
+      false,
+    );
+    expect(enrich(counter({}), totals, groups, ME, ...args).showStreak).toBe(false);
   });
 });
 
@@ -148,7 +181,7 @@ describe('countersFromBundle (todo en una petición)', () => {
   it('da lo mismo que montar la lista consulta a consulta', () => {
     const shared = counter({ id: 'c2', owner_id: OTHER, group_id: 'g1', is_common: true });
     const bundle = {
-      counters: [counter({ streak_enabled: true }), shared],
+      counters: [counter({}), shared],
       totals,
       groups: [{ id: 'g1', name: 'Amigos', owner_id: OTHER, emoji: null, photo_path: null }],
       participants: [
@@ -159,6 +192,7 @@ describe('countersFromBundle (todo en una petición)', () => {
       links: [],
       hidden: ['c2'],
       removed: [],
+      streak_shown: ['c1'],
       streaks: [
         {
           counter_id: 'c1',
@@ -179,12 +213,15 @@ describe('countersFromBundle (todo en una petición)', () => {
         groups,
         ME,
         new Map(),
-        new Map([['c1', { name: 'Mis cervezas', emoji: '🍺' }]]),
+        new Map([['c1', { name: 'Mis cervezas', emoji: '🍺', unit: null, photoPath: null }]]),
         new Set(['c2']),
         new Set(),
         new Map([['c1', { current: 2, best: 5, todayDone: true, todayAmount: 1 }]]),
+        new Set(['c1']),
       ),
     );
+    expect(mine?.showStreak).toBe(true);
+    expect(group?.showStreak).toBe(false);
     expect(mine?.name).toBe('Mis cervezas');
     expect(mine?.streak).toEqual({ current: 2, best: 5, todayDone: true, todayAmount: 1 });
     expect(group?.participantIds).toEqual([ME, OTHER]);

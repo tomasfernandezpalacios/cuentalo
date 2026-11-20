@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
+import { HeaderTitle } from '@/components/HeaderTitle';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import type { Entry, EntryInput } from '@/features/contadores/api';
 import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { CounterChart } from '@/features/contadores/components/CounterChart';
+import { CounterYearCalendar } from '@/features/contadores/components/CounterYearCalendar';
 import { EntryDialog } from '@/features/contadores/components/EntryDialog';
 import { EntryRow } from '@/features/contadores/components/EntryRow';
 import { Leaderboard } from '@/features/contadores/components/Leaderboard';
@@ -17,12 +19,13 @@ import {
   useDeleteEntry,
   useEntries,
   useSetRemovedFromHome,
+  useSetStreakShown,
   useUpdateEntry,
 } from '@/features/contadores/hooks';
 import { useCounterActions } from '@/features/contadores/useCounterActions';
 import { getErrorMessage } from '@/lib/errors';
 import { formatAmount, formatWithUnit, pluralize } from '@/lib/format';
-import { displayFont, fonts, proseFont, titleFont, useThemeColors } from '@/lib/theme';
+import { displayFont, fonts, isCinema, proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
 // El diálogo está cerrado (null), creando un registro ('new') o editando uno (Entry).
 type DialogState = null | 'new' | Entry;
@@ -36,6 +39,7 @@ export default function CounterDetailScreen() {
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
   const addToHome = useSetRemovedFromHome();
+  const setStreakShown = useSetStreakShown();
   const [dialog, setDialog] = useState<DialogState>(null);
   // Si cuenta en varios grupos (contadores enlazados), de qué grupo se ve la clasificación.
   const [boardCounterId, setBoardCounterId] = useState<string | null>(null);
@@ -108,34 +112,12 @@ export default function CounterDetailScreen() {
         <CounterAvatar emoji={emoji} name={name} photoPath={photoPath} size={72} />
         <Text style={[styles.total, { color: colors.text }]}>{formatAmount(displayTotal)}</Text>
         {unit ? <Text style={[styles.unit, { color: colors.textMuted }]}>{unit}</Text> : null}
+        {/* Registros y récord de racha en una línea (la racha actual va junto al nombre). */}
         <Text style={[styles.count, { color: colors.textMuted }]}>
           {group ? 'Tú · ' : ''}
-          {pluralize(myEntryCount, 'registro', 'registros')}
+          {pluralize(myEntryCount, 'registro', 'registros')} · Récord de racha:{' '}
+          {pluralize(streak.best, 'día', 'días')}
         </Text>
-        {streak ? (
-          // Formato racha: racha de días con +1 o más, aparte del total. En color solo si hoy
-          // ya se ha mantenido.
-          <View
-            style={styles.streakRow}
-            accessible
-            accessibilityLabel={`Racha de ${pluralize(streak.current, 'día', 'días')}${streak.todayDone ? '' : ', hoy aún sin mantener'}. Récord: ${pluralize(streak.best, 'día', 'días')}`}
-          >
-            <Ionicons
-              name="flame"
-              size={18}
-              color={streak.todayDone ? colors.flame : colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.streakText,
-                { color: streak.todayDone ? colors.flame : colors.textMuted },
-              ]}
-            >
-              {pluralize(streak.current, 'día', 'días')} de racha · récord{' '}
-              {pluralize(streak.best, 'día', 'días')}
-            </Text>
-          </View>
-        ) : null}
         {linkedGroups.map((g) => (
           <Text key={g.counterId} style={[styles.groupTotal, { color: colors.primary }]}>
             👥 {g.group.name}: {formatWithUnit(g.total, unit)} entre todos
@@ -154,11 +136,37 @@ export default function CounterDetailScreen() {
         canRemove={isCommon ? total >= 1 : myGroupTotal >= 1}
         onCustom={() => setDialog('new')}
       />
+      {/* «Mostrar racha» es de cada uno (su vista principal): aquí la puede cambiar cualquiera,
+          también quien no administra un contador de grupo y no abre su formulario. */}
+      <Pressable
+        onPress={() =>
+          setStreakShown.mutate(
+            { ids: [counterId], shown: !counter.data.showStreak },
+            { onError: showError },
+          )
+        }
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: counter.data.showStreak }}
+        accessibilityLabel="Mostrar la racha en Mis contadores"
+        hitSlop={8}
+        style={({ pressed }) => [styles.showStreak, { opacity: pressed ? 0.6 : 1 }]}
+      >
+        <Ionicons
+          name={counter.data.showStreak ? 'checkbox' : 'square-outline'}
+          size={20}
+          color={counter.data.showStreak ? colors.primary : colors.textMuted}
+        />
+        <Text style={[styles.showStreakText, { color: colors.text }]}>
+          Mostrar racha en Mis contadores
+        </Text>
+      </Pressable>
       {/* Tu evolución en este contador (solo lo tuyo); en los de grupo, debajo va la clasificación. */}
       <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
         {linkedGroups.length > 0 ? 'Tu evolución' : 'Evolución'}
       </Text>
       <CounterChart counterIds={counter.data.linkedCounterIds} name={name} unit={unit} />
+      {/* El año en cuadraditos: los días en los que registré algo en este contador. */}
+      <CounterYearCalendar counterIds={counter.data.linkedCounterIds} />
       {board ? (
         <>
           <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
@@ -195,7 +203,7 @@ export default function CounterDetailScreen() {
               })}
             </View>
           ) : null}
-          <Leaderboard counterId={board.counterId} unit={unit} streak={streak !== null} />
+          <Leaderboard counterId={board.counterId} unit={unit} streak={counter.data.showStreak} />
         </>
       ) : null}
       <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
@@ -235,7 +243,8 @@ export default function CounterDetailScreen() {
         <Ionicons name="home-outline" size={24} color={colors.primary} />
       </Pressable>
     ) : null,
-    canManage ? (
+    // El administrador edita el contador (o su versión); los demás miembros, su versión personal.
+    canManage || group ? (
       <Pressable
         key="edit"
         onPress={() =>
@@ -262,11 +271,32 @@ export default function CounterDetailScreen() {
             </View>
           );
 
+  const streakColor = streak.todayDone ? colors.flame : colors.textMuted;
+  const streakBadge = (
+    <View
+      style={styles.streakRow}
+      accessible
+      accessibilityLabel={`Racha de ${pluralize(streak.current, 'día', 'días')}${streak.todayDone ? '' : ', hoy aún sin mantener'}`}
+    >
+      <Ionicons name="flame" size={22} color={streakColor} />
+      <Text style={[styles.streakText, { color: streakColor }]}>{streak.current}</Text>
+    </View>
+  );
+
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: name,
+          // A la derecha del nombre, siempre, mi racha en este contador (en color si hoy ya se
+          // ha mantenido), aunque no tenga marcado «Mostrar racha».
+          ...(isCinema
+            ? {
+                headerTitle: ({ children }: { children: string }) => (
+                  <HeaderTitle badge={streakBadge}>{children}</HeaderTitle>
+                ),
+              }
+            : {}),
           headerRight,
         }}
       />
@@ -302,8 +332,18 @@ export default function CounterDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  streakRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  streakText: { fontSize: 15, fontFamily: fonts.title },
+  // Pegada a los botones (el hueco del header es de 20).
+  showStreak: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 6,
+    minHeight: 36,
+    marginTop: -10,
+  },
+  showStreakText: { fontSize: 14, fontFamily: fonts.detail },
+  streakRow: { flexDirection: 'row', alignItems: 'center', gap: 2, flexShrink: 0 },
+  streakText: { fontSize: 20, fontFamily: fonts.title },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   flex: { flex: 1 },
   list: { padding: 16 },
@@ -311,7 +351,7 @@ const styles = StyleSheet.create({
   totalBox: { alignItems: 'center', paddingVertical: 16, gap: 4 },
   total: { ...displayFont(56) },
   unit: { fontSize: 18, fontFamily: fonts.detail },
-  count: { fontSize: 14, marginTop: 4, fontFamily: fonts.detail },
+  count: { fontSize: 14, marginTop: 4, fontFamily: fonts.detail, textAlign: 'center' },
   groupTotal: { fontSize: 15, marginTop: 6, fontFamily: fonts.title, textAlign: 'center' },
   groupChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   groupChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1 },

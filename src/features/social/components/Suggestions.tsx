@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
@@ -14,6 +14,7 @@ import { type Suggestion, useMyPhoneSynced, useSyncPhone, useUnsyncPhone } from 
 import { useSendFriendRequest } from '../hooks';
 
 import { PersonRow } from './PersonRow';
+import { Tappable } from '@/components/Tappable';
 
 function showError(error: unknown) {
   appAlert('Error', getErrorMessage(error));
@@ -138,7 +139,7 @@ export function PhoneSyncCard() {
 export function DiscoverMoreRow() {
   const colors = useThemeColors();
   return (
-    <Pressable
+    <Tappable
       onPress={() => router.push('/amigos/descubrir')}
       accessibilityRole="button"
       accessibilityLabel="Descubrir más personas"
@@ -150,7 +151,7 @@ export function DiscoverMoreRow() {
       <Ionicons name="compass-outline" size={20} color={colors.primary} />
       <Text style={[styles.moreText, { color: colors.text }]}>Descubrir más</Text>
       <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-    </Pressable>
+    </Tappable>
   );
 }
 

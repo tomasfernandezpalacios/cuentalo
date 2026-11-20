@@ -1,10 +1,11 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { UserAvatar } from '@/features/perfil/PersonAvatar';
 import { openProfile } from '@/features/social/openProfile';
 import { displayFont, fonts, shape, useThemeColors } from '@/lib/theme';
+import { Tappable } from '@/components/Tappable';
 
 export type PodiumEntry = {
   userId: string;
@@ -42,7 +43,7 @@ export function Podium({ entries }: { entries: PodiumEntry[] }) {
         if (!entry) return <View key={place} style={styles.column} />;
         const first = place === 0;
         return (
-          <Pressable
+          <Tappable
             key={entry.userId}
             onPress={() => openProfile(entry.userId)}
             disabled={entry.isMe}
@@ -92,7 +93,7 @@ export function Podium({ entries }: { entries: PodiumEntry[] }) {
               </Text>
               <View style={styles.value}>{entry.value}</View>
             </View>
-          </Pressable>
+          </Tappable>
         );
       })}
     </View>

@@ -1,6 +1,7 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, type ViewStyle } from 'react-native';
 
 import { fonts, isCinema, shape, useThemeColors } from '@/lib/theme';
+import { Tappable } from '@/components/Tappable';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
@@ -43,7 +44,7 @@ export function AppButton({
   }[variant];
 
   return (
-    <Pressable
+    <Tappable
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"
@@ -67,7 +68,7 @@ export function AppButton({
           {title}
         </Text>
       )}
-    </Pressable>
+    </Tappable>
   );
 }
 

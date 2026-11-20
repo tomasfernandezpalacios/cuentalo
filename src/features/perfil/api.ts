@@ -121,10 +121,11 @@ async function removeDoomedPhotos(userId: string): Promise<void> {
     : { data: [] };
   const withOthers = new Set((others ?? []).map((m) => m.group_id));
   await Promise.all([
-    removePhotoFolders(
-      COUNTER_PHOTO_BUCKET,
-      (counters.data ?? []).map((c) => c.id),
-    ),
+    removePhotoFolders(COUNTER_PHOTO_BUCKET, [
+      ...(counters.data ?? []).map((c) => c.id),
+      // Las fotos de mis versiones personales de contadores de grupo.
+      `personal/${userId}`,
+    ]),
     removePhotoFolders(
       GROUP_PHOTO_BUCKET,
       groupIds.filter((id) => !withOthers.has(id)),

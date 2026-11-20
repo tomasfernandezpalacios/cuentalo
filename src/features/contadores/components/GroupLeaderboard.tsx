@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { fonts, proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
-import type { LeaderboardPeriod } from '../api';
+import { groupLook, type LeaderboardPeriod } from '../api';
 import { useCounterList, useMyLastCounterId } from '../hooks';
 
 import { GroupMembersChart } from './GroupMembersChart';
@@ -16,7 +16,10 @@ import { Leaderboard } from './Leaderboard';
 export function GroupLeaderboard({ groupId }: { groupId: string }) {
   const colors = useThemeColors();
   const counters = useCounterList();
-  const groupCounters = (counters.data ?? []).filter((c) => c.group_id === groupId && c.isActive);
+  // Dentro del grupo se ven como los dejó su administrador (sin mi versión personal).
+  const groupCounters = (counters.data ?? [])
+    .filter((c) => c.group_id === groupId && c.isActive)
+    .map(groupLook);
   const lastUsed = useMyLastCounterId(groupCounters.map((c) => c.id));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Mismo periodo para la clasificación y la gráfica de debajo.
@@ -77,7 +80,7 @@ export function GroupLeaderboard({ groupId }: { groupId: string }) {
       <Leaderboard
         counterId={selected.id}
         unit={selected.unit}
-        streak={selected.streak_enabled}
+        streak={selected.showStreak}
         period={period}
         onChangePeriod={setPeriod}
       />

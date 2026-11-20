@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/AppButton';
+import { GestureMascot } from '@/features/mascota/GestureMascot';
 import { displayFont, fonts, proseFont, useColorMode, useThemeColors } from '@/lib/theme';
 
 import { haptic, SMOOTH, useAnnounce, useFadeIn, useLoop } from './animations';
@@ -46,7 +47,6 @@ function Welcome({ step, index, total }: { step: Step; index: number; total: num
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const opacity = useFadeIn();
-  const float = useLoop(1400);
   const [leaving, setLeaving] = useState(false);
   useAnnounce(step);
 
@@ -76,21 +76,10 @@ function Welcome({ step, index, total }: { step: Step; index: number; total: num
       accessibilityViewIsModal
     >
       <View style={styles.welcomeBody}>
-        <Animated.View
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-          style={[
-            styles.logo,
-            {
-              backgroundColor: colors.primary,
-              transform: [
-                { translateY: float.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
-              ],
-            },
-          ]}
-        >
-          <Text style={[styles.logoText, { color: colors.onPrimary }]}>+1</Text>
-        </Animated.View>
+        {/* La mascota saluda: la bienvenida la dice ella. */}
+        <View style={styles.logo}>
+          <GestureMascot name={step.gesture} radius={WELCOME_MASCOT} delayFrames={8} />
+        </View>
         <Text style={[styles.welcomeTitle, { color: colors.text }]} accessibilityRole="header">
           {step.title}
         </Text>
@@ -107,6 +96,10 @@ function Welcome({ step, index, total }: { step: Step; index: number; total: num
   );
 }
 
+/** Puntos por radio de la bola de la mascota en la bienvenida y en la pantalla final. */
+const WELCOME_MASCOT = 34;
+const FINISH_MASCOT = 30;
+
 const HOLD_MS = 2600;
 const CIRCLE = 104;
 
@@ -119,7 +112,7 @@ const CIRCLE = 104;
  */
 function Finish({ step, index, total }: { step: Step; index: number; total: number }) {
   const colors = useThemeColors();
-  // La promesa y «Cuéntalo»: negro puro en oscuro y blanco puro en claro (petición del usuario;
+  // La promesa y «Kuentio.»: negro puro en oscuro y blanco puro en claro (petición del usuario;
   // van sobre el color de la app, que llena la pantalla).
   const pureInk = useColorMode() === 'dark' ? '#000000' : '#FFFFFF';
   const insets = useSafeAreaInsets();
@@ -228,6 +221,8 @@ function Finish({ step, index, total }: { step: Step; index: number; total: numb
     >
       <Progress index={index} total={total} />
       <View style={styles.finishBody}>
+        {/* Salta de alegría: «Todo listo». */}
+        <GestureMascot name={step.gesture} radius={FINISH_MASCOT} delayFrames={8} />
         <Text style={[styles.finishTitle, { color: colors.text }]} accessibilityRole="header">
           {step.title}
         </Text>
@@ -295,7 +290,7 @@ function Finish({ step, index, total }: { step: Step; index: number; total: numb
           ]}
         >
           <Text style={[styles.brandText, { color: pureInk, textShadowColor: pureInk }]}>
-            Cuéntalo
+            Kuentio.
           </Text>
         </Animated.View>
       ) : null}
@@ -306,15 +301,7 @@ function Finish({ step, index, total }: { step: Step; index: number; total: numb
 const styles = StyleSheet.create({
   welcome: { paddingHorizontal: 24, zIndex: 1000, elevation: 1000 },
   welcomeBody: { flex: 1, alignItems: 'flex-start', justifyContent: 'center', gap: 16 },
-  logo: {
-    width: 112,
-    height: 112,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  logoText: { ...displayFont(48) },
+  logo: { marginTop: 24, marginBottom: 12 },
   welcomeTitle: { ...displayFont(30), textAlign: 'left' },
   welcomeSubtitle: { fontSize: 19, fontFamily: fonts.title, textAlign: 'left' },
   welcomeText: { ...proseFont(17, 24), textAlign: 'left' },

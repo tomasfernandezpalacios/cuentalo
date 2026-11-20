@@ -1,9 +1,9 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { useSettings } from '@/features/configuracion/settings';
+import { useSetting } from '@/features/configuracion/settings';
 import { formatWithUnit } from '@/lib/format';
 import { fonts, useThemeColors } from '@/lib/theme';
+import { Tappable } from '@/components/Tappable';
 
 // Las cantidades de los botones se eligen en Configuración (por defecto +1 y +5).
 
@@ -18,15 +18,12 @@ type Props = {
   /** Mantener pulsado el primer botón abre la cantidad personalizada (versión compacta). */
   onLongPressAdd?: () => void;
   compact?: boolean;
-  /**
-   * Contador en formato racha (versión compacta): solo el primer botón, el −1 y, en el sitio
-   * del −1, los días de racha con la llama (en color si hoy ya se ha mantenido).
-   */
-  streak?: { days: number; todayDone: boolean } | null;
   /** Como mucho estos botones de sumar (en los bloques de la cuadrícula, uno). */
   maxAmounts?: number;
   /** Versión compacta que ocupa todo el ancho (bloques de la cuadrícula): botones repartidos. */
   stretch?: boolean;
+  /** Alto de los botones en los bloques (más bajos cuando el bloque tiene más cosas). */
+  buttonHeight?: number;
 };
 
 /** Botones rápidos (+1 +5 por defecto), −1 y, opcionalmente, "Otra". */
@@ -38,31 +35,26 @@ export function QuickAddBar({
   onCustom,
   onLongPressAdd,
   compact = false,
-  streak = null,
   maxAmounts = Infinity,
   stretch = false,
+  buttonHeight,
 }: Props) {
   const colors = useThemeColors();
-  const { quickAmounts } = useSettings();
+  const quickAmounts = useSetting((s) => s.quickAmounts);
   const size = compact ? styles.compact : styles.large;
   const label = compact ? styles.compactLabel : styles.largeLabel;
-  const showStreak = compact && streak !== null;
-  const amounts = showStreak
-    ? quickAmounts.slice(0, 1)
-    : quickAmounts.slice(0, Math.min(maxAmounts, quickAmounts.length));
+  const amounts = quickAmounts.slice(0, Math.min(maxAmounts, quickAmounts.length));
   const targetStyle = compact && !stretch ? undefined : styles.flexTarget;
-  const buttonSize = compact
-    ? stretch
-      ? styles.compactStretch
-      : styles.compact
-    : styles.largeInTarget;
-  const flameColor = streak?.todayDone ? colors.flame : colors.textMuted;
+  const buttonSize = [
+    compact ? (stretch ? styles.compactStretch : styles.compact) : styles.largeInTarget,
+    buttonHeight !== undefined ? { height: buttonHeight } : null,
+  ];
 
   return (
     <View style={[styles.row, compact && styles.compactRow, stretch && styles.stretchRow]}>
       {amounts.map((amount, index) => (
         <View key={amount} style={targetStyle}>
-          <Pressable
+          <Tappable
             onPress={() => onAdd(amount)}
             onLongPress={index === 0 ? onLongPressAdd : undefined}
             accessibilityRole="button"
@@ -86,11 +78,11 @@ export function QuickAddBar({
             >
               +{amount}
             </Text>
-          </Pressable>
+          </Tappable>
         </View>
       ))}
       <View style={targetStyle}>
-        <Pressable
+        <Tappable
           onPress={onRemoveOne}
           disabled={!canRemove}
           accessibilityRole="button"
@@ -118,10 +110,10 @@ export function QuickAddBar({
           >
             −1
           </Text>
-        </Pressable>
+        </Tappable>
       </View>
       {onCustom ? (
-        <Pressable
+        <Tappable
           onPress={onCustom}
           accessibilityRole="button"
           accessibilityLabel="Añadir otra cantidad"
@@ -145,19 +137,7 @@ export function QuickAddBar({
           >
             Otra
           </Text>
-        </Pressable>
-      ) : null}
-      {showStreak && streak ? (
-        <View
-          style={[styles.button, styles.streak, stretch && styles.streakStretch]}
-          accessible
-          accessibilityLabel={`Racha de ${streak.days} ${streak.days === 1 ? 'día' : 'días'}${streak.todayDone ? '' : ', hoy aún sin mantener'}`}
-        >
-          <Ionicons name="flame" size={16} color={flameColor} />
-          <Text maxFontSizeMultiplier={1.2} style={[styles.compactLabel, { color: flameColor }]}>
-            {streak.days}
-          </Text>
-        </View>
+        </Tappable>
       ) : null}
     </View>
   );
@@ -176,8 +156,6 @@ const styles = StyleSheet.create({
   compact: { minWidth: 36, paddingHorizontal: 3, height: 48, borderRadius: 10 },
   compactStretch: { height: 44, borderRadius: 10 },
   stretchRow: { alignSelf: 'stretch' },
-  streakStretch: { flex: 1, height: 44 },
-  streak: { flexDirection: 'row', height: 48, minWidth: 36, gap: 1, paddingHorizontal: 2 },
   largeLabel: { fontSize: 22, fontFamily: fonts.title },
   compactLabel: { fontSize: 17, fontFamily: fonts.title },
 });

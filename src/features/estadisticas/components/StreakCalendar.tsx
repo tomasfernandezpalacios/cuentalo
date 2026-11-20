@@ -110,8 +110,20 @@ function useMonthSwipe(options: Swipe) {
   };
 }
 
-/** Calendario mensual con los días de actividad rellenos; se puede ir a meses anteriores. */
-export function StreakCalendar({ activeDays }: { activeDays: Set<string> }) {
+/** Amarillo del escudo de los días que salvó un protector de racha. */
+const SHIELD_YELLOW = '#F2C230';
+
+/**
+ * Calendario mensual con los días de actividad rellenos y, con un escudo amarillo, los que salvó
+ * un protector de racha; se puede ir a meses anteriores.
+ */
+export function StreakCalendar({
+  activeDays,
+  shieldedDays = new Set(),
+}: {
+  activeDays: Set<string>;
+  shieldedDays?: Set<string>;
+}) {
   const colors = useThemeColors();
   const today = localToday();
   const [month, setMonth] = useState({
@@ -179,6 +191,7 @@ export function StreakCalendar({ activeDays }: { activeDays: Set<string> }) {
             {week.map((day, j) => {
               if (!day) return <View key={j} style={styles.cell} />;
               const active = activeDays.has(day);
+              const shielded = !active && shieldedDays.has(day);
               const isToday = day === today;
               return (
                 // Clave por día (no por posición): al cambiar de mes se crean círculos nuevos.
@@ -186,7 +199,7 @@ export function StreakCalendar({ activeDays }: { activeDays: Set<string> }) {
                   key={day}
                   style={styles.cell}
                   accessible
-                  accessibilityLabel={`${Number(day.slice(8, 10))}${active ? ', con actividad' : ''}${isToday ? ', hoy' : ''}`}
+                  accessibilityLabel={`${Number(day.slice(8, 10))}${active ? ', con actividad' : ''}${shielded ? ', salvado con un protector' : ''}${isToday ? ', hoy' : ''}`}
                 >
                   <View
                     // Siempre con fondo (transparente si no hay actividad) y borde: en Android,
@@ -199,8 +212,19 @@ export function StreakCalendar({ activeDays }: { activeDays: Set<string> }) {
                       },
                     ]}
                   >
+                    {shielded ? (
+                      <Ionicons
+                        name="shield"
+                        size={32}
+                        color={SHIELD_YELLOW}
+                        style={styles.shield}
+                      />
+                    ) : null}
                     <Text
-                      style={[styles.dayText, { color: active ? '#FFFFFF' : colors.text }]}
+                      style={[
+                        styles.dayText,
+                        { color: active ? '#FFFFFF' : shielded ? '#3A2C05' : colors.text },
+                      ]}
                       maxFontSizeMultiplier={1.2}
                     >
                       {Number(day.slice(8, 10))}
@@ -245,5 +269,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayText: { fontSize: 15, fontFamily: fonts.title },
+  shield: { position: 'absolute' },
   summary: { fontSize: 14, fontFamily: fonts.detail, textAlign: 'center', marginTop: 6 },
 });

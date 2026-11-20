@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { fonts, useThemeColors } from '@/lib/theme';
+import { Tappable } from '@/components/Tappable';
 
 export type ChipCounter = { id: string; name: string; emoji: string | null; color: string };
 
@@ -25,7 +26,7 @@ export function CounterChipsBar({
   const colors = useThemeColors();
   return (
     <View style={styles.row}>
-      <Pressable
+      <Tappable
         onPress={onOpenFilters}
         accessibilityRole="button"
         accessibilityLabel={filtered ? 'Filtros aplicados. Cambiar filtros' : 'Filtrar contadores'}
@@ -43,7 +44,7 @@ export function CounterChipsBar({
           size={18}
           color={filtered ? colors.onPrimary : colors.primary}
         />
-      </Pressable>
+      </Tappable>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -52,7 +53,7 @@ export function CounterChipsBar({
         {counters.map((counter) => {
           const visible = visibleIds.includes(counter.id);
           return (
-            <Pressable
+            <Tappable
               key={counter.id}
               onPress={() => onToggle(counter.id)}
               accessibilityRole="checkbox"
@@ -76,7 +77,7 @@ export function CounterChipsBar({
               >
                 {counter.emoji ? `${counter.emoji} ${counter.name}` : counter.name}
               </Text>
-            </Pressable>
+            </Tappable>
           );
         })}
       </ScrollView>

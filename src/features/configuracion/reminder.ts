@@ -8,7 +8,7 @@ import { useStreak } from '@/features/estadisticas/api';
 import { localToday } from '@/features/estadisticas/periods';
 
 import { reminderDates } from './reminderDates';
-import { getSettings, useSettings } from './settings';
+import { getSettings, useSetting } from './settings';
 
 // Recordatorio diario para no perder la racha, con notificaciones locales (funcionan en Expo
 // Go; las push desde el servidor necesitarían una build propia).
@@ -47,7 +47,7 @@ export async function requestReminderPermission(): Promise<boolean> {
   return (await Notifications.requestPermissionsAsync()).granted;
 }
 
-/** Contador en formato racha para el que puede tocar recordatorio. */
+/** Contador con «Mostrar racha» para el que puede tocar recordatorio. */
 export type StreakCounterReminder = { id: string; name: string; todayDone: boolean };
 
 // iOS deja programar como mucho 64 avisos a la vez: se reparten entre el general y los de cada
@@ -133,7 +133,7 @@ export function clearReminders() {
  * se refresca al volver a la app) y mis contadores de racha; sin sesión, ninguno.
  */
 export function useReminderSync(isSignedIn: boolean) {
-  const { reminder } = useSettings();
+  const reminder = useSetting((s) => s.reminder);
   const streak = useStreak();
   const counters = useCounterList();
   const activeToday = streak.data?.days.has(localToday()) ?? false;
@@ -141,8 +141,9 @@ export function useReminderSync(isSignedIn: boolean) {
   const counterList = useMemo<StreakCounterReminder[]>(
     () =>
       (counters.data ?? [])
-        .filter((c) => c.streak && c.isActive && !c.linkedInto)
-        .map((c) => ({ id: c.id, name: c.name, todayDone: c.streak?.todayDone ?? false })),
+        // Los contadores en los que sigo la racha («Mostrar racha»).
+        .filter((c) => c.showStreak && c.isActive && !c.linkedInto)
+        .map((c) => ({ id: c.id, name: c.name, todayDone: c.streak.todayDone })),
     [counters.data],
   );
 

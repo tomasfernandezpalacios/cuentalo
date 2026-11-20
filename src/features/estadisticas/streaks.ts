@@ -8,34 +8,74 @@ function shift(day: string, days: number): string {
     .slice(0, 10);
 }
 
-/** Días seguidos hacia atrás desde `from` (incluido) que están en `active`. */
-function runEndingAt(active: Set<string>, from: string): number {
+/**
+ * Días seguidos hacia atrás desde `from` (incluido) que están en `active`. Los días protegidos
+ * (`shielded`, un protector de racha) no rompen la racha, pero tampoco la alargan.
+ */
+function runEndingAt(active: Set<string>, shielded: Set<string>, from: string): number {
   let count = 0;
-  for (let day = from; active.has(day); day = shift(day, -1)) count++;
+  for (let day = from; active.has(day) || shielded.has(day); day = shift(day, -1)) {
+    if (active.has(day)) count++;
+  }
   return count;
 }
 
 /**
  * Racha actual. Si hoy ya hay actividad, cuenta desde hoy; si no, la de ayer sigue viva hasta que
- * acabe el día. Si tampoco hubo ayer, es 0.
+ * acabe el día. Si tampoco hubo ayer (ni lo cubrió un protector), es 0.
  */
-export function currentStreak(activeDays: Iterable<string>, today: string): number {
+export function currentStreak(
+  activeDays: Iterable<string>,
+  today: string,
+  shieldedDays: Iterable<string> = [],
+): number {
   const active = new Set(activeDays);
-  return active.has(today) ? runEndingAt(active, today) : runEndingAt(active, shift(today, -1));
+  const shielded = new Set(shieldedDays);
+  return active.has(today)
+    ? runEndingAt(active, shielded, today)
+    : runEndingAt(active, shielded, shift(today, -1));
 }
 
-/** La racha más larga de toda la historia. */
-export function bestStreak(activeDays: Iterable<string>): number {
+/** La racha más larga de toda la historia (los días protegidos la unen sin sumar). */
+export function bestStreak(
+  activeDays: Iterable<string>,
+  shieldedDays: Iterable<string> = [],
+): number {
   const active = new Set(activeDays);
+  const shielded = new Set(shieldedDays);
+  const kept = (day: string) => active.has(day) || shielded.has(day);
   let best = 0;
-  for (const day of active) {
+  for (const day of new Set([...active, ...shielded])) {
     // Solo se cuenta desde el primer día de cada racha.
-    if (active.has(shift(day, -1))) continue;
+    if (kept(shift(day, -1))) continue;
     let length = 0;
-    for (let d = day; active.has(d); d = shift(d, 1)) length++;
+    for (let d = day; kept(d); d = shift(d, 1)) if (active.has(d)) length++;
     best = Math.max(best, length);
   }
   return best;
+}
+
+/**
+ * Protectores de racha que hay que gastar hoy: si ayer no hubo actividad y la racha venía viva,
+ * los días sin nada entre el último día mantenido y ayer se cubren con protectores, siempre que
+ * haya suficientes para todos (si no, la racha se pierde y no se gasta ninguno). Devuelve esos
+ * días (vacío si no hace falta ninguno).
+ */
+export function shieldsToUse(
+  activeDays: Iterable<string>,
+  shieldedDays: Iterable<string>,
+  available: number,
+  today: string,
+): string[] {
+  const kept = new Set([...activeDays, ...shieldedDays]);
+  const yesterday = shift(today, -1);
+  if (kept.has(yesterday) || available <= 0) return [];
+  const before = [...kept].filter((day) => day < yesterday).sort();
+  const last = before[before.length - 1];
+  if (!last) return [];
+  const gap: string[] = [];
+  for (let day = shift(last, 1); day <= yesterday; day = shift(day, 1)) gap.push(day);
+  return gap.length <= available ? gap : [];
 }
 
 /**

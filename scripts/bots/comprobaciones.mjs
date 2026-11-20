@@ -64,7 +64,9 @@ export async function checkBot(bot, world) {
     ? await all(() =>
         bot.db
           .from('entries')
-          .select('id, counter_id, user_id, amount, logged_at, personal_only, group_only, common_batch')
+          .select(
+            'id, counter_id, user_id, amount, logged_at, personal_only, group_only, common_batch',
+          )
           .in('counter_id', ids)
           .order('id'),
       )
@@ -181,11 +183,11 @@ export async function checkBot(bot, world) {
     }
   }
 
-  // 5. Rachas de los contadores en formato racha, recalculadas en mi zona horaria.
+  // 5. Racha de cada contador (todos tienen), recalculada en mi zona horaria.
   const tz = bot.persona.timeZone;
   const today = dayIn(new Date().toISOString(), tz);
   const streaks = new Map(h.streaks.map((s) => [s.counter_id, s]));
-  for (const c of h.counters.filter((x) => x.streak_enabled)) {
+  for (const c of h.counters) {
     const perDay = new Map();
     for (const e of entries) {
       if (e.counter_id !== c.id || e.user_id !== bot.id || e.group_only) continue;

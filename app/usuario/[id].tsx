@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Redirect, Stack, useLocalSearchParams } from 'expo-router';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { appAlert } from '@/components/AppDialog';
 import { AppButton } from '@/components/AppButton';
@@ -22,6 +22,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { formatWithUnit } from '@/lib/format';
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { CommonCountersChart } from '@/features/social/components/CommonCountersChart';
+import { useBlockUser, useIsBlocked, useUnblockUser } from '@/features/social/moderation';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 function showError(error: unknown) {
@@ -44,6 +45,9 @@ export default function UserProfileScreen() {
   const send = useSendFriendRequest();
   const respond = useRespondFriendRequest();
   const remove = useDeleteFriendship();
+  const isBlocked = useIsBlocked(id);
+  const block = useBlockUser();
+  const unblock = useUnblockUser();
 
   if (id === myId) return <Redirect href="/perfil" />;
   if (profile.isPending || friendships.isPending) return <LoadingView />;
@@ -68,9 +72,74 @@ export default function UserProfileScreen() {
     ]);
   }
 
+  function confirmBlock() {
+    appAlert(
+      `Bloquear a ${person.display_name}`,
+      'Dejaréis de ser amigos y no podrá enviarte solicitudes ni invitarte a grupos. No se le ' +
+        'avisa. Si compartís algún grupo, seguiréis en él (puedes salir cuando quieras).',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Bloquear',
+          style: 'destructive',
+          onPress: () => block.mutate(id, { onError: showError }),
+        },
+      ],
+    );
+  }
+
+  function openReport() {
+    router.push({
+      pathname: '/denunciar',
+      params: { kind: 'user', id, name: person.display_name },
+    });
+  }
+
+  // Menú «…» de la cabecera: denunciar y bloquear (o desbloquear).
+  function openMenu() {
+    appAlert(
+      person.display_name,
+      `@${person.username}`,
+      [
+        { text: 'Denunciar', onPress: openReport },
+        isBlocked
+          ? {
+              text: 'Desbloquear',
+              onPress: () => unblock.mutate(id, { onError: showError }),
+            }
+          : { text: 'Bloquear', style: 'destructive', onPress: confirmBlock },
+        { text: 'Cancelar', style: 'cancel' },
+      ],
+      {
+        image: (
+          <PersonAvatar
+            name={person.display_name}
+            emoji={person.emoji}
+            photoPath={person.photo_path}
+            size={56}
+          />
+        ),
+      },
+    );
+  }
+
   // Botones según la relación que tengamos.
   let friendshipBlock;
-  if (!friendship) {
+  if (isBlocked) {
+    friendshipBlock = (
+      <View style={styles.blocked}>
+        <Text style={[styles.detail, styles.center, { color: colors.textMuted }]}>
+          Has bloqueado a {person.display_name}.
+        </Text>
+        <AppButton
+          title="Desbloquear"
+          variant="secondary"
+          loading={unblock.isPending}
+          onPress={() => unblock.mutate(id, { onError: showError })}
+        />
+      </View>
+    );
+  } else if (!friendship) {
     friendshipBlock = (
       <AppButton
         title="Enviar solicitud de amistad"
@@ -141,7 +210,22 @@ export default function UserProfileScreen() {
         />
       }
     >
-      <Stack.Screen options={{ title: person.display_name }} />
+      <Stack.Screen
+        options={{
+          title: person.display_name,
+          headerRight: () => (
+            <Pressable
+              onPress={openMenu}
+              accessibilityRole="button"
+              accessibilityLabel="Más opciones: denunciar o bloquear"
+              hitSlop={12}
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            >
+              <Ionicons name="ellipsis-horizontal" size={24} color={colors.primary} />
+            </Pressable>
+          ),
+        }}
+      />
 
       <View style={styles.header}>
         <PersonAvatar
@@ -293,6 +377,7 @@ const styles = StyleSheet.create({
   detail: { fontSize: 14, fontFamily: fonts.detail },
   center: { textAlign: 'center' },
   row2: { flexDirection: 'row', gap: 10 },
+  blocked: { gap: 10 },
   flex: { flex: 1 },
   streak: {
     flexDirection: 'row',

@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import type { PublicProfile } from '../api';
 import { openProfile } from '../openProfile';
+import { Tappable } from '@/components/Tappable';
 
 type Props = {
   profile: PublicProfile;
@@ -24,7 +25,7 @@ export function PersonRow({ profile, note, actions, badge, onLongPress }: Props)
   const colors = useThemeColors();
   return (
     <View style={[styles.row, { borderBottomColor: colors.border }]}>
-      <Pressable
+      <Tappable
         onPress={() => openProfile(profile.id)}
         onLongPress={onLongPress}
         accessibilityRole="button"
@@ -50,7 +51,7 @@ export function PersonRow({ profile, note, actions, badge, onLongPress }: Props)
             {note ? ` · ${note}` : ''}
           </Text>
         </View>
-      </Pressable>
+      </Tappable>
       {actions ? <View style={styles.actions}>{actions}</View> : null}
     </View>
   );

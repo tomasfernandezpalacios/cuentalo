@@ -4,6 +4,7 @@ import Animated, { useAnimatedRef, useAnimatedStyle } from 'react-native-reanima
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/AppButton';
+import { GestureMascot } from '@/features/mascota/GestureMascot';
 import { displayFont, fonts, proseFont, titleFont, useThemeColors } from '@/lib/theme';
 
 import { Demo } from './Demo';
@@ -134,14 +135,26 @@ export function Coach({ step, index, total }: Props) {
         style={[styles.ring, { borderColor: colors.primary }, ringStyle]}
       />
 
-      {/* «Esto es Cuéntalo»: destacado en el centro, con todo lo demás apagado. */}
+      {/* «Esto es Kuentio»: destacado en el centro, con todo lo demás apagado. */}
       <Animated.View pointerEvents="none" style={[styles.bannerBox, bannerStyle]}>
-        <View
-          style={[styles.banner, { backgroundColor: colors.surface, borderColor: colors.primary }]}
-        >
-          <Text style={[styles.bannerText, { color: colors.text }]}>
-            {kind === 'banner' ? step.title : 'Esto es Cuéntalo'}
-          </Text>
+        <View style={styles.bannerColumn}>
+          {/* La mascota llega y saluda: «Esto es Kuentio» lo dice ella. */}
+          <GestureMascot
+            key={step.id}
+            name={step.gesture}
+            radius={BANNER_MASCOT}
+            play={kind === 'banner' && active !== null}
+          />
+          <View
+            style={[
+              styles.banner,
+              { backgroundColor: colors.surface, borderColor: colors.primary },
+            ]}
+          >
+            <Text style={[styles.bannerText, { color: colors.text }]}>
+              {kind === 'banner' ? step.title : 'Esto es Kuentio'}
+            </Text>
+          </View>
         </View>
       </Animated.View>
 
@@ -183,6 +196,7 @@ export function Coach({ step, index, total }: Props) {
             index={view.progress}
             total={total}
             showNext={showsNext(bubbleStep, active?.missing ?? false)}
+            speaking={active !== null}
             onSkip={director.skip}
           />
         ) : null}
@@ -272,6 +286,10 @@ const Veil = memo(function Veil({
   );
 });
 
+/** Puntos por radio de la bola de la mascota en el bocadillo y en el rótulo «Esto es Kuentio». */
+const BUBBLE_MASCOT = 16;
+const BANNER_MASCOT = 30;
+
 /** Tamaño al que se dibujan las esquinas (después se escalan al radio de cada hueco). */
 const CORNER = 64;
 
@@ -321,22 +339,28 @@ const BubbleContent = memo(function BubbleContent({
   index,
   total,
   showNext,
+  speaking,
   onSkip,
 }: {
   step: Step;
   index: number;
   total: number;
   showNext: boolean;
+  /** Con el paso a la vista: la mascota empieza su gesto (como si lo dijera ella). */
+  speaking: boolean;
   onSkip: () => void;
 }) {
   const colors = useThemeColors();
   return (
     <>
-      <View style={styles.bubbleText}>
-        <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-          {step.title}
-        </Text>
-        <Text style={[styles.text, { color: colors.textMuted }]}>{step.text}</Text>
+      <View style={styles.bubbleMain}>
+        <GestureMascot key={step.id} name={step.gesture} radius={BUBBLE_MASCOT} play={speaking} />
+        <View style={styles.bubbleText}>
+          <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
+            {step.title}
+          </Text>
+          <Text style={[styles.text, { color: colors.textMuted }]}>{step.text}</Text>
+        </View>
       </View>
       <View style={styles.footer}>
         <Progress index={index} total={total} style={styles.progressInBubble} />
@@ -378,6 +402,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  bannerColumn: { alignItems: 'center', gap: 10 },
   banner: {
     paddingHorizontal: 28,
     paddingVertical: 18,
@@ -407,7 +432,8 @@ const styles = StyleSheet.create({
   // El piquito asoma por arriba o por abajo (medio cuadrado girado, con el borde por fuera).
   caretTop: { top: -CARET / 2, borderRightWidth: 0, borderBottomWidth: 0 },
   caretBottom: { bottom: -CARET / 2, borderLeftWidth: 0, borderTopWidth: 0 },
-  bubbleText: { gap: 6 },
+  bubbleMain: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  bubbleText: { flex: 1, gap: 6 },
   title: { ...titleFont(18) },
   text: { ...proseFont(15, 21) },
   footer: {

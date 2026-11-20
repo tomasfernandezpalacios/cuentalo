@@ -1,18 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useFocusEffect } from 'expo-router';
-import {
-  useCallback,
-  useRef,
-  useState,
-  type ComponentProps,
-  type ComponentRef,
-} from 'react';
+import { useCallback, useRef, useState, type ComponentProps, type ComponentRef } from 'react';
 import {
   Animated,
   BackHandler,
+  Platform,
   ScrollView,
-  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -26,7 +20,7 @@ import {
 import { useIsOnline } from '@/lib/offline';
 import { usePullRefresh } from '@/lib/usePullRefresh';
 import { appAlert } from '@/components/AppDialog';
-import { updateSettings, useSettings } from '@/features/configuracion/settings';
+import { updateSettings, useSetting } from '@/features/configuracion/settings';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import type { CounterWithTotal } from '@/features/contadores/api';
 import { CounterCard } from '@/features/contadores/components/CounterCard';
@@ -60,8 +54,10 @@ import { applyOrder } from '@/lib/reorder';
 import { StableScreenOptions } from '@/lib/stableOptions';
 import { matchesSearch } from '@/lib/search';
 import { useDragReorder } from '@/lib/useDragReorder';
+import { useTabBarSpace } from '@/lib/useTabBarSpace';
 import { TITLE_GAP, useScreenTitleSize } from '@/lib/screenTitle';
 import { fonts, isCinema, screenTitleFont, useThemeColors } from '@/lib/theme';
+import { Tappable } from '@/components/Tappable';
 
 function openNewCounter() {
   router.push('/contadores/nuevo');
@@ -75,6 +71,7 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 
 export default function CountersScreen() {
   const colors = useThemeColors();
+  const tabBarSpace = useTabBarSpace();
   const { data, error, isPending, refetch } = useCounterList();
   const folders = useFolders();
   // El círculo de recarga solo sale al tirar (no con cada refresco por detrás).
@@ -87,7 +84,7 @@ export default function CountersScreen() {
   const actions = useCounterActions();
   const [showHidden, setShowHidden] = useState(false);
   // Vista de los contadores (filas o bloques), guardada en el móvil.
-  const { counterLayout } = useSettings();
+  const counterLayout = useSetting((s) => s.counterLayout);
   const titleSize = useScreenTitleSize();
   const grid = counterLayout === 'grid';
   const { width } = useWindowDimensions();
@@ -103,6 +100,8 @@ export default function CountersScreen() {
   const [barsHeight, setBarsHeight] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const listRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  // Toda la pantalla: la copia de la tarjeta que se arrastra se dibuja encima, fuera de la lista.
+  const screenRef = useRef<ComponentRef<typeof View>>(null);
   const barsHiddenOnce = useRef(false);
   const scrollMetrics = useRef({ offset: 0, viewport: 0, content: 0, titleTop: 0 });
   // Al abrir la app siempre se empieza en «Todos» y sin filtros.
@@ -154,6 +153,16 @@ export default function CountersScreen() {
     // En bloques también se reordena arrastrando, en las dos direcciones.
     columns: grid ? 2 : 1,
     onHold: (id) => toggleSelected(id),
+    // Llevar la tarjeta al borde de arriba o de abajo desplaza la lista (de último a primero
+    // del tirón). Arriba se para en el primer contador, sin sacar las barras.
+    overlayRoot: screenRef,
+    autoScroll: {
+      ref: listRef,
+      offset: () => scrollMetrics.current.offset,
+      minOffset: () => barsHeight,
+      maxOffset: () => scrollMetrics.current.content - scrollMetrics.current.viewport,
+      bottomInset: tabBarSpace,
+    },
     onReorder: (keys) =>
       setCounterOrder.mutate([
         ...keys,
@@ -230,7 +239,8 @@ export default function CountersScreen() {
       appAlert('Editar', 'Solo se puede editar un contador cada vez.');
       return;
     }
-    if (!counter.canManage) {
+    // En uno de grupo que no administro, edito mi versión personal (nombre, imagen y unidad).
+    if (!counter.canManage && !counter.group) {
       appAlert('Editar', `Solo el administrador puede editar «${counter.name}».`);
       return;
     }
@@ -370,6 +380,7 @@ export default function CountersScreen() {
     return (
       <Animated.View
         key={item.id}
+        ref={dragProps.ref}
         onLayout={dragProps.onLayout}
         style={[grid && { width: gridItemWidth }, dragProps.style]}
       >
@@ -380,7 +391,7 @@ export default function CountersScreen() {
 
   function headerIcon(name: IconName, label: string, onPress: () => void, disabled = false) {
     return (
-      <Pressable
+      <Tappable
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={label}
@@ -389,13 +400,13 @@ export default function CountersScreen() {
         style={{ opacity: disabled ? 0.35 : 1 }}
       >
         <Ionicons name={name} size={24} color={colors.primary} />
-      </Pressable>
+      </Tappable>
     );
   }
 
   const selectionOptions = {
     headerLeft: () => (
-      <Pressable
+      <Tappable
         onPress={clearSelection}
         accessibilityRole="button"
         accessibilityLabel="Salir de la selección"
@@ -403,7 +414,7 @@ export default function CountersScreen() {
         style={styles.close}
       >
         <Ionicons name="close" size={26} color={colors.text} />
-      </Pressable>
+      </Tappable>
     ),
     headerTitle: () => (
       // No es un título: va con la letra normal y a tamaño de texto, sin pisar los botones.
@@ -424,7 +435,7 @@ export default function CountersScreen() {
     headerRight: () => (
       <View style={styles.selectionActions}>
         {headerIcon('trash-outline', 'Borrar', deleteSelected)}
-        <Pressable
+        <Tappable
           onPress={() => setFolderPickerOpen(true)}
           accessibilityRole="button"
           accessibilityLabel="Añadir a una carpeta"
@@ -434,7 +445,7 @@ export default function CountersScreen() {
           <View style={[styles.folderPlus, { backgroundColor: colors.surface }]}>
             <Ionicons name="add" size={13} color={colors.primary} />
           </View>
-        </Pressable>
+        </Tappable>
         {headerIcon(
           selected.every((c) => c.hidden) ? 'eye-outline' : 'eye-off-outline',
           selected.every((c) => c.hidden) ? 'Mostrar' : 'Ocultar',
@@ -463,7 +474,7 @@ export default function CountersScreen() {
       // collapsable={false}: con varios botones en la cabecera de Android, si no, los toques
       // pueden no llegar.
       <View collapsable={false} style={styles.headerActions}>
-        <Pressable
+        <Tappable
           onPress={() => setFiltersOpen(true)}
           accessibilityRole="button"
           accessibilityLabel={
@@ -475,8 +486,8 @@ export default function CountersScreen() {
           {filterCount > 0 ? (
             <View style={[styles.badge, { backgroundColor: colors.danger }]} />
           ) : null}
-        </Pressable>
-        <Pressable
+        </Tappable>
+        <Tappable
           onPress={openNewCounter}
           accessibilityRole="button"
           accessibilityLabel="Nuevo contador"
@@ -488,7 +499,7 @@ export default function CountersScreen() {
         >
           {/* «+» algo grueso, pero no tanto como «plus-thick» (petición del usuario). */}
           <MaterialCommunityIcons name="plus" size={32} color={colors.background} />
-        </Pressable>
+        </Tappable>
       </View>
     ),
   };
@@ -526,12 +537,19 @@ export default function CountersScreen() {
     );
 
   return (
-    <View style={[styles.flex, { backgroundColor: colors.background }]}>
-      {/* Mientras se arrastra una tarjeta, las páginas no se deslizan (el gesto es del arrastre). */}
+    <View
+      ref={screenRef}
+      collapsable={false}
+      style={[styles.flex, { backgroundColor: colors.background }]}
+    >
+      {/* Mientras se arrastra una tarjeta, las páginas no se deslizan (el gesto es del arrastre).
+          En Android no hace falta tocar las opciones: quien arrastra ya bloquea a las vistas de
+          fuera (lista y páginas). Cambiarlas volvía a dibujar todas las pestañas al levantar y al
+          soltar la tarjeta, y el arrastre se paraba y daba tirones. */}
       <StableScreenOptions
         options={{
           ...(selecting ? selectionOptions : normalOptions),
-          swipeEnabled: !drag.dragging,
+          ...(BLOCK_SWIPE_WHILE_DRAGGING ? { swipeEnabled: !drag.dragging } : null),
         }}
         optionsKey={[
           selecting,
@@ -540,7 +558,7 @@ export default function CountersScreen() {
           width,
           titleSize,
           filterCount,
-          drag.dragging,
+          BLOCK_SWIPE_WHILE_DRAGGING && drag.dragging,
           colors.text,
           colors.primary,
           colors.background,
@@ -587,7 +605,10 @@ export default function CountersScreen() {
         // Siempre se puede subir hasta esconder las barras, aunque haya pocos contadores.
         contentContainerStyle={[
           styles.list,
-          { minHeight: viewportHeight ? viewportHeight + barsHeight : undefined },
+          {
+            minHeight: viewportHeight ? viewportHeight + barsHeight : undefined,
+            paddingBottom: tabBarSpace,
+          },
         ]}
         scrollEnabled={!drag.dragging}
         onScroll={onListScroll}
@@ -667,14 +688,14 @@ export default function CountersScreen() {
                   style={[styles.searchInput, { color: colors.text }]}
                 />
                 {query ? (
-                  <Pressable
+                  <Tappable
                     onPress={() => setQuery('')}
                     accessibilityRole="button"
                     accessibilityLabel="Borrar búsqueda"
                     hitSlop={10}
                   >
                     <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-                  </Pressable>
+                  </Tappable>
                 ) : null}
               </View>
             </View>
@@ -706,7 +727,7 @@ export default function CountersScreen() {
               pointerEvents={revealHidden ? 'auto' : 'none'}
             >
               {/* Sin bloque: un texto y la flecha para desplegar. */}
-              <Pressable
+              <Tappable
                 onPress={() => setShowHidden((v) => !v)}
                 accessibilityRole="button"
                 accessibilityState={{ expanded: showHidden }}
@@ -722,7 +743,7 @@ export default function CountersScreen() {
                   size={18}
                   color={colors.textMuted}
                 />
-              </Pressable>
+              </Tappable>
             </Animated.View>
             {showHidden ? (
               grid ? (
@@ -740,6 +761,15 @@ export default function CountersScreen() {
           </View>
         ) : undefined}
       </ScrollView>
+      {/* La tarjeta que se arrastra, encima de todo (el original se esconde en la lista). */}
+      {drag.overlay ? (
+        <Animated.View pointerEvents="none" style={drag.overlay.style}>
+          {(() => {
+            const item = shown.find((c) => c.id === drag.overlay?.key);
+            return item ? renderCard(item) : null;
+          })()}
+        </Animated.View>
+      ) : null}
       <FilterMenu
         visible={filtersOpen}
         filters={filters}
@@ -771,6 +801,8 @@ export default function CountersScreen() {
 const SEARCH_FROM = 6;
 
 const CARD_GAP = 10;
+/** Solo en iOS se bloquea el deslizar entre pestañas al arrastrar (en Android ya lo bloquea el gesto). */
+const BLOCK_SWIPE_WHILE_DRAGGING = Platform.OS === 'ios';
 /** Ancho que ocupan la X y los botones de la cabecera en el modo selección. */
 const SELECTION_RESERVED = 270;
 const LIST_PADDING = 12;

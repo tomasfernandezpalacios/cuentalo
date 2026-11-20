@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { memo, useLayoutEffect, type ReactNode } from 'react';
@@ -8,6 +9,9 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { MascotFace } from '@/features/mascota/MascotFace';
+import { TAB_BALL_MODE, TAB_BALL_RISE, TAB_PILL_HEIGHT, TAB_PILL_WIDTH } from '@/lib/tabBar';
 
 import {
   displayFont,
@@ -34,7 +38,9 @@ import { demoGesture, registerTarget, unregisterTarget } from './store';
 // entera: lo único que responde es lo que pide el paso (y solo a través del hueco del foco).
 
 const HEADER = 64;
-const TAB_BAR = 64;
+const TAB_BAR = 63;
+/** Bola de la pestaña activa, como en la barra de verdad. */
+const TAB_BALL = 66;
 /** El + de la cabecera (como en la app). */
 const ADD_SIZE = 46;
 
@@ -109,7 +115,11 @@ export const Demo = memo(function Demo({ stepId, scene, scenes }: Props) {
   const formIndex = SCENES.indexOf('form');
   const formScene = scenes[formIndex];
   const tabBarStyle = useAnimatedStyle(() => ({ opacity: 1 - (formScene?.value ?? 0) }));
-  const activeTab = scene === 'stats' ? 1 : scene === 'social' ? 2 : 0;
+  // Orden de la barra: Mis contadores, Estadísticas, Progreso, Social y Mi perfil.
+  const activeTab = scene === 'stats' ? 1 : scene === 'social' ? 3 : 0;
+  // Como la barra de verdad: óvalo alrededor del icono activo o bola dorada que sobresale
+  // (las formas 'center' y 'mixed' de la barra se ven aquí como la bola).
+  const pill = TAB_BALL_MODE === 'pill';
 
   const screens: Record<Scene, ReactNode> = {
     'home-empty': <HomeScene colors={colors} empty total={0} selecting={false} />,
@@ -131,7 +141,7 @@ export const Demo = memo(function Demo({ stepId, scene, scenes }: Props) {
           opacity={scenes[index]}
           active={name === scene}
           top={insets.top}
-          bottom={name === 'form' ? insets.bottom : insets.bottom + TAB_BAR + 12}
+          bottom={name === 'form' ? insets.bottom : insets.bottom + TAB_BAR}
         >
           {screens[name]}
         </SceneLayer>
@@ -140,30 +150,60 @@ export const Demo = memo(function Demo({ stepId, scene, scenes }: Props) {
         pointerEvents={scene === 'form' ? 'none' : 'box-none'}
         style={[
           styles.tabBar,
-          { backgroundColor: colors.surface, marginBottom: insets.bottom + 12 },
+          {
+            backgroundColor: colors.surface,
+            height: TAB_BAR + insets.bottom,
+            paddingBottom: insets.bottom,
+          },
           tabBarStyle,
         ]}
       >
         <View style={styles.tabItems}>
-          {/* Píldora de la pestaña activa (como en la barra de verdad). */}
-          <View style={[styles.tabPill, { left: `${activeTab * 25}%` }]}>
-            <View
-              style={[
-                styles.tabPillFill,
-                { backgroundColor: colors.primarySoft, borderColor: colors.primary },
-              ]}
-            />
+          <View style={[styles.tabSlot, { left: `${activeTab * 20}%` }]}>
+            {pill ? (
+              <View
+                style={[
+                  styles.tabPill,
+                  { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+                ]}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.tabBall,
+                  { backgroundColor: colors.primary, borderColor: colors.background },
+                ]}
+              />
+            )}
           </View>
-          <TabIcon icon="add-circle-outline" active={activeTab === 0} colors={colors} />
-          {/* Lo que se ilumina de cada pestaña es su píldora (la forma de la barra). */}
+          <TabIcon
+            icon="home"
+            active={activeTab === 0}
+            inBall={!pill && activeTab === 0}
+            colors={colors}
+          />
+          {/* Lo que se ilumina de cada pestaña es un círculo alrededor de su icono. */}
           <View style={styles.tab}>
             <DemoTarget id="tab-estadisticas" gesture="tap" fill style={styles.tabTarget}>
-              <TabIcon icon="bar-chart-outline" active={activeTab === 1} colors={colors} />
+              <TabIcon
+                icon="bar-chart-outline"
+                active={activeTab === 1}
+                inBall={!pill && activeTab === 1}
+                colors={colors}
+              />
             </DemoTarget>
           </View>
           <View style={styles.tab}>
+            <MascotFace size={26} color={colors.textMuted} />
+          </View>
+          <View style={styles.tab}>
             <DemoTarget id="tab-social" gesture="tap" fill style={styles.tabTarget}>
-              <TabIcon icon="people-outline" active={activeTab === 2} colors={colors} />
+              <TabIcon
+                icon="people-outline"
+                active={activeTab === 3}
+                inBall={!pill && activeTab === 3}
+                colors={colors}
+              />
             </DemoTarget>
           </View>
           <TabIcon icon="person-circle-outline" active={false} colors={colors} />
@@ -200,15 +240,35 @@ function SceneLayer({
 function TabIcon({
   icon,
   active,
+  inBall = false,
   colors,
 }: {
+  /** 'home' es la casa de Feather (como en la barra de verdad); el resto, de Ionicons. */
   icon: keyof typeof Ionicons.glyphMap;
   active: boolean;
+  /** Va dentro de la bola dorada. */
+  inBall?: boolean;
   colors: ThemeColors;
 }) {
+  const color = inBall ? colors.onPrimary : active ? colors.primary : colors.textMuted;
   return (
     <View style={styles.tab}>
-      <Ionicons name={icon} size={24} color={active ? colors.primary : colors.textMuted} />
+      {icon === 'home' ? (
+        <Feather
+          name="home"
+          size={inBall || active ? 26 : 22}
+          color={color}
+          style={inBall ? { transform: [{ translateY: -TAB_BALL_RISE }] } : undefined}
+        />
+      ) : (
+        <Ionicons
+          name={icon}
+          size={inBall || active ? 28 : 24}
+          color={color}
+          // Dentro de la bola, sube con ella (va más arriba que la barra).
+          style={inBall ? { transform: [{ translateY: -TAB_BALL_RISE }] } : undefined}
+        />
+      )}
     </View>
   );
 }
@@ -689,17 +749,28 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontFamily: fonts.title, marginTop: 4 },
   tabBar: {
     position: 'absolute',
-    left: 6,
-    right: 6,
+    left: 0,
+    right: 0,
     bottom: 0,
-    height: TAB_BAR,
-    borderRadius: 999,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
   tabItems: { flex: 1, flexDirection: 'row' },
-  tabPill: { position: 'absolute', top: 8, bottom: 8, width: '25%', paddingHorizontal: 4 },
-  tabPillFill: { flex: 1, borderRadius: 999, borderWidth: 1 },
+  tabSlot: { position: 'absolute', top: 0, bottom: 0, width: '20%', alignItems: 'center' },
+  tabPill: {
+    marginTop: (TAB_BAR - TAB_PILL_HEIGHT) / 2,
+    width: TAB_PILL_WIDTH,
+    height: TAB_PILL_HEIGHT,
+    borderRadius: TAB_PILL_HEIGHT / 2,
+    borderWidth: 1,
+  },
+  tabBall: {
+    marginTop: (TAB_BAR - TAB_BALL) / 2 - TAB_BALL_RISE,
+    width: TAB_BALL,
+    height: TAB_BALL,
+    borderRadius: TAB_BALL / 2,
+    borderWidth: 3,
+  },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // Igual que la píldora de la pestaña activa: 48 de alto y 4 de margen a cada lado.
-  tabTarget: { alignSelf: 'stretch', height: 48, marginHorizontal: 4 },
+  // Un círculo de 52 alrededor del icono (la píldora con alto = ancho).
+  tabTarget: { width: 52, height: 52 },
 });

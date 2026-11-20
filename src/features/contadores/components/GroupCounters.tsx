@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@/components/AppButton';
 import { fonts, useThemeColors } from '@/lib/theme';
 
+import { groupLook } from '../api';
 import { useCounterList } from '../hooks';
 import { useCounterActions } from '../useCounterActions';
 
@@ -34,7 +35,8 @@ export function GroupCounters({ groupId }: { groupId: string }) {
         groupCounters.map((counter) => (
           <CounterCard
             key={counter.id}
-            counter={counter}
+            // Dentro del grupo, como lo dejó su administrador (sin mi versión personal).
+            counter={groupLook(counter)}
             onPress={() => openCounter(counter.id)}
             onAdd={(amount) => actions.add(counter, { amount, loggedAt: new Date(), note: null })}
             onRemoveOne={() => actions.subtractOne(counter)}

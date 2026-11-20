@@ -25,7 +25,7 @@ const MEDALS = ['🥇', '🥈', '🥉'];
 type Props = {
   counterId: string;
   unit: string | null;
-  /** Formato racha: además del total, se ve la racha de días de cada uno. */
+  /** «Mostrar racha»: además del total, se ve la racha de días de cada uno. */
   streak?: boolean;
   /** Periodo controlado desde fuera (la gráfica del grupo usa el mismo). */
   period?: LeaderboardPeriod;

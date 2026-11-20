@@ -3,7 +3,14 @@ import { removePhotoFolders } from '@/lib/photos';
 import { supabase } from '@/lib/supabase';
 
 import { applyLinks, type CounterLink, type LinkedGroup } from './links';
-import { applyCounterPhoto, COUNTER_PHOTO_BUCKET, type CounterPhotoChange } from './photos';
+import { type AliasPlan, isEmptyAlias } from './alias';
+import {
+  applyCounterPhoto,
+  COUNTER_PHOTO_BUCKET,
+  type CounterPhotoChange,
+  removeCounterPhoto,
+  uploadPersonalCounterPhoto,
+} from './photos';
 
 export type Counter = Tables<'counters'>;
 export type Entry = Tables<'entries'>;
@@ -28,11 +35,15 @@ export type CounterWithTotal = Counter & {
   /** Lo mío que cuenta para el contador (sin solo personales). Decide si se puede pulsar −1. */
   myGroupTotal: number;
   /**
-   * Nombre e icono reales, compartidos con el grupo. `name`/`emoji` pueden ser un alias que
-   * solo veo yo (al fusionar un contador de grupo); al editar se usan estos.
+   * Nombre, icono y unidad reales, compartidos con el grupo (dentro del grupo se ve así).
+   * `name`/`emoji`/`photo_path`/`unit` pueden ser mi versión personal (alias), que solo veo yo.
    */
   sharedName: string;
   sharedEmoji: string | null;
+  sharedPhotoPath: string | null;
+  sharedUnit: string | null;
+  /** Mi versión personal de un contador de grupo (null si no la tengo). */
+  alias: CounterAlias | null;
   /** Grupo con el que se comparte (null si es privado o ya no soy miembro). */
   group: CounterGroup | null;
   /**
@@ -55,8 +66,10 @@ export type CounterWithTotal = Counter & {
    * no sale en la lista, pero sigo perteneciendo a él y lo veo dentro del grupo.
    */
   removedFromHome: boolean;
-  /** Formato racha: mi racha de días y mi récord. null si el contador no es de racha. */
-  streak: CounterStreak | null;
+  /** Mi racha de días en este contador y mi récord (todos los contadores tienen). */
+  streak: CounterStreak;
+  /** «Mostrar racha»: la veo junto al nombre en «Mis contadores» (personal). */
+  showStreak: boolean;
   /** Contador común: cada +1/−1 se aplica a todos estos participantes. Vacío si no es común. */
   participantIds: string[];
   /**
@@ -77,6 +90,31 @@ export type CounterWithTotal = Counter & {
   linkedInto: string | null;
 };
 
+/**
+ * Mi versión personal de un contador (solo la veo yo, fuera del grupo). Cada campo null = el del
+ * grupo. Si pongo emoticono o foto, sustituyen a la imagen del grupo.
+ */
+export type CounterAlias = {
+  name: string | null;
+  emoji: string | null;
+  unit: string | null;
+  photoPath: string | null;
+};
+
+/**
+ * Cómo se ve un contador dentro de su grupo: igual para todos, como lo dejó su administrador
+ * (sin mi versión personal).
+ */
+export function groupLook(c: CounterWithTotal): CounterWithTotal {
+  return {
+    ...c,
+    name: c.sharedName,
+    emoji: c.sharedEmoji,
+    photo_path: c.sharedPhotoPath,
+    unit: c.sharedUnit,
+  };
+}
+
 /** La unidad y el emoticono son opcionales: una cadena vacía se guarda como null. */
 export type CounterInput = {
   name: string;
@@ -84,14 +122,14 @@ export type CounterInput = {
   emoji: string;
   /** Solo en individuales: si es true, mis amigos no lo ven en mi perfil. */
   hiddenFromFriends: boolean;
-  /** Formato racha: además del total, una racha de días seguidos con +1 o más. */
-  streakEnabled: boolean;
+  /** «Mostrar racha»: ver su racha junto al nombre en «Mis contadores» (personal, solo yo). */
+  showStreak: boolean;
   /** Foto como icono: una nueva, dejar la que hay o quitarla (sin pasar: no se toca). */
   photo?: CounterPhotoChange;
 };
 
 /**
- * Mi racha en un contador en formato racha: días seguidos (hora del móvil) en los que lo sumado en el
+ * Mi racha en un contador: días seguidos (hora del móvil) en los que lo sumado en el
  * día es +1 o más. El contador no vuelve a 0; la racha sí, si un día no se llega.
  */
 export type CounterStreak = {
@@ -113,7 +151,7 @@ export type LeaderboardRow = {
   total: number;
   entryCount: number;
   position: number;
-  /** Solo en formato racha: el récord de esa persona. */
+  /** Solo en la clasificación de rachas: el récord de esa persona. */
   best?: number;
 };
 
@@ -152,26 +190,32 @@ export function enrich(
   groups: Map<string, CounterGroup>,
   myId: string,
   participants: Map<string, string[]> = new Map(),
-  aliases: Map<string, { name: string | null; emoji: string | null }> = new Map(),
+  aliases: Map<string, CounterAlias> = new Map(),
   hidden: Set<string> = new Set(),
   removedFromHome: Set<string> = new Set(),
   streaks: Map<string, CounterStreak> = new Map(),
+  streakShown: Set<string> = new Set(),
 ): CounterWithTotal {
   const t = totals.find((row) => row.counter_id === counter.id);
   const group = counter.group_id ? (groups.get(counter.group_id) ?? null) : null;
   const isActive = counter.group_id ? group !== null : counter.owner_id === myId;
   const participantIds = counter.is_common ? (participants.get(counter.id) ?? []) : [];
   const canManage = counter.owner_id === myId && (counter.group_id === null || group !== null);
-  const alias = aliases.get(counter.id);
-  const streak = counter.streak_enabled
-    ? (streaks.get(counter.id) ?? { current: 0, best: 0, todayDone: false, todayAmount: 0 })
-    : null;
+  const alias = aliases.get(counter.id) ?? null;
+  const streak = streaks.get(counter.id) ?? NO_STREAK;
+  // Mi imagen personal (emoticono o foto) sustituye entera a la del grupo.
+  const ownImage = alias !== null && (alias.emoji !== null || alias.photoPath !== null);
   return {
     ...counter,
     name: alias?.name ?? counter.name,
-    emoji: alias?.emoji ?? counter.emoji,
+    emoji: ownImage ? alias.emoji : counter.emoji,
+    photo_path: ownImage ? alias.photoPath : counter.photo_path,
+    unit: alias?.unit ?? counter.unit,
     sharedName: counter.name,
     sharedEmoji: counter.emoji,
+    sharedPhotoPath: counter.photo_path,
+    sharedUnit: counter.unit,
+    alias,
     myGroupTotal: t?.my_group_total ?? 0,
     total: t?.total ?? 0,
     entryCount: t?.entry_count ?? 0,
@@ -185,6 +229,7 @@ export function enrich(
     hidden: hidden.has(counter.id),
     removedFromHome: removedFromHome.has(counter.id),
     streak,
+    showStreak: streakShown.has(counter.id),
     linkedCounterIds: [counter.id],
     linkedGroups: group && isActive ? [{ counterId: counter.id, group, total: t?.total ?? 0 }] : [],
     linkedInto: null,
@@ -194,6 +239,8 @@ export function enrich(
       counter.is_common && !participantIds.includes(myId) ? (t?.total ?? 0) : (t?.my_total ?? 0),
   };
 }
+
+const NO_STREAK: CounterStreak = { current: 0, best: 0, todayDone: false, todayAmount: 0 };
 
 function streaksFromRows(rows: HomeBundle['streaks']): Map<string, CounterStreak> {
   return new Map(
@@ -209,11 +256,22 @@ function streaksFromRows(rows: HomeBundle['streaks']): Map<string, CounterStreak
   );
 }
 
-/** Mis alias (nombre e icono personales) por contador. */
-async function fetchAliases(): Promise<Map<string, { name: string | null; emoji: string | null }>> {
-  const { data, error } = await supabase.from('counter_aliases').select('counter_id, name, emoji');
+function aliasFromRow(a: {
+  name: string | null;
+  emoji: string | null;
+  unit?: string | null;
+  photo_path?: string | null;
+}): CounterAlias {
+  return { name: a.name, emoji: a.emoji, unit: a.unit ?? null, photoPath: a.photo_path ?? null };
+}
+
+/** Mis alias (versión personal: nombre, imagen y unidad) por contador. */
+async function fetchAliases(): Promise<Map<string, CounterAlias>> {
+  const { data, error } = await supabase
+    .from('counter_aliases')
+    .select('counter_id, name, emoji, unit, photo_path');
   if (error) throw error;
-  return new Map(data.map((a) => [a.counter_id, { name: a.name, emoji: a.emoji }]));
+  return new Map(data.map((a) => [a.counter_id, aliasFromRow(a)]));
 }
 
 /** Participantes de los contadores comunes que veo, agrupados por contador. */
@@ -253,9 +311,7 @@ export function countersFromBundle(bundle: HomeBundle, myId: string): CounterWit
   for (const row of bundle.participants) {
     participants.set(row.counter_id, [...(participants.get(row.counter_id) ?? []), row.user_id]);
   }
-  const aliases = new Map(
-    bundle.aliases.map((a) => [a.counter_id, { name: a.name, emoji: a.emoji }]),
-  );
+  const aliases = new Map(bundle.aliases.map((a) => [a.counter_id, aliasFromRow(a)]));
   const links: CounterLink[] = bundle.links.map((l) => ({
     counterId: l.counter_id,
     linkId: l.link_id,
@@ -264,8 +320,20 @@ export function countersFromBundle(bundle: HomeBundle, myId: string): CounterWit
   const hidden = new Set(bundle.hidden);
   const removed = new Set(bundle.removed);
   const streaks = streaksFromRows(bundle.streaks);
+  const streakShown = new Set(bundle.streak_shown ?? []);
   const enriched = bundle.counters.map((counter) =>
-    enrich(counter, bundle.totals, groups, myId, participants, aliases, hidden, removed, streaks),
+    enrich(
+      counter,
+      bundle.totals,
+      groups,
+      myId,
+      participants,
+      aliases,
+      hidden,
+      removed,
+      streaks,
+      streakShown,
+    ),
   );
   return applyLinks(enriched, links);
 }
@@ -301,7 +369,7 @@ async function fetchSingleCounter(id: string, myId: string): Promise<CounterWith
  * es un contador común.
  */
 export async function createCounter(
-  { name, unit, emoji, hiddenFromFriends, streakEnabled, photo }: CounterInput,
+  { name, unit, emoji, hiddenFromFriends, showStreak, photo }: CounterInput,
   groupId: string | null,
   participantIds: string[] | null = null,
 ): Promise<Counter> {
@@ -315,11 +383,11 @@ export async function createCounter(
       group_id: groupId,
       is_common: isCommon,
       hidden_from_friends: groupId === null && hiddenFromFriends,
-      streak_enabled: streakEnabled,
     })
     .select()
     .single();
   if (error) throw error;
+  if (showStreak) await setStreakShown([data.id], true);
   if (isCommon) await setParticipants(data.id, participantIds);
   if (photo && typeof photo === 'object') {
     return { ...data, photo_path: await applyCounterPhoto(data.id, null, photo) };
@@ -336,17 +404,18 @@ export async function setParticipants(counterId: string, userIds: string[]): Pro
 }
 
 export async function updateCounter(id: string, patch: Partial<CounterInput>): Promise<void> {
-  const { error } = await supabase
-    .from('counters')
-    .update({
-      name: patch.name?.trim(),
-      unit: patch.unit === undefined ? undefined : emptyToNull(patch.unit),
-      emoji: patch.emoji === undefined ? undefined : emptyToNull(patch.emoji),
-      hidden_from_friends: patch.hiddenFromFriends,
-      streak_enabled: patch.streakEnabled,
-    })
-    .eq('id', id);
-  if (error) throw error;
+  const fields = {
+    name: patch.name?.trim(),
+    unit: patch.unit === undefined ? undefined : emptyToNull(patch.unit),
+    emoji: patch.emoji === undefined ? undefined : emptyToNull(patch.emoji),
+    hidden_from_friends: patch.hiddenFromFriends,
+  };
+  // «Mostrar racha» es personal: si solo cambia eso, el contador no se toca.
+  if (Object.values(fields).some((v) => v !== undefined)) {
+    const { error } = await supabase.from('counters').update(fields).eq('id', id);
+    if (error) throw error;
+  }
+  if (patch.showStreak !== undefined) await setStreakShown([id], patch.showStreak);
   if (patch.photo !== undefined && patch.photo !== 'keep') {
     const current = await supabase.from('counters').select('photo_path').eq('id', id).single();
     if (current.error) throw current.error;
@@ -411,6 +480,56 @@ export async function setHidden(counterIds: string[], hidden: boolean): Promise<
         { ignoreDuplicates: true },
       )
     : await supabase.from('hidden_counters').delete().in('counter_id', counterIds);
+  if (error) throw error;
+}
+
+/**
+ * Guarda mi versión personal de un contador de grupo (o la borra si no cambia nada, y entonces
+ * se ve como en el grupo). Sube la foto nueva y borra la anterior si ya no se usa.
+ */
+export async function saveCounterAlias(
+  counterId: string,
+  userId: string,
+  plan: AliasPlan,
+  previous: CounterAlias | null,
+): Promise<void> {
+  const photoPath = plan.upload
+    ? await uploadPersonalCounterPhoto(userId, counterId, plan.upload)
+    : plan.alias.photoPath;
+  const alias = { ...plan.alias, photoPath };
+  const { error } = isEmptyAlias(alias)
+    ? await supabase.from('counter_aliases').delete().eq('counter_id', counterId)
+    : await supabase.from('counter_aliases').upsert({
+        counter_id: counterId,
+        name: alias.name,
+        emoji: alias.emoji,
+        unit: alias.unit,
+        photo_path: alias.photoPath,
+      });
+  if (error) throw error;
+  if (previous?.photoPath && previous.photoPath !== alias.photoPath) {
+    await removeCounterPhoto(previous.photoPath);
+  }
+}
+
+/** «Ver como en el grupo»: quita mi versión personal (y su foto). */
+export async function removeCounterAlias(
+  counterId: string,
+  previous: CounterAlias | null,
+): Promise<void> {
+  const { error } = await supabase.from('counter_aliases').delete().eq('counter_id', counterId);
+  if (error) throw error;
+  if (previous?.photoPath) await removeCounterPhoto(previous.photoPath);
+}
+
+/** «Mostrar racha»: veo (o dejo de ver) la racha de estos contadores junto a su nombre. */
+export async function setStreakShown(counterIds: string[], shown: boolean): Promise<void> {
+  const { error } = shown
+    ? await supabase.from('shown_counter_streaks').upsert(
+        counterIds.map((counter_id) => ({ counter_id })),
+        { ignoreDuplicates: true },
+      )
+    : await supabase.from('shown_counter_streaks').delete().in('counter_id', counterIds);
   if (error) throw error;
 }
 
@@ -533,7 +652,7 @@ export async function fetchGroupCounterDaily(
   }));
 }
 
-/** Clasificación de un contador de grupo en formato racha: racha actual de cada miembro. */
+/** Rachas en un contador de grupo: racha actual de cada miembro. */
 export async function fetchStreakLeaderboard(counterId: string): Promise<LeaderboardRow[]> {
   const { data, error } = await supabase.rpc('get_streak_leaderboard', {
     p_counter_id: counterId,

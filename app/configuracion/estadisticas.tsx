@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ErrorView, LoadingView } from '@/components/StateViews';
-import { updateSettings, useSettings } from '@/features/configuracion/settings';
+import { updateSettings, useSetting } from '@/features/configuracion/settings';
 import { CounterAvatar } from '@/features/contadores/components/CounterAvatar';
 import { useCounterList } from '@/features/contadores/hooks';
 import { fonts, proseFont, useThemeColors } from '@/lib/theme';
@@ -13,7 +13,7 @@ const LAST_USED = 'last';
 /** Elige qué contador se dibuja al abrir Estadísticas: el último usado o uno fijo. */
 export default function StatsDefaultScreen() {
   const colors = useThemeColors();
-  const { statsDefault } = useSettings();
+  const statsDefault = useSetting((s) => s.statsDefault);
   const counters = useCounterList();
 
   if (counters.isPending) return <LoadingView />;

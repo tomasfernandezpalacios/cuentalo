@@ -843,8 +843,26 @@ submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón ab
 - **Pestañas como páginas** (petición del usuario: deslizar suave, siguiendo al dedo; a medias
   se ven las dos): `app/(tabs)/_layout.tsx` usa `TopTabs` de `expo-router/js-top-tabs`
   (react-native-tab-view + react-native-pager-view, incluido en Expo Go) con `tabBarPosition:
-'bottom'`. Páginas: Mis contadores, Estadísticas, Social y Mi perfil. **Regla del
-  deslizar (decisión final del usuario, no cambiarla):** deslizar el dedo solo pasa entre las 4
+'bottom'`. Páginas (petición del usuario, 2026-11-20): **Mis contadores** (inicio, a la
+  izquierda y la que se abre siempre, `unstable_settings.initialRouteName`; icono: casa de
+  Feather), Estadísticas, Progreso (`app/(tabs)/progreso.tsx`, icono: la cara de la mascota), Social
+  y Mi perfil. Se habló de la disposición de las apps grandes (inicio · x · crear · x · perfil,
+  con el + del centro como acción) y el usuario la dejó para más adelante. La activa se marca
+  según `TAB_BALL_MODE` (`src/lib/tabBar.ts`; la demo del tutorial la sigue). **De serie
+  'pill'** (2026-11-20): óvalo dorado suave con borde dorado (76 × 46) alrededor del icono, dentro de la
+  barra, que se desliza con `position`; una bola que sobresale rompía la estética y la simetría
+  con el inicio a la izquierda. **'sliding'**: bola dorada subida
+  `TAB_BALL_RISE` sobre la barra para que sobresalga por arriba (el icono de dentro sube con ella). **'mixed'** (punto medio): aro dorado suave fijo en el centro y la bola
+  se desliza a la activa (grande en el centro, al 80 % en las demás); **'center'**: «Mis
+  contadores» siempre en la bola del centro y las demás se encienden en dorado y crecen;
+  **'sliding'**: la bola va con la activa y se desliza con `position`. Para cambiar, esa línea.
+  La barra es una **franja horizontal recta pegada abajo y a todo lo ancho** (cubre la zona
+  segura, sin esquinas redondeadas; petición del usuario), en una capa `position: 'absolute'`
+  encima de las páginas. Las
+  listas de las pestañas dejan sitio al final con `useTabBarSpace()` (`src/lib/useTabBarSpace.ts`). **Regla del
+  Tocar una pestaña usa `jumpTo` del deslizador (mueve la página al momento en el hilo nativo),
+  no `navigateToTab`, que esperaba a volver a dibujar las cinco páginas y tardaba.
+  deslizar (decisión final del usuario, no cambiarla):** deslizar el dedo solo pasa entre las
   pestañas grandes, también desde Social en cualquiera de sus subpestañas. Grupos y Amigos se
   cambian **solo con el selector** (el deslizador de dentro tiene `scrollEnabled={false}` y se
   mueve con `scrollTo` animado). Social se abre siempre por Grupos (al dejar de verse vuelve a
@@ -936,6 +954,86 @@ submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón ab
   quitado (paletas, selectores, colores de destaque, otras tipografías) está en la etiqueta de
   Git `opciones-apariencia`.
 
+- **Icono con la cara de la mascota** (petición del usuario, 2026-11-19): `icon.png` es la cara
+  de la mascota en grande sobre marrón `#7A5C12`; Android adaptativo con la cara al 62 % y fondo
+  marrón; monocromo con ojos y boca recortados. Sale de la imagen aprobada
+  `scripts/cara-mascota.png` con `python scripts/generar-icono.py` (también `favicon.png`; el
+  splash y el icono de notificaciones siguen con el logotipo «Kuentio.» y la «K.»).
+- **La cara de la mascota es la del icono en todas partes** (`src/features/mascota/face.ts`,
+  copia de `kuentio-mascota/src/mascota/cara.ts`): ojos grandes con pupilas grandes y una boca
+  trazada de la imagen (labio de arriba algo hundido). Colores `#E3B850`, `#755714`, `#F0EDE0`.
+- **La mascota habla en el tutorial** (petición del usuario, 2026-11-19): cada paso lleva un
+  `gesture` (`steps.ts`; 13 gestos en `src/features/mascota/gestures.ts`, función pura con
+  tests, hecha en Remotion: `kuentio-mascota/src/mascota/gestos.ts`, con vista previa
+  `KuentioMascotaGestos` y `KuentioMascotaGestosHoja`; si cambian allí, cambiarlos aquí).
+  `GestureMascot` los dibuja a 30 fps (`requestAnimationFrame`, sin Reanimated) y empieza el gesto
+  cuando el paso ya está a la vista. Va a la izquierda del texto en el bocadillo, encima de
+  «Esto es Kuentio», saludando en la bienvenida y saltando en «Todo listo». Con «reducir
+  movimiento» se ve quieta. Mascot acepta `view` (recorte) y `placed` (aplica posición, giro y
+  escala de la pose, para no necesitar vista envolvente). Sin probar aún en el móvil.
+
+- **Pestaña «Progreso» (gamificación)** (petición del usuario, 2026-11-20). Estudio y decisiones
+  en `docs/gamificacion/2026-11-20-analisis.md`. Idea central: premiar la **constancia, nunca la
+  cantidad** (XP por días con registro e hitos, con topes, calculada en el servidor). Segunda
+  versión (petición del usuario): **sin «dar de comer»** ni hambre; arriba se ve la mascota en su
+  **fondo** haciendo su **animación** (se repite al entrar en la pestaña, `useFocusEffect`), con
+  «Personalizar» → tienda. Fondos dibujados en SVG en `Scene.tsx` (lienzo 100 × 60, el escenario
+  mide ancho × 0,6), animaciones = gestos de la mascota. Debajo, las misiones (Hoy, Esta semana, Logros). **Rangos de vida** (petición del usuario: que
+  el camino transmita avance en la vida y algo épico; `ranks.ts`, con tests): **100 niveles en 20
+  capítulos** de 5 rangos (I–V): Semilla, Brote, Caminante, Explorador, Constante, Artesano,
+  Forjador, Guardián, Guía, Sabio, Maestro, Visionario, Campeón, Héroe, Titán, Leyenda, Mito,
+  Eterno, Celestial e Infinito, cada uno con icono, color y frase. Coste por nivel
+  `30·1,05^(n−1)` (nivel 10 ≈ 330 XP, 50 ≈ 6 000, 100 ≈ 74 000). **Emblema** (`RankEmblem`, SVG)
+  que se complica cada 4 capítulos: círculo → hexágono con degradado → escudo con borde dorado y
+  laurel → rayos y cinta → estrella con alas y corona. El **nivel va en la cabecera junto a las
+  monedas** (`LevelChip`: emblema, «Nv N» y barrita) y al tocarlo se abre **«Tu camino»**
+  (`app/progreso/camino.tsx`; no está en la vista principal): arriba el rango actual con su
+  emblema y un halo que late; debajo los capítulos alcanzados y **solo dos más** (el final no se
+  ve: «Más allá…» con un emblema «?»); baja solo hasta tu capítulo; tocar un nivel dice lo que
+  falta y lo que da. **Estrenar capítulo** da además `tierBonus` (100 + 50·(capítulo − 2)
+  monedas y un protector de racha, o su precio si ya tienes dos) y varios regalos caen en el primer
+  nivel de un capítulo. La celebración dice «Ahora eres X»; con cambio de capítulo, **detrás de la
+  insignia el emblema viejo aparece, estalla** (destello blanco y dos ondas) **y entra girando el
+  nuevo** con más confeti; la insignia baja al pie del emblema y sale «Nuevo rango · capítulo N».
+  «Probar subida de nivel» y «Probar cambio de rango» en Configuración → Información. **50 niveles exponenciales y fáciles al
+  principio**: n → n+1 cuesta `30·1,12^(n−1)` redondeado a 5 (nivel 10 ≈ 450 XP, 20 ≈ 1 900,
+  50 ≈ 64 000); cada nivel da `10 + 2n` monedas y algunos regalan un fondo, animación o
+  accesorio (`giftLevel` en `shop.ts`). **Solo las monedas en la cabecera** (la XP se quitó a petición del usuario; se ve en el camino).
+  Al ganar monedas, **vuelan** desde el botón «Recoger» hasta el de monedas (`coinBurst.ts`,
+  `CoinBurstLayer` montada en `app/(tabs)/_layout.tsx`, nativo) y el número sube poco a poco al
+  llegar. **«Personalizar»** (`app/progreso/personalizar.tsx`, desde el escenario) enseña **solo
+  lo que tienes** para ponérselo; la **tienda** (`app/progreso/tienda.tsx`, desde las monedas o
+  desde Personalizar) **solo lo que no tienes**, con probador (piezas comunes en
+  `Wardrobe.tsx`), pestañas Disfraces / Fondos / Animación / Racha y orden: comprable ya, pide
+  nivel, regalo de nivel. Catálogo grande (petición del usuario): 27 disfraces (cabeza, ojos,
+  cuello; dibujados en `Accessories.tsx`), 20 fondos (`Scene.tsx`) y 22 animaciones; precio fijo
+  o regalo de nivel; sin azar ni dinero real. Las 15 animaciones nuevas se hicieron en Remotion
+  (`kuentio-mascota/src/mascota/animaciones.ts`, vista previa `KuentioMascotaAnimaciones` y
+  `KuentioMascotaAnimacionesHoja`) y se copian a `src/features/mascota/animations.ts` (mismo
+  cuerpo; allí un adaptador pasa la pose a los nombres en español). `moves.ts` junta gestos y
+  animaciones (`GestureMascot` acepta cualquiera).
+  **Protector de racha automático**: si ayer no hubo registro y hay protectores para todos los
+  días sin nada, se gastan (`shieldsToUse` en `streaks.ts`, con tests; `useAutoShields`) con un
+  aviso; esos días unen la racha **sin alargarla** (`currentStreak`/`bestStreak` aceptan
+  `shieldedDays`) y en el calendario salen con un **escudo amarillo** `#F2C230`. Se quitó el
+  minicalendario semanal de la pestaña. **Subir de nivel** (petición del usuario: «mucha más
+  emoción»): celebración a pantalla completa (`LevelUpCelebration`, montada en las pestañas,
+  `levelUp.ts`): se oscurece la pantalla, giran rayos dorados, la insignia entra con rebote con el
+  nivel de antes y salta al nuevo con un estallido de confeti y dos cañones desde abajo, la
+  mascota lo celebra, los premios entran uno a uno con vibración y al final «¡A por el
+  siguiente!». Sale cuando ya han llegado las monedas. Con «reducir movimiento», sin confeti ni
+  giro. «Probar subida de nivel» en Configuración → Información. **Todo es aún una prueba con datos en memoria**
+  (`demoStore.ts`, también los protectores y los días salvados). Pendiente: tablas y triggers
+  (`xp_events` con clave única, protectores y días salvados en Supabase, también en
+  `get_friends_streaks`), nivel y mascota en los perfiles, y limitar el cambio de zona horaria.
+
+- **Toques que no se disparan al deslizar** (petición del usuario, 2026-11-20: al deslizar de
+  pestaña se abría a la vez la gráfica de Estadísticas). Dentro de las pestañas grandes se usa
+  `Tappable` (`src/components/Tappable.tsx`, misma forma que `Pressable`) en vez de `Pressable`:
+  ignora el toque si el dedo se movió más de 10 pt o si se está pasando de pestaña (o se acaba
+  de pasar, 250 ms; `swipeStart`/`swipeEnd` de `TopTabs` → `src/lib/tapGuard.ts`, con tests).
+  No añade retraso. También en `AppButton`. Usarlo en todo botón nuevo de esas pantallas.
+
 ## Cambios estéticos pendientes
 
 - (ninguno por ahora)
@@ -998,3 +1096,38 @@ submitInHeader`), no abajo (petición del usuario). Crear sigue con el botón ab
   (30/s, `Mascot` dibuja centrada en su caja y la vista que la envuelve lleva x, y, giro y
   escala). `src/lib/animationGate.ts`: mientras dura, el refresco de datos tras +N
   (`scheduleRefreshAfterEntry`) espera a que acabe. Sigue sin usarse Reanimated fuera del tutorial.
+
+- **Arrastrar en «Mis contadores»** (petición del usuario, 2026-11-19): se levanta a los 280 ms
+  (`delayLongPress`). Al llevar la tarjeta al borde de arriba o de abajo la lista se desplaza
+  sola, más rápido cuanto más cerca (`autoScroll` de `useDragReorder`, `edgeSpeed` en
+  `reorder.ts` con tests; arriba se para en el primer contador, sin sacar las barras). Mientras
+  se arrastra se dibuja una **copia flotante** encima de todo (`overlayRoot`, `drag.overlay`) y
+  el original queda invisible en su hueco: dentro de la lista, Android dejaba de dibujarla al
+  desplazarse y parpadeaba. En Android ya no se cambia `swipeEnabled` al arrastrar (volvía a
+  dibujar todas las pestañas y el arrastre se paraba); en iOS sí.
+- Bloques de «Mis contadores»: icono y total centrados entre sí (la unidad va en su línea
+  debajo) y tan grandes como quepan en el hueco libre (`gridTopSize`: entre 34 y el de un
+  contador sencillo, 52); con unidad y grupos, botones y huecos más bajos (`GRID_SIZES`).
+- **Fila de «Mis contadores»** (petición del usuario, 2026-11-20): icono (50) a la izquierda; en
+  medio, arriba el nombre en **una línea** con la racha y los grupos a su derecha (los grupos se
+  cortan antes que el nombre) y debajo los botones **achatados** (34 de alto) repartidos a todo
+  lo ancho (`QuickAddBar stretch`); a la derecha, el recuadro del total ocupa **todo el alto**
+  menos la unidad, que va debajo. La cifra crece con el recuadro (`rowTotalFont`: 72 % de su
+  alto) hasta, como mucho, la de un contador sencillo en bloques (34), con la misma letra.
+- Detalle del contador: «N registros · Récord de racha: N días» en una línea, después los
+  botones y debajo «Mostrar racha en Mis contadores».
+
+- **Versión personal de un contador de grupo** (petición del usuario, 2026-11-19; migración
+  `20261222120000`). `counter_aliases` gana `unit` y `photo_path` (cada campo null = el del
+  grupo; emoticono o foto propios sustituyen entera la imagen del grupo). Editar un contador de
+  grupo (`app/contadores/[id]/editar.tsx`): quien no lo administra solo tiene **«Para mí»**
+  (nombre, imagen, unidad y «Mostrar racha»; `CounterForm personal`); el administrador elige
+  **«Para todos»** (todo, como siempre) o «Para mí». «Ver como en el grupo» quita mi versión.
+  `planAlias` (`alias.ts`) guarda como null lo que coincide con el grupo, así me llegan los
+  cambios del administrador en lo que no personalicé. Fuera del grupo veo mi versión; **dentro
+  del grupo** (lista de contadores y clasificación) se ve igual para todos (`groupLook`). Fotos
+  personales en `counter-photos/personal/<user_id>/…`, que solo ve y toca su dueño (se borran al
+  eliminar la cuenta). Al editar «Para todos», el trigger `on_counter_edited` avisa a los demás
+  miembros activos (`counter_edited`, uno por ráfaga de 2 min). Al sacar el contador del grupo,
+  cada uno conserva su versión (nombre, emoticono y unidad en el privado nuevo; su foto sigue
+  como alias) y su «Mostrar racha».

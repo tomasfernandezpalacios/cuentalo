@@ -118,3 +118,21 @@ export function dropIndex(heights: number[], from: number, dy: number): number {
 export function withFirst(order: string[], id: string): string[] {
   return [id, ...order.filter((value) => value !== id)];
 }
+
+/** Franja junto al borde en la que la lista se desplaza sola, y velocidad máxima (px/fotograma). */
+const EDGE = 90;
+const MAX_SPEED = 18;
+
+/**
+ * Velocidad del desplazamiento automático para el dedo en `y` (coordenadas de pantalla) dentro de
+ * una lista visible entre `top` y `bottom`: negativa hacia arriba, positiva hacia abajo, 0 lejos
+ * de los bordes. Crece de forma progresiva al acercarse al borde (y pasado él, la máxima).
+ */
+export function edgeSpeed(y: number, top: number, bottom: number): number {
+  if (bottom - top < EDGE * 2) return 0;
+  const intoTop = top + EDGE - y;
+  if (intoTop > 0) return -MAX_SPEED * Math.min(1, intoTop / EDGE) ** 2;
+  const intoBottom = y - (bottom - EDGE);
+  if (intoBottom > 0) return MAX_SPEED * Math.min(1, intoBottom / EDGE) ** 2;
+  return 0;
+}

@@ -1,4 +1,39 @@
-import { bestStreak, currentStreak, monthGrid, weekProgress, withPositions } from '../streaks';
+import {
+  bestStreak,
+  currentStreak,
+  monthGrid,
+  shieldsToUse,
+  weekProgress,
+  withPositions,
+} from '../streaks';
+
+describe('protectores de racha', () => {
+  const days = ['2026-11-01', '2026-11-02', '2026-11-04'];
+
+  it('un día protegido une la racha sin sumarla', () => {
+    expect(currentStreak(days, '2026-11-04')).toBe(1);
+    expect(currentStreak(days, '2026-11-04', ['2026-11-03'])).toBe(3);
+    expect(bestStreak(days, ['2026-11-03'])).toBe(3);
+  });
+
+  it('se gasta uno si ayer no hubo nada y la racha venía viva', () => {
+    expect(shieldsToUse(['2026-11-01', '2026-11-02'], [], 1, '2026-11-04')).toEqual(['2026-11-03']);
+  });
+
+  it('no se gasta si ayer hubo actividad o no hay protectores', () => {
+    expect(shieldsToUse(['2026-11-03'], [], 2, '2026-11-04')).toEqual([]);
+    expect(shieldsToUse(['2026-11-01'], [], 0, '2026-11-03')).toEqual([]);
+  });
+
+  it('cubre varios días seguidos solo si hay protectores para todos', () => {
+    expect(shieldsToUse(['2026-11-01'], [], 2, '2026-11-04')).toEqual(['2026-11-02', '2026-11-03']);
+    expect(shieldsToUse(['2026-11-01'], [], 1, '2026-11-04')).toEqual([]);
+  });
+
+  it('sin ninguna actividad antes no hay racha que proteger', () => {
+    expect(shieldsToUse([], [], 2, '2026-11-04')).toEqual([]);
+  });
+});
 
 describe('currentStreak', () => {
   const days = ['2026-11-01', '2026-11-02', '2026-11-03', '2026-10-20'];

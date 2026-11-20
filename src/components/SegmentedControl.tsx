@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { chipColors, isCinema, shape, fonts, useThemeColors } from '@/lib/theme';
+import { Tappable } from '@/components/Tappable';
 
 type Option<T extends string> = { value: T; label: string };
 
@@ -65,7 +66,7 @@ export function SegmentedControl<T extends string>({
       {options.map((option) => {
         const selected = option.value === value;
         return (
-          <Pressable
+          <Tappable
             key={option.value}
             onPress={() => onChange(option.value)}
             accessibilityRole="tab"
@@ -87,7 +88,7 @@ export function SegmentedControl<T extends string>({
             >
               {option.label}
             </Text>
-          </Pressable>
+          </Tappable>
         );
       })}
     </View>

@@ -1,12 +1,12 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Animated, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Animated, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { usePullRefresh } from '@/lib/usePullRefresh';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { EmptyView, ErrorView, LoadingView } from '@/components/StateViews';
 import { useUserId } from '@/features/auth/AuthProvider';
-import { useSettings } from '@/features/configuracion/settings';
+import { useSetting } from '@/features/configuracion/settings';
 import { useCounterList, useMyLastCounterId } from '@/features/contadores/hooks';
 import { useMyDailyTotals } from '@/features/estadisticas/api';
 import { CounterChipsBar } from '@/features/estadisticas/components/CounterChipsBar';
@@ -33,6 +33,8 @@ import {
 import { chartColor } from '@/lib/chartColors';
 import { useDragReorder } from '@/lib/useDragReorder';
 import { useThemeColors } from '@/lib/theme';
+import { useTabBarSpace } from '@/lib/useTabBarSpace';
+import { Tappable } from '@/components/Tappable';
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: 'week', label: 'Semana' },
@@ -43,6 +45,7 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
 
 export default function StatsScreen() {
   const colors = useThemeColors();
+  const tabBarSpace = useTabBarSpace();
   const counters = useCounterList();
   const daily = useMyDailyTotals(useUserId());
   const pull = usePullRefresh(() => Promise.all([counters.refetch(), daily.refetch()]));
@@ -80,7 +83,7 @@ export default function StatsScreen() {
 
   // Por defecto se dibuja el último contador en el que registraste algo.
   const lastUsed = useMyLastCounterId(pool.map((c) => c.id));
-  const { statsDefault } = useSettings();
+  const statsDefault = useSetting((s) => s.statsDefault);
 
   if (counters.isPending || daily.isPending) return <LoadingView />;
   if (counters.isError || daily.isError) {
@@ -154,7 +157,7 @@ export default function StatsScreen() {
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
       scrollEnabled={!drag.dragging}
       refreshControl={
         <RefreshControl
@@ -172,7 +175,7 @@ export default function StatsScreen() {
           const press = { onLongPress: item.onLongPress, onPressOut: item.onPressOut };
           return (
             <Animated.View key={block} onLayout={item.onLayout} style={item.style}>
-              <Pressable {...press} delayLongPress={350} style={styles.block}>
+              <Tappable {...press} delayLongPress={350} style={styles.block}>
                 {block === 'chart' ? (
                   <>
                     <SegmentedControl
@@ -206,7 +209,7 @@ export default function StatsScreen() {
                     {...press}
                   />
                 ) : null}
-              </Pressable>
+              </Tappable>
             </Animated.View>
           );
         })}

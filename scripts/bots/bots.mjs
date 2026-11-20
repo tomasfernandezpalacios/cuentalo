@@ -107,7 +107,15 @@ async function signIn(persona, creds, report) {
     const { data, error } = await db.auth.signUp({
       email,
       password,
-      options: { data: { username: persona.username, display_name: persona.displayName } },
+      options: {
+        data: {
+          username: persona.username,
+          display_name: persona.displayName,
+          // Obligatorios desde la migración 20261218 (edad mínima y condiciones aceptadas).
+          birth_date: '2000-01-01',
+          terms_version: '2026-11-17',
+        },
+      },
     });
     if (error) throw new Error(`Registro de ${persona.username}: ${error.message}`);
     if (!data.session) {

@@ -2,7 +2,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import {
   type GestureResponderEvent,
-  Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -14,6 +13,7 @@ import { proseFont, shape, useThemeColors } from '@/lib/theme';
 
 import { ChartPlot, type ChartSeries, type ChartType, Y_AXIS_WIDTH } from './ChartPlot';
 import { ChartViewer } from './ChartViewer';
+import { Tappable } from '@/components/Tappable';
 
 export type { ChartSeries, ChartType } from './ChartPlot';
 
@@ -90,7 +90,7 @@ export function StatsChart({
           height={CHART_HEIGHT}
         />
         {/* Capa transparente encima: el toque abre la vista ampliada. */}
-        <Pressable
+        <Tappable
           onPress={() => setExpanded(true)}
           onLongPress={onLongPress}
           onPressOut={onPressOut}
@@ -99,7 +99,7 @@ export function StatsChart({
           style={StyleSheet.absoluteFill}
         />
       </View>
-      <Pressable
+      <Tappable
         onPress={() => setExpanded(true)}
         accessibilityElementsHidden
         importantForAccessibility="no"
@@ -110,8 +110,8 @@ export function StatsChart({
         <Text style={[styles.hintText, { color: colors.textMuted }]}>
           Toca la gráfica para ampliarla
         </Text>
-      </Pressable>
-      <Pressable
+      </Tappable>
+      <Tappable
         onPress={() => onChangeType(nextType)}
         accessibilityRole="button"
         accessibilityLabel={nextType === 'bar' ? 'Ver como barras' : 'Ver como líneas'}
@@ -126,7 +126,7 @@ export function StatsChart({
           size={20}
           color={colors.primary}
         />
-      </Pressable>
+      </Tappable>
       {expanded ? (
         <ChartViewer
           title={title}

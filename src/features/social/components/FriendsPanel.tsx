@@ -27,9 +27,11 @@ import {
 } from '../hooks';
 
 import { SUGGESTIONS_PREVIEW, useFriendSuggestions } from '../contacts';
+import { useMyBlocks, useUnblockUser } from '../moderation';
 
 import { PersonRow } from './PersonRow';
 import { DiscoverMoreRow, PhoneSyncCard, SuggestionList } from './Suggestions';
+import { Tappable } from '@/components/Tappable';
 
 function showError(error: unknown) {
   appAlert('Error', getErrorMessage(error));
@@ -49,6 +51,11 @@ export function FriendsPanel() {
   // Racha actual de cada amigo (los que la ocultan no salen).
   const friendStreaks = useFriendsStreaks();
   const streakOf = new Map((friendStreaks.data ?? []).map((row) => [row.userId, row]));
+  // Bloqueados: al final, en un desplegable cerrado (como «Ocultos» en Mis contadores).
+  const blocks = useMyBlocks();
+  const unblock = useUnblockUser();
+  const [showBlocked, setShowBlocked] = useState(false);
+  const blocked = blocks.data ?? [];
 
   if (friendships.isError) {
     return <ErrorView error={friendships.error} onRetry={friendships.refetch} />;
@@ -282,6 +289,45 @@ export function FriendsPanel() {
           </View>
         </Section>
       ) : null}
+
+      {blocked.length > 0 ? (
+        <View>
+          {/* Sin bloque: un texto y la flecha para desplegar, igual que «Ocultos». */}
+          <Tappable
+            onPress={() => setShowBlocked((v) => !v)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showBlocked }}
+            accessibilityLabel={`Bloqueados, ${blocked.length}`}
+            hitSlop={8}
+            style={({ pressed }) => [styles.blockedToggle, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Text style={[styles.blockedTitle, { color: colors.textMuted }]}>
+              Bloqueados ({blocked.length})
+            </Text>
+            <Ionicons
+              name={showBlocked ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={colors.textMuted}
+            />
+          </Tappable>
+          {showBlocked
+            ? blocked.map((person) => (
+                <PersonRow
+                  key={person.id}
+                  profile={person}
+                  actions={
+                    <AppButton
+                      small
+                      variant="secondary"
+                      title="Desbloquear"
+                      onPress={() => unblock.mutate(person.id, { onError: showError })}
+                    />
+                  }
+                />
+              ))
+            : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -298,4 +344,12 @@ const styles = StyleSheet.create({
   suggestions: { gap: 12 },
   muted: { ...proseFont(14), paddingVertical: 8 },
   tag: { fontSize: 14, fontFamily: fonts.detail },
+  blockedTitle: { fontSize: 15, fontFamily: fonts.title },
+  blockedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    minHeight: 44,
+  },
 });

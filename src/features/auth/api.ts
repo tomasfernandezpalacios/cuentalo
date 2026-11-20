@@ -49,10 +49,21 @@ type SignUpInput = {
   password: string;
   username: string;
   displayName: string;
+  /** 'AAAA-MM-DD': se comprueba la edad mínima (también en la base de datos). */
+  birthDate: string;
+  /** Versión de las condiciones y la política aceptadas (`TERMS_VERSION`). */
+  termsVersion: string;
 };
 
 /** Crea la cuenta. El perfil lo crea un trigger en la base de datos con estos metadatos. */
-export async function signUp({ email, password, username, displayName }: SignUpInput) {
+export async function signUp({
+  email,
+  password,
+  username,
+  displayName,
+  birthDate,
+  termsVersion,
+}: SignUpInput) {
   const normalized = normalizeUsername(username);
 
   if (!(await isUsernameAvailable(normalized))) {
@@ -62,7 +73,16 @@ export async function signUp({ email, password, username, displayName }: SignUpI
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
     password,
-    options: { data: { username: normalized, display_name: displayName.trim() } },
+    // El trigger handle_new_user crea el perfil y guarda la fecha y la aceptación en
+    // profile_private (y rechaza el registro si falta alguna o no llega a la edad mínima).
+    options: {
+      data: {
+        username: normalized,
+        display_name: displayName.trim(),
+        birth_date: birthDate,
+        terms_version: termsVersion,
+      },
+    },
   });
   if (error) {
     // Si alguien lo cogió justo a la vez, el perfil no se puede crear (nombre único) y Auth

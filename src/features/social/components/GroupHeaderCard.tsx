@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Share, StyleSheet, Text, View } from 'react-native';
 
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, shape, useThemeColors } from '@/lib/theme';
@@ -10,6 +10,7 @@ import { buildInviteLink, formatInviteCode } from '../api';
 import { useInviteCode } from '../hooks';
 
 import { GroupAvatar } from './GroupAvatar';
+import { Tappable } from '@/components/Tappable';
 
 type Props = { groupId: string; groupName: string };
 
@@ -62,7 +63,7 @@ export function GroupHeaderCard({
     return <View style={[styles.card, { backgroundColor: colors.primarySoft }]}>{content}</View>;
   }
   return (
-    <Pressable
+    <Tappable
       onPress={onPress}
       onLongPress={onLongPress}
       accessibilityRole="button"
@@ -74,7 +75,7 @@ export function GroupHeaderCard({
       ]}
     >
       {content}
-    </Pressable>
+    </Tappable>
   );
 }
 
@@ -139,7 +140,7 @@ function InviteCode({ groupId, groupName }: Props) {
         >
           {formatted}
         </Text>
-        <Pressable
+        <Tappable
           onPress={() => copy(code.data)}
           accessibilityRole="button"
           accessibilityLabel={copied ? 'Código copiado' : 'Copiar código'}
@@ -147,9 +148,9 @@ function InviteCode({ groupId, groupName }: Props) {
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
         >
           <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={24} color={colors.primary} />
-        </Pressable>
+        </Tappable>
       </View>
-      <Pressable
+      <Tappable
         onPress={() => share(code.data)}
         accessibilityRole="button"
         accessibilityLabel="Compartir enlace del grupo"
@@ -161,7 +162,7 @@ function InviteCode({ groupId, groupName }: Props) {
       >
         <Text style={[styles.shareText, { color: colors.primary }]}>Compartir</Text>
         <Ionicons name="share-social-outline" size={18} color={colors.primary} />
-      </Pressable>
+      </Tappable>
     </View>
   );
 }

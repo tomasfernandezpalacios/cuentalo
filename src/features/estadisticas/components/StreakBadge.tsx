@@ -1,10 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { fonts, useThemeColors } from '@/lib/theme';
 
 import { useStreak } from '../api';
+import { Tappable } from '@/components/Tappable';
 
 /**
  * Rectángulo con el fuego y los días de racha, en la cabecera de «Mis contadores» (junto a las
@@ -20,7 +21,7 @@ export function StreakBadge({ compact = false }: { compact?: boolean }) {
   const color = done ? colors.flame : colors.textMuted;
 
   return (
-    <Pressable
+    <Tappable
       onPress={() => router.push('/racha')}
       accessibilityRole="button"
       accessibilityLabel={`Racha de ${days} ${days === 1 ? 'día' : 'días'}${done ? '' : ', hoy aún sin mantener'}. Ver calendario`}
@@ -42,7 +43,7 @@ export function StreakBadge({ compact = false }: { compact?: boolean }) {
       >
         {days}
       </Text>
-    </Pressable>
+    </Tappable>
   );
 }
 

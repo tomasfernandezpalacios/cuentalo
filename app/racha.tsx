@@ -32,7 +32,7 @@ export default function StreakScreen() {
       }
     >
       <StreakCard />
-      <StreakCalendar activeDays={streak.data.days} />
+      <StreakCalendar activeDays={streak.data.days} shieldedDays={streak.data.shielded} />
 
       <Section title="Rachas de amigos">
         <FriendsStreaks />

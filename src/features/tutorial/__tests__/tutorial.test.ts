@@ -1,3 +1,5 @@
+import { GESTURES } from '@/features/mascota/gestures';
+
 import {
   BUBBLE_GAP,
   closeAt,
@@ -32,6 +34,14 @@ import {
 } from '../steps';
 
 const byId = Object.fromEntries(buildSteps().map((s) => [s.id, s]));
+
+describe('mascota del tutorial', () => {
+  it('cada paso lo dice la mascota con un gesto (y no se repite el mismo en pasos seguidos)', () => {
+    const steps = buildSteps();
+    for (const step of steps) expect(GESTURES).toContain(step.gesture);
+    steps.slice(1).forEach((step, i) => expect(step.gesture).not.toBe(steps[i]!.gesture));
+  });
+});
 
 describe('guion fijo', () => {
   it('el recorrido pedido: crear, sumar y restar, herramientas, pestañas, racha y fin', () => {
@@ -90,7 +100,7 @@ describe('guion fijo', () => {
     expect(showsNext(byId.add!, true)).toBe(true);
   });
 
-  it('empieza y acaba a pantalla completa; «Esto es Cuéntalo» se pasa solo', () => {
+  it('empieza y acaba a pantalla completa; «Esto es Kuentio» se pasa solo', () => {
     const steps = buildSteps();
     expect(stepKind(steps[0]!)).toBe('welcome');
     expect(stepKind(steps[1]!)).toBe('banner');
@@ -299,7 +309,7 @@ describe('forma del hueco', () => {
     expect(shapedHole(rect, targetShape(undefined)).edges).toEqual(holeFor(rect));
   });
 
-  it('la racha recuerda que Cuéntalo es más potente cuantos más días registras', () => {
+  it('la racha recuerda que Kuentio es más potente cuantos más días registras', () => {
     expect(byId.streak?.text).toContain('más potente');
   });
 

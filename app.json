@@ -15,7 +15,7 @@
       "package": "com.cuentalo.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#0B0A09",
+        "backgroundColor": "#7A5C12",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -36,10 +36,11 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
-          "imageWidth": 160,
+          "imageWidth": 220,
           "resizeMode": "contain",
           "backgroundColor": "#F3EEE4",
           "dark": {
+            "image": "./assets/splash-icon-dark.png",
             "backgroundColor": "#0B0A09"
           }
         }
@@ -61,7 +62,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/android-icon-monochrome.png",
+          "icon": "./assets/notification-icon.png",
           "color": "#E9C46A"
         }
       ]

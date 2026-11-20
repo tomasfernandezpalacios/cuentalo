@@ -14,6 +14,7 @@ import { useTimeZoneSync } from '@/features/perfil/useTimeZoneSync';
 import { usePendingInvite } from '@/features/social/pendingInvite';
 import { TutorialHost } from '@/features/tutorial/TutorialHost';
 import { useTutorialAutoStart } from '@/features/tutorial/useTutorialAutoStart';
+import { CoinsButton } from '@/features/progreso/components/CoinsButton';
 import { usePrefetchMain } from '@/lib/prefetch';
 import { appFonts } from '@/lib/fontSources';
 import { isEntryChange, offlinePersister, setupOffline } from '@/lib/offline';
@@ -104,6 +105,12 @@ function RootNavigator() {
         <Stack.Screen name="amigos/descubrir" options={{ title: 'Descubrir' }} />
         <Stack.Screen name="avisos" options={{ title: 'Buzón' }} />
         <Stack.Screen name="racha" options={{ title: 'Tu racha' }} />
+        <Stack.Screen name="progreso/camino" options={{ title: 'Tu camino' }} />
+        <Stack.Screen name="progreso/personalizar" options={{ title: 'Personalizar' }} />
+        <Stack.Screen
+          name="progreso/tienda"
+          options={{ title: 'Tienda', headerRight: () => <CoinsButton still /> }}
+        />
         <Stack.Screen
           name="resumen"
           options={{ title: 'Resumen vital', presentation: 'fullScreenModal' }}

@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { Podium, PodiumNumber } from '@/components/Podium';
 import { useUserId } from '@/features/auth/AuthProvider';
@@ -10,6 +10,7 @@ import { fonts, useThemeColors } from '@/lib/theme';
 
 import { useFriendsStreaks } from '../api';
 import { withPositions } from '../streaks';
+import { Tappable } from '@/components/Tappable';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -75,7 +76,7 @@ export function FriendsStreaks() {
             const flameColor = row.activeToday ? colors.flame : colors.textMuted;
             return (
               // Tocar a un amigo abre su perfil.
-              <Pressable
+              <Tappable
                 key={row.userId}
                 onPress={() => openProfile(row.userId)}
                 disabled={isMe}
@@ -108,7 +109,7 @@ export function FriendsStreaks() {
                   <Ionicons name="flame" size={20} color={flameColor} />
                   <Text style={[styles.number, { color: flameColor }]}>{row.current}</Text>
                 </View>
-              </Pressable>
+              </Tappable>
             );
           })}
         </View>

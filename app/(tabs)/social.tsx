@@ -2,10 +2,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useTabAnimation } from 'expo-router/js-top-tabs';
-import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { memo, useEffect, useRef, useState, type ComponentRef } from 'react';
 import {
   Animated,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -19,8 +18,15 @@ import { GroupsPanel } from '@/features/social/components/GroupsPanel';
 import { socialKeys, useInboxCount } from '@/features/social/hooks';
 import { StableScreenOptions } from '@/lib/stableOptions';
 import { useThemeColors } from '@/lib/theme';
+import { useTabBarSpace } from '@/lib/useTabBarSpace';
+import { Tappable } from '@/components/Tappable';
 
 type Tab = 'friends' | 'groups';
+
+// Cambiar de subpestaña solo cambia el selector: las dos páginas no se vuelven a dibujar (antes,
+// cada toque en el selector repintaba Grupos y Amigos enteras y se atrancaba).
+const GroupsPage = memo(GroupsPanel);
+const FriendsPage = memo(FriendsPanel);
 
 /** Posición de Social entre las pestañas grandes (Mis contadores, Estadísticas, Social, Mi perfil). */
 const SOCIAL_INDEX = 2;
@@ -32,6 +38,7 @@ const TABS: { value: Tab; label: string }[] = [
 
 export default function SocialScreen() {
   const colors = useThemeColors();
+  const tabBarSpace = useTabBarSpace();
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>('groups');
@@ -91,15 +98,15 @@ export default function SocialScreen() {
           // toques pueden no llegar.
           headerRight: () => (
             <View collapsable={false} style={styles.headerActions}>
-              <Pressable
+              <Tappable
                 onPress={() => router.push('/grupos/unirse')}
                 accessibilityRole="button"
                 accessibilityLabel="Unirme a un grupo con un código"
                 hitSlop={10}
               >
                 <Ionicons name="key-outline" size={24} color={colors.primary} />
-              </Pressable>
-              <Pressable
+              </Tappable>
+              <Tappable
                 onPress={() => router.push('/avisos')}
                 accessibilityRole="button"
                 accessibilityLabel={inbox > 0 ? `Buzón, ${inbox} pendientes` : 'Buzón de avisos'}
@@ -109,9 +116,9 @@ export default function SocialScreen() {
                 {inbox > 0 ? (
                   <View style={[styles.badge, { backgroundColor: colors.danger }]} />
                 ) : null}
-              </Pressable>
+              </Tappable>
               {/* Crear grupo: el mismo + que en «Mis contadores». */}
-              <Pressable
+              <Tappable
                 onPress={() => router.push('/grupos/nuevo')}
                 accessibilityRole="button"
                 accessibilityLabel="Crear grupo"
@@ -122,7 +129,7 @@ export default function SocialScreen() {
                 ]}
               >
                 <Ionicons name="add" size={26} color={colors.background} />
-              </Pressable>
+              </Tappable>
             </View>
           ),
         }}
@@ -150,19 +157,19 @@ export default function SocialScreen() {
       >
         <ScrollView
           style={{ width }}
-          contentContainerStyle={styles.page}
+          contentContainerStyle={[styles.page, { paddingBottom: tabBarSpace }]}
           keyboardShouldPersistTaps="handled"
           refreshControl={refreshControl}
         >
-          <GroupsPanel />
+          <GroupsPage />
         </ScrollView>
         <ScrollView
           style={{ width }}
-          contentContainerStyle={styles.page}
+          contentContainerStyle={[styles.page, { paddingBottom: tabBarSpace }]}
           keyboardShouldPersistTaps="handled"
           refreshControl={refreshControl}
         >
-          <FriendsPanel />
+          <FriendsPage />
         </ScrollView>
       </Animated.ScrollView>
     </View>

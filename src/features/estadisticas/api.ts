@@ -5,6 +5,8 @@ import { counterKeys } from '@/features/contadores/hooks';
 import { supabase } from '@/lib/supabase';
 
 import { localToday, type DailyTotal } from './periods';
+import { useProgress } from '@/features/progreso/demoStore';
+
 import { bestStreak, currentStreak } from './streaks';
 
 // Supabase devuelve como máximo 1000 filas por consulta, así que los días se piden por páginas.
@@ -17,14 +19,14 @@ const PAGE_SIZE = 1000;
 export async function fetchMyDailyTotals(): Promise<DailyTotal[]> {
   const { data, error } = await supabase.rpc('get_my_daily_totals');
   if (error) throw error;
-  return (
-    data as { counter_id: string; day: string; total: number; entry_count: number }[]
-  ).map((row) => ({
-    counterId: row.counter_id,
-    day: row.day,
-    total: Number(row.total),
-    entryCount: row.entry_count,
-  }));
+  return (data as { counter_id: string; day: string; total: number; entry_count: number }[]).map(
+    (row) => ({
+      counterId: row.counter_id,
+      day: row.day,
+      total: Number(row.total),
+      entryCount: row.entry_count,
+    }),
+  );
 }
 
 // La clave cuelga de counterKeys.all para que cualquier registro nuevo refresque las estadísticas.
@@ -57,6 +59,8 @@ export async function fetchMyActivityDays(userId: string): Promise<string[]> {
 /** Mi racha actual, la mejor y los días activos (para el calendario). */
 export function useStreak() {
   const userId = useUserId();
+  // Días que salvó un protector de racha: la unen sin alargarla (PRUEBA: en memoria).
+  const shieldedDays = useProgress().shieldedDays;
   return useQuery({
     // Cuelga de counterKeys.all: al registrar algo se refresca sola.
     queryKey: [...counterKeys.all, 'activity', userId],
@@ -66,8 +70,9 @@ export function useStreak() {
       const today = localToday();
       return {
         days: new Set(days),
-        current: currentStreak(days, today),
-        best: bestStreak(days),
+        shielded: new Set(shieldedDays),
+        current: currentStreak(days, today, shieldedDays),
+        best: bestStreak(days, shieldedDays),
         /** Hoy ya he registrado algo: la racha de hoy está mantenida. */
         todayDone: days.includes(today),
       };

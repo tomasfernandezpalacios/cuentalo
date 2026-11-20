@@ -1,15 +1,26 @@
+import type { ReactNode } from 'react';
 import Svg, { Circle, Ellipse, G, Path } from 'react-native-svg';
 
+import {
+  BONE,
+  BLACK,
+  EYE_RX,
+  EYE_RY,
+  EYE_X,
+  EYE_Y,
+  GOLD,
+  MOUTH,
+  MOUTH_PATH,
+  PUPIL_RX,
+  PUPIL_RY,
+} from './face';
 import { BALL_R, type Pose } from './pose';
 
 /** Lado (en px del lienzo) del cuadrado centrado en la bola donde se dibujan sus extremidades. */
 export const MASCOT_BOX = BALL_R * 7;
 
-/** Colores de la mascota (muestreados de la imagen aprobada por el usuario). */
-const GOLD = '#E4BB57';
-const MOUTH = '#7A5C12';
-const BONE = '#F5F0E3';
-const BLACK = '#0B0A09';
+/** Zona que se dibuja, en radios de la bola respecto a su centro (por defecto, `MASCOT_BOX`). */
+export type MascotView = { left: number; top: number; width: number; height: number };
 
 /** Un brazo o una pierna: del punto de unión hacia el ángulo dado, con una pequeña curva. */
 function limb(hx: number, hy: number, angle: number, length: number, bend: number) {
@@ -25,9 +36,27 @@ function limb(hx: number, hy: number, angle: number, length: number, bend: numbe
  * con el driver nativo; aquí solo cambian las extremidades, la cara y el giro.
  * `unit` = puntos de pantalla por píxel del lienzo. Cada transformación va en su propio `G` para
  * no depender de cómo react-native-svg lea varias a la vez. Mismo dibujo que en el proyecto de
- * Remotion `kuentio-mascota` (`src/mascota/Mascota.tsx`).
+ * Remotion `kuentio-mascota` (`src/mascota/Mascota.tsx`); la cara es la del icono (`face.ts`).
+ * Con `placed`, el propio dibujo aplica la posición, la inclinación y la escala de la pose (así se
+ * mueve en el tutorial); sin él las lleva la vista que lo envuelve (celebración de la racha).
+ * `view` recorta la zona dibujada (por defecto, el cuadrado `MASCOT_BOX`). `children` se dibuja
+ * encima de la bola con sus mismas unidades (radio = 1, origen en el centro): los accesorios.
  */
-export function Mascot({ pose, unit }: { pose: Pose; unit: number }) {
+export function Mascot({
+  pose,
+  unit,
+  view,
+  placed = false,
+  children,
+}: {
+  pose: Pose;
+  unit: number;
+  view?: MascotView;
+  placed?: boolean;
+  children?: ReactNode;
+}) {
+  const box = view ?? { left: -3.5, top: -3.5, width: 7, height: 7 };
+  const lookY = pose.lookY ?? 0;
   const g = pose.limbs;
   const strokeWidth = 0.24 * Math.min(1, g * 3);
   const small = Math.min(1, g * 2);
@@ -44,14 +73,14 @@ export function Mascot({ pose, unit }: { pose: Pose; unit: number }) {
   ].map(({ side, angle }) => ({ side, angle, ...limb(side * 0.29, 0.85, angle, 1.8 * g, 0) }));
   return (
     <Svg
-      width={MASCOT_BOX * unit}
-      height={MASCOT_BOX * unit}
-      viewBox={`${-MASCOT_BOX / 2} ${-MASCOT_BOX / 2} ${MASCOT_BOX} ${MASCOT_BOX}`}
+      width={box.width * BALL_R * unit}
+      height={box.height * BALL_R * unit}
+      viewBox={`${box.left * BALL_R} ${box.top * BALL_R} ${box.width * BALL_R} ${box.height * BALL_R}`}
     >
-      {/* Posición, inclinación y escala las lleva la vista que lo envuelve (hilo nativo). */}
-      <G>
-        <G>
-          <G transform={`scale(${BALL_R})`}>
+      {/* Sin `placed`, posición, inclinación y escala las lleva la vista que lo envuelve. */}
+      <G transform={placed ? `translate(${pose.x},${pose.y})` : undefined}>
+        <G transform={placed ? `rotate(${pose.tilt})` : undefined}>
+          <G transform={`scale(${(placed ? pose.scale : 1) * BALL_R})`}>
             {/* Extremidades detrás de la bola: sus uniones quedan tapadas. */}
             {legs.map((l) => (
               <Path
@@ -93,20 +122,30 @@ export function Mascot({ pose, unit }: { pose: Pose; unit: number }) {
                 <G transform="translate(0,-1)">
                   <G transform={`rotate(${(pose.roll * 180) / Math.PI})`}>
                     <Circle r={1} fill={GOLD} />
-                    <Ellipse cx={-0.37} cy={-0.2} rx={0.25} ry={0.4} fill={BONE} />
-                    <Ellipse cx={0.37} cy={-0.2} rx={0.25} ry={0.4} fill={BONE} />
-                    <Ellipse cx={-0.37 + pose.look} cy={-0.2} rx={0.13} ry={0.24} fill={BLACK} />
-                    <Ellipse cx={0.37 + pose.look} cy={-0.2} rx={0.13} ry={0.24} fill={BLACK} />
+                    <Ellipse cx={-EYE_X} cy={EYE_Y} rx={EYE_RX} ry={EYE_RY} fill={BONE} />
+                    <Ellipse cx={EYE_X} cy={EYE_Y} rx={EYE_RX} ry={EYE_RY} fill={BONE} />
+                    <Ellipse
+                      cx={-EYE_X + pose.look}
+                      cy={EYE_Y + lookY}
+                      rx={PUPIL_RX}
+                      ry={PUPIL_RY}
+                      fill={BLACK}
+                    />
+                    <Ellipse
+                      cx={EYE_X + pose.look}
+                      cy={EYE_Y + lookY}
+                      rx={PUPIL_RX}
+                      ry={PUPIL_RY}
+                      fill={BLACK}
+                    />
                     <G transform="translate(0,0.3)">
                       <G transform={`scale(${1 + 0.15 * (pose.mouth - 1)},${pose.mouth})`}>
                         <G transform="translate(0,-0.3)">
-                          <Path
-                            d="M -0.34 0.3 L 0.34 0.3 Q 0.37 0.3 0.33 0.38 Q 0 0.72 -0.33 0.38 Q -0.37 0.3 -0.34 0.3 Z"
-                            fill={MOUTH}
-                          />
+                          <Path d={MOUTH_PATH} fill={MOUTH} />
                         </G>
                       </G>
                     </G>
+                    {children}
                   </G>
                 </G>
               </G>

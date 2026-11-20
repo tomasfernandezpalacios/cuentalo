@@ -24,11 +24,19 @@ export type HomeBundle = {
     photo_path: string | null;
   }[];
   participants: { counter_id: string; user_id: string }[];
-  aliases: { counter_id: string; name: string | null; emoji: string | null }[];
+  aliases: {
+    counter_id: string;
+    name: string | null;
+    emoji: string | null;
+    unit?: string | null;
+    photo_path?: string | null;
+  }[];
   links: { counter_id: string; link_id: string; is_primary: boolean }[];
   hidden: string[];
   removed: string[];
   streaks: Database['public']['Views']['my_counter_streaks']['Row'][];
+  /** Contadores en los que quiero ver la racha junto al nombre (puede faltar sin la migración). */
+  streak_shown?: string[];
 };
 
 export type Database = {
@@ -72,7 +80,6 @@ export type Database = {
           group_id: string | null;
           is_common: boolean;
           hidden_from_friends: boolean;
-          streak_enabled: boolean;
           created_at: string;
         };
         Insert: {
@@ -84,7 +91,6 @@ export type Database = {
           group_id?: string | null;
           is_common?: boolean;
           hidden_from_friends?: boolean;
-          streak_enabled?: boolean;
           created_at?: string;
         };
         Update: {
@@ -92,7 +98,6 @@ export type Database = {
           unit?: string | null;
           emoji?: string | null;
           photo_path?: string | null;
-          streak_enabled?: boolean;
           hidden_from_friends?: boolean;
         };
         Relationships: [];
@@ -211,7 +216,11 @@ export type Database = {
             | 'new_leader'
             | 'you_are_leader'
             | 'kicked'
-            | 'group_activity';
+            | 'group_activity'
+            /** Has bloqueado a alguien (solo le llega a quien bloquea; nace leído). */
+            | 'user_blocked'
+            /** El administrador ha cambiado un contador del grupo para todos. */
+            | 'counter_edited';
           actor_id: string | null;
           /** Nombre de quien hizo la acción (sigue ahí aunque elimine su cuenta). */
           actor_name: string | null;
@@ -250,6 +259,8 @@ export type Database = {
           stats_blocks: string[] | null;
           counter_order: string[] | null;
           updated_at: string;
+          terms_accepted_at: string | null;
+          terms_version: string | null;
         };
         Insert: {
           birth_date?: string | null;
@@ -272,7 +283,20 @@ export type Database = {
         Update: { phone_hash?: string; updated_at?: string };
         Relationships: [];
       };
+      user_blocks: {
+        Row: { blocker_id: string; blocked_id: string; created_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       hidden_counters: {
+        Row: { user_id: string; counter_id: string };
+        Insert: { counter_id: string; user_id?: string };
+        Update: never;
+        Relationships: [];
+      };
+      /** Contadores en los que quiero ver su racha junto al nombre («Mostrar racha»). */
+      shown_counter_streaks: {
         Row: { user_id: string; counter_id: string };
         Insert: { counter_id: string; user_id?: string };
         Update: never;
@@ -297,14 +321,28 @@ export type Database = {
         Relationships: [];
       };
       counter_aliases: {
-        Row: { counter_id: string; user_id: string; name: string | null; emoji: string | null };
+        Row: {
+          counter_id: string;
+          user_id: string;
+          name: string | null;
+          emoji: string | null;
+          unit: string | null;
+          photo_path: string | null;
+        };
         Insert: {
           counter_id: string;
           user_id?: string;
           name?: string | null;
           emoji?: string | null;
+          unit?: string | null;
+          photo_path?: string | null;
         };
-        Update: { name?: string | null; emoji?: string | null };
+        Update: {
+          name?: string | null;
+          emoji?: string | null;
+          unit?: string | null;
+          photo_path?: string | null;
+        };
         Relationships: [];
       };
       counter_participants: {
@@ -397,6 +435,14 @@ export type Database = {
           best_streak: number;
           active_today: boolean;
         }[];
+      };
+      block_user: {
+        Args: { p_user_id: string };
+        Returns: undefined;
+      };
+      report_content: {
+        Args: { p_kind: string; p_target_id: string; p_reason: string; p_details?: string | null };
+        Returns: undefined;
       };
       set_my_phone: {
         Args: { p_hash: string };

@@ -12,9 +12,11 @@ import { GroupRow } from '@/features/social/components/GroupsPanel';
 import { useMyGroups } from '@/features/social/hooks';
 import { PersonAvatar } from '@/features/perfil/PersonAvatar';
 import { displayFont, fonts, useThemeColors } from '@/lib/theme';
+import { useTabBarSpace } from '@/lib/useTabBarSpace';
 
 export default function ProfileScreen() {
   const colors = useThemeColors();
+  const tabBarSpace = useTabBarSpace();
   const { session } = useAuth();
   const profile = useProfile(useUserId());
   const groups = useMyGroups();
@@ -28,7 +30,7 @@ export default function ProfileScreen() {
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
       refreshControl={
         <RefreshControl
           tintColor={colors.primary}

@@ -375,6 +375,17 @@ export default function GroupScreen() {
           onPress={confirmLeave}
           loading={leaveGroup.isPending}
         />
+        {/* Denunciar el nombre, la imagen o los contadores del grupo (DSA y guía 1.2 de Apple).
+            A una persona concreta se la denuncia desde su perfil. */}
+        {!isOwner ? (
+          <AppButton
+            title="Denunciar el grupo"
+            variant="ghost"
+            onPress={() =>
+              router.push({ pathname: '/denunciar', params: { kind: 'group', id, name } })
+            }
+          />
+        ) : null}
         {isOwner ? (
           <AppButton
             title="Eliminar grupo"

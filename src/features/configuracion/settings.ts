@@ -116,11 +116,35 @@ export function getSettings(): Settings {
 export function updateSettings(patch: Partial<Settings>) {
   current = { ...current, ...patch };
   listeners.forEach((listener) => listener());
-  try {
-    SecureStore.setItem(STORAGE_KEY, JSON.stringify(current));
-  } catch {
-    // Si no se puede guardar, el ajuste dura hasta cerrar la app.
-  }
+  schedulePersist();
+}
+
+// Guardar en SecureStore es síncrono y cifra (puede tardar decenas de ms en Android): se hace
+// un momento después del cambio y una sola vez aunque se toquen varios ajustes seguidos, para
+// que la interfaz responda antes.
+let persistTimer: ReturnType<typeof setTimeout> | undefined;
+function schedulePersist() {
+  if (persistTimer !== undefined) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    persistTimer = undefined;
+    try {
+      SecureStore.setItem(STORAGE_KEY, JSON.stringify(current));
+    } catch {
+      // Si no se puede guardar, el ajuste dura hasta cerrar la app.
+    }
+  }, 150);
+}
+
+/**
+ * Un solo ajuste: el componente solo se vuelve a pintar si cambia ese valor (no con cualquier
+ * ajuste, como `useSettings`). Importante en `useColorMode`, que usan casi todos los componentes.
+ */
+export function useSetting<T>(select: (settings: Settings) => T): T {
+  return useSyncExternalStore(
+    subscribe,
+    () => select(current),
+    () => select(current),
+  );
 }
 
 /** Ajustes actuales; el componente se vuelve a pintar cuando cambian. */

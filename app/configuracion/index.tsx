@@ -36,6 +36,11 @@ import {
 } from '@/features/perfil/api';
 import { useStreak } from '@/features/estadisticas/api';
 import { celebrateStreak } from '@/features/estadisticas/streakCelebration';
+import { getProgress } from '@/features/progreso/demoStore';
+import { celebrateLevelUp } from '@/features/progreso/levelUp';
+import { levelCoins, levelInfo } from '@/features/progreso/model';
+import { RANKS_PER_TIER, rankOf, tierBonus, TIERS } from '@/features/progreso/ranks';
+import { CATALOG } from '@/features/progreso/shop';
 import { getErrorMessage } from '@/lib/errors';
 import { fonts, useColorMode, useThemeColors } from '@/lib/theme';
 
@@ -195,9 +200,21 @@ export default function SettingsScreen() {
               role="checkbox"
               options={QUICK_AMOUNT_OPTIONS.map((n) => ({ value: n, label: `+${n}` }))}
               isSelected={(n) => settings.quickAmounts.includes(n)}
-              onPress={(n) =>
-                updateSettings({ quickAmounts: toggleQuickAmount(settings.quickAmounts, n) })
-              }
+              onPress={(n) => {
+                const amounts = settings.quickAmounts;
+                if (!amounts.includes(n) && amounts.length >= MAX_QUICK_AMOUNTS) {
+                  appAlert(
+                    'Ya tienes ' + MAX_QUICK_AMOUNTS + ' botones',
+                    'Quita uno (tócalo para desmarcarlo) antes de añadir otro.',
+                  );
+                  return;
+                }
+                if (amounts.includes(n) && amounts.length === 1) {
+                  appAlert('Hace falta al menos uno', 'Marca otra cantidad antes de quitar esta.');
+                  return;
+                }
+                updateSettings({ quickAmounts: toggleQuickAmount(amounts, n) });
+              }}
             />
           }
         />
@@ -333,9 +350,53 @@ export default function SettingsScreen() {
           detail="Repasa en un minuto cómo funciona la app."
           onPress={startTutorial}
         />
-        {/* TEMPORAL (petición del usuario): para ver la celebración de la racha sin esperar al
-            día siguiente. Vuelve a las pestañas y la lanza con la racha actual + 1, sin guardar
-            nada. Quitar cuando el usuario dé el visto bueno. */}
+        {/* Para ver la celebración de subir de nivel sin esperar (no cambia tu nivel). */}
+        <SettingsRow
+          label="Probar subida de nivel"
+          detail="Enseña cómo se celebra subir de nivel. No cambia tu progreso."
+          onPress={() => {
+            const { level } = levelInfo(getProgress().xp);
+            router.back();
+            setTimeout(
+              () =>
+                celebrateLevelUp({
+                  from: level,
+                  to: level + 1,
+                  coins: levelCoins(level + 1),
+                  bonusCoins: 0,
+                  shields: 0,
+                  gifts: CATALOG.filter((item) => item.giftLevel !== undefined).slice(0, 2),
+                }),
+              450,
+            );
+          }}
+        />
+        {/* Lo mismo con cambio de rango: del último nivel de tu capítulo al primero del siguiente. */}
+        <SettingsRow
+          label="Probar cambio de rango"
+          detail="Enseña cómo se celebra pasar a un capítulo nuevo. No cambia tu progreso."
+          onPress={() => {
+            const { level } = levelInfo(getProgress().xp);
+            const chapter = Math.min(rankOf(level).tier.chapter, TIERS.length - 1);
+            const to = chapter * RANKS_PER_TIER + 1;
+            router.back();
+            setTimeout(
+              () =>
+                celebrateLevelUp({
+                  from: to - 1,
+                  to,
+                  coins: levelCoins(to),
+                  bonusCoins: tierBonus(chapter + 1).coins,
+                  shields: 1,
+                  gifts: CATALOG.filter((item) => item.giftLevel !== undefined).slice(0, 1),
+                }),
+              450,
+            );
+          }}
+        />
+        {/* Petición del usuario (se queda, no quitarlo): para ver la celebración de la racha sin
+            esperar al día siguiente. Vuelve a las pestañas y la lanza con la racha actual + 1,
+            sin guardar nada. */}
         <SettingsRow
           label="Probar animación de racha"
           detail="Enseña en la barra de pestañas cómo se celebra la racha. No cambia tu racha."

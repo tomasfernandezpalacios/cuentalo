@@ -15,7 +15,7 @@ type InfoProps = {
 
 /**
  * Botón ⓘ (del color de la app) que abre una ventana con una explicación. Se usa a la derecha de
- * las opciones del formulario de contador («Contador común», «Formato racha»).
+ * las opciones del formulario de contador («Contador común», «Mostrar racha»).
  */
 export function InfoButton({ label, title, paragraphs }: InfoProps) {
   const colors = useThemeColors();
@@ -70,17 +70,18 @@ export function CommonCounterInfo() {
   );
 }
 
-/** ⓘ de qué es el formato racha. */
-export function StreakFormatInfo({ inGroup }: { inGroup: boolean }) {
+/** ⓘ de qué es la racha de un contador y «Mostrar racha». */
+export function ShowStreakInfo({ inGroup }: { inGroup: boolean }) {
   return (
     <InfoButton
-      label="¿Qué es el formato racha?"
-      title="🔥 Formato racha"
+      label="¿Qué es la racha del contador?"
+      title="🔥 Racha del contador"
       paragraphs={[
-        'Para cosas como «días sin fumar»: el contador suma como siempre y, además, lleva una ' +
-          'racha de días seguidos en los que sumes +1 o más.',
-        'Si un día no llegas, la racha vuelve a 0, pero el contador no. Se guarda tu récord.' +
-          (inGroup ? ' En un grupo, cada uno tiene su propia racha.' : ''),
+        'Cada contador lleva tu racha: los días seguidos en los que sumas +1 o más. Si un día ' +
+          'no sumas, la racha vuelve a 0, pero el contador no. Se guarda tu récord.',
+        'Si marcas «Mostrar racha», sale junto al nombre en «Mis contadores». Al abrir el ' +
+          'contador la ves siempre.' +
+          (inGroup ? ' En un grupo, cada uno tiene su propia racha y decide si la ve.' : ''),
       ]}
     />
   );

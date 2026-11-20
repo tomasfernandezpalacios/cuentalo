@@ -35,6 +35,7 @@ import {
   type Notice,
 } from './api';
 import { optimistic, optimisticHandlers, refreshAll } from '@/lib/queryClient';
+import { useMyBlocks } from './moderation';
 
 export const socialKeys = {
   all: ['social'] as const,
@@ -73,9 +74,13 @@ export function useFriendships() {
 export function useProfileSearch(query: string) {
   const userId = useUserId();
   const term = query.trim();
+  // Quien he bloqueado no sale en la búsqueda.
+  const blocked = useMyBlocks().data;
   return useQuery({
     queryKey: socialKeys.search(term),
     queryFn: () => searchProfiles(term, userId),
+    select: (profiles) =>
+      blocked?.length ? profiles.filter((p) => !blocked.some((b) => b.id === p.id)) : profiles,
     // Mientras se escribe, se siguen viendo los resultados anteriores (sin parpadeos).
     placeholderData: keepPreviousData,
     enabled: userId !== '' && term.length >= 2,

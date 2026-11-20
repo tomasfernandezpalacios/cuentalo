@@ -51,3 +51,5 @@ supabase/.branches/
 
 # Bots de prueba: contraseñas de las cuentas prueba1…prueba5
 scripts/bots/.bots.json
+scripts/bots/vida/.estado.json
+scripts/bots/vida/registro.log

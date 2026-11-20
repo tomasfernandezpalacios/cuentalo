@@ -17,7 +17,7 @@ import type { CounterInput } from '../api';
 import { suggestUnit } from '../unit';
 import { type CounterPhotoChange, useCounterPhotoUrl } from '../photos';
 
-import { CommonCounterInfo, StreakFormatInfo } from './CommonCounterInfo';
+import { CommonCounterInfo, ShowStreakInfo } from './CommonCounterInfo';
 import { CounterAvatar } from './CounterAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import { ParticipantsPicker } from './ParticipantsPicker';
@@ -45,6 +45,13 @@ type Props = {
   initialPhotoPath?: string | null;
   /** El botón de guardar va en la cabecera (arriba a la derecha) en vez de abajo. */
   submitInHeader?: boolean;
+  /**
+   * «Para mí» en un contador de grupo: solo nombre, imagen, unidad y «Mostrar racha» (mi versión
+   * personal, que solo veo yo). Sin «¿Quién lo ve?» ni «Contador común».
+   */
+  personal?: boolean;
+  /** Algo encima del formulario (el selector «Para todos» / «Para mí» del administrador). */
+  top?: ReactNode;
 };
 
 export function CounterForm({
@@ -61,6 +68,8 @@ export function CounterForm({
   footer,
   initialPhotoPath = null,
   submitInHeader = false,
+  personal = false,
+  top,
 }: Props) {
   const colors = useThemeColors();
   const [name, setName] = useState(initial?.name ?? '');
@@ -79,7 +88,8 @@ export function CounterForm({
   const hasPhoto = newPhoto !== null || (imageMode === 'photo' && initialPhotoPath !== null);
   // «Privado y amigos» por defecto: mis amigos ven mis individuales salvo que elija «Privado».
   const [hiddenFromFriends, setHiddenFromFriends] = useState(initial?.hiddenFromFriends ?? false);
-  const [streakEnabled, setStreakEnabled] = useState(initial?.streakEnabled ?? false);
+  // «Mostrar racha» junto al nombre en «Mis contadores»: desmarcada de serie.
+  const [showStreak, setShowStreak] = useState(initial?.showStreak ?? false);
   const [groupId, setGroupId] = useState<string | null>(initialGroupId);
   // Al editar, el contador ya es (o no es) común; al crear, se elige con la casilla.
   const [isCommon, setIsCommon] = useState(initialParticipantIds !== null);
@@ -140,7 +150,7 @@ export function CounterForm({
     setErrors(next);
     if (!next.name && !next.unit && !next.participants) {
       onSubmit(
-        { name, unit, emoji, hiddenFromFriends, streakEnabled, photo: photoChange() },
+        { name, unit, emoji, hiddenFromFriends, showStreak, photo: photoChange() },
         groupId,
         common ? participants : null,
       );
@@ -187,6 +197,7 @@ export function CounterForm({
 
   return (
     <FormScreen>
+      {top}
       <TextField
         label="Nombre"
         value={name}
@@ -242,7 +253,9 @@ export function CounterForm({
             <Text style={[styles.photoHint, { color: colors.textMuted }]}>
               {hasPhoto
                 ? 'Toca «Editar» sobre la foto para cambiarla, editarla o borrarla.'
-                : 'La foto la ve quien ve el contador.'}
+                : personal
+                  ? 'Esta foto solo la ves tú.'
+                  : 'La foto la ve quien ve el contador.'}
             </Text>
           </View>
         )}
@@ -261,7 +274,7 @@ export function CounterForm({
       />
 
       <>
-        {groups ? (
+        {personal ? null : groups ? (
           <View style={styles.visibility}>
             <Text style={[styles.label, { color: colors.text }]}>¿Quién lo ve?</Text>
             {privateOptions}
@@ -296,24 +309,24 @@ export function CounterForm({
           </View>
         )}
 
-        {commonSection}
+        {personal ? null : commonSection}
 
         {/* Como «Contador común»: la casilla a la izquierda y el ⓘ a la derecha. */}
         <View style={styles.commonRow}>
           <Pressable
-            onPress={() => setStreakEnabled((value) => !value)}
+            onPress={() => setShowStreak((value) => !value)}
             accessibilityRole="checkbox"
-            accessibilityState={{ checked: streakEnabled }}
+            accessibilityState={{ checked: showStreak }}
             style={styles.checkbox}
           >
             <Ionicons
-              name={streakEnabled ? 'checkbox' : 'square-outline'}
+              name={showStreak ? 'checkbox' : 'square-outline'}
               size={24}
-              color={streakEnabled ? colors.primary : colors.textMuted}
+              color={showStreak ? colors.primary : colors.textMuted}
             />
-            <Text style={[styles.optionTitle, { color: colors.text }]}>🔥 Formato racha</Text>
+            <Text style={[styles.optionTitle, { color: colors.text }]}>🔥 Mostrar racha</Text>
           </Pressable>
-          <StreakFormatInfo inGroup={creating ? groupId !== null : Boolean(sharedGroupName)} />
+          <ShowStreakInfo inGroup={creating ? groupId !== null : Boolean(sharedGroupName)} />
         </View>
       </>
 

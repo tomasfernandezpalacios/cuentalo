@@ -1,6 +1,6 @@
 import { Appearance, useColorScheme } from 'react-native';
 
-import { getSettings, useSettings } from '@/features/configuracion/settings';
+import { getSettings, useSetting } from '@/features/configuracion/settings';
 import { withAlpha } from '@/lib/color';
 import { typography } from '@/lib/typography';
 
@@ -215,7 +215,7 @@ export type ThemeColors = typeof cinemaPalette.light;
 /** 'light' o 'dark' según el ajuste de tema (o el del sistema si es automático). */
 export function useColorMode(): 'light' | 'dark' {
   const system = useColorScheme();
-  const { theme } = useSettings();
+  const theme = useSetting((s) => s.theme);
   if (theme !== 'system') return theme;
   return system === 'dark' ? 'dark' : 'light';
 }

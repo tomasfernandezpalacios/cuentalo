@@ -98,9 +98,10 @@ export function useCounterActions() {
       askAdmin(counter, -1);
       return;
     }
-    // Contador de racha: si hoy ya está mantenida y el −1 la dejaría por debajo de +1, se avisa.
+    // Si sigo su racha («Mostrar racha»), hoy ya está mantenida y el −1 la dejaría por debajo de
+    // +1, se avisa.
     const streak = counter.streak;
-    if (streak && streak.todayDone && streak.todayAmount - 1 < 1) {
+    if (counter.showStreak && streak.todayDone && streak.todayAmount - 1 < 1) {
       appAlert(
         'Perderías la racha',
         `Hoy quedarías por debajo de +1 en «${counter.name}» y perderías tu racha de ` +

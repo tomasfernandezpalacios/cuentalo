@@ -69,7 +69,9 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "bots": "node --env-file=.env scripts/bots/bots.mjs",
-    "bots:limpiar": "node --env-file=.env scripts/bots/limpiar.mjs"
+    "bots:limpiar": "node --env-file=.env scripts/bots/limpiar.mjs",
+    "bots:vida:sembrar": "node --env-file=.env scripts/bots/vida/sembrar.mjs",
+    "bots:vida": "node --env-file=.env scripts/bots/vida/dia.mjs"
   },
   "private": true,
   "jest": {

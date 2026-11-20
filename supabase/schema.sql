@@ -1954,7 +1954,7 @@ alter table public.hidden_counters add constraint hidden_counters_pkey PRIMARY K
 alter table public.home_removed_counters add constraint home_removed_counters_pkey PRIMARY KEY (user_id, counter_id);
 
 alter table public.notifications add constraint notifications_pkey PRIMARY KEY (id);
-alter table public.notifications add constraint notifications_kind_check CHECK ((kind = ANY (ARRAY['friend_accepted'::text, 'friend_you_accepted'::text, 'request_approved'::text, 'request_rejected'::text, 'counter_deleted'::text, 'group_deleted'::text, 'group_admin'::text, 'member_left'::text, 'new_leader'::text, 'you_are_leader'::text, 'kicked'::text, 'group_activity'::text])));
+alter table public.notifications add constraint notifications_kind_check CHECK ((kind = ANY (ARRAY['friend_accepted'::text, 'friend_you_accepted'::text, 'request_approved'::text, 'request_rejected'::text, 'counter_deleted'::text, 'group_deleted'::text, 'group_admin'::text, 'member_left'::text, 'new_leader'::text, 'you_are_leader'::text, 'kicked'::text, 'group_activity'::text, 'user_blocked'::text])));
 
 alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
 alter table public.profiles add constraint profiles_username_key UNIQUE (username);
@@ -3843,3 +3843,868 @@ drop function if exists public.undo_last_entry(uuid);
 drop function if exists public.get_group_counter_daily(uuid);
 drop view if exists public.entry_daily_totals;
 drop view if exists public.counter_totals;
+
+-- ===========================================================================
+-- Migración 20261218120000: edad mínima, aceptación de condiciones, bloqueos, denuncias y
+-- borrado diario de los resúmenes de la agenda (redefine handle_new_user y
+-- get_friend_suggestions de más arriba).
+-- ===========================================================================
+
+-- Preparación legal para publicar (docs/legal/2026-11-17-analisis-legal.md):
+--   1. Registro: edad mínima (14 años, art. 7 LOPDGDD) y aceptación de las condiciones.
+--   2. Bloquear usuarios (guía 1.2 de Apple y DSA).
+--   3. Denunciar usuarios y grupos (guía 1.2 de Apple y art. 16 DSA).
+--   4. Resúmenes de la agenda: se borran solos cada día (no se guardan datos de terceros).
+
+-- 1. Edad mínima y aceptación ------------------------------------------------------------------
+
+-- Una sola cifra para toda la base de datos. Si la ley sube a 16, se cambia aquí y en la app
+-- (src/features/legal/legal.ts).
+create or replace function public.minimum_age()
+returns integer
+language sql
+immutable
+set search_path = ''
+as $$ select 14 $$;
+
+alter table public.profile_private
+  add column terms_accepted_at timestamptz,
+  add column terms_version text check (terms_version is null or char_length(terms_version) <= 20);
+
+-- La app ya comprueba la edad y la aceptación antes de registrar; esto es la última barrera
+-- (nadie puede crear una cuenta llamando a la API directamente sin ellas).
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_birth date;
+  v_terms text := nullif(btrim(new.raw_user_meta_data ->> 'terms_version'), '');
+begin
+  begin
+    v_birth := (new.raw_user_meta_data ->> 'birth_date')::date;
+  exception when others then
+    v_birth := null;
+  end;
+
+  if v_birth is null
+     or v_birth < date '1900-01-01'
+     or v_birth > (current_date - make_interval(years => public.minimum_age()))::date then
+    raise exception 'Tienes que tener al menos % años para usar Cuéntalo.', public.minimum_age();
+  end if;
+  if v_terms is null then
+    raise exception 'Tienes que aceptar las condiciones de uso y la política de privacidad.';
+  end if;
+
+  insert into public.profiles (id, username, display_name)
+  values (
+    new.id,
+    lower(new.raw_user_meta_data ->> 'username'),
+    coalesce(
+      nullif(btrim(new.raw_user_meta_data ->> 'display_name'), ''),
+      new.raw_user_meta_data ->> 'username'
+    )
+  );
+
+  insert into public.profile_private (user_id, birth_date, terms_accepted_at, terms_version)
+  values (new.id, v_birth, now(), left(v_terms, 20));
+
+  return new;
+end;
+$$;
+
+-- 2. Bloqueos ----------------------------------------------------------------------------------
+
+create table public.user_blocks (
+  blocker_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  blocked_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (blocker_id, blocked_id),
+  check (blocker_id <> blocked_id)
+);
+create index user_blocks_blocked_id_idx on public.user_blocks (blocked_id);
+
+alter table public.user_blocks enable row level security;
+revoke all on public.user_blocks from public, anon, authenticated;
+-- Cada uno ve y deshace solo sus bloqueos. Nadie sabe quién le ha bloqueado.
+grant select, delete on public.user_blocks to authenticated;
+
+create policy "user_blocks: veo los míos"
+  on public.user_blocks for select
+  to authenticated
+  using (blocker_id = (select auth.uid()));
+
+create policy "user_blocks: desbloqueo los míos"
+  on public.user_blocks for delete
+  to authenticated
+  using (blocker_id = (select auth.uid()));
+
+-- ¿Alguno de los dos ha bloqueado al otro?
+create or replace function public.is_blocked_between(p_a uuid, p_b uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.user_blocks b
+     where (b.blocker_id = p_a and b.blocked_id = p_b)
+        or (b.blocker_id = p_b and b.blocked_id = p_a)
+  );
+$$;
+revoke all on function public.is_blocked_between(uuid, uuid) from public, anon, authenticated;
+
+-- Bloquear: deja de ser amigo (y se borra cualquier solicitud) y se retiran las invitaciones a
+-- grupos entre los dos. Los grupos que ya compartís siguen igual (cada uno puede salir).
+create or replace function public.block_user(p_user_id uuid)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_me uuid := (select auth.uid());
+  v_new boolean;
+begin
+  if v_me is null then
+    raise exception 'not_authenticated';
+  end if;
+  if p_user_id is null or p_user_id = v_me
+     or not exists (select 1 from public.profiles where id = p_user_id) then
+    raise exception 'No se puede bloquear a esta persona.';
+  end if;
+
+  insert into public.user_blocks (blocker_id, blocked_id)
+  values (v_me, p_user_id)
+  on conflict do nothing;
+  v_new := found;
+
+  delete from public.friendships f
+   where (f.requester_id = v_me and f.addressee_id = p_user_id)
+      or (f.requester_id = p_user_id and f.addressee_id = v_me);
+
+  delete from public.group_members gm
+   using public.groups g
+   where gm.group_id = g.id
+     and gm.status = 'invited'
+     and ((gm.user_id = p_user_id and g.owner_id = v_me)
+       or (gm.user_id = v_me and g.owner_id = p_user_id));
+
+  -- Solo la primera vez (bloquear a alguien ya bloqueado no repite el aviso).
+  if v_new then
+    insert into public.notifications (user_id, kind, actor_id, actor_name, read_at)
+    select v_me, 'user_blocked', p.id, p.display_name, now()
+      from public.profiles p
+     where p.id = p_user_id;
+  end if;
+end;
+$$;
+revoke all on function public.block_user(uuid) from public, anon;
+grant execute on function public.block_user(uuid) to authenticated;
+
+-- Con un bloqueo de por medio no se pueden enviar solicitudes de amistad ni invitar a grupos.
+create or replace function public.check_not_blocked()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_table_name = 'friendships' then
+    if public.is_blocked_between(new.requester_id, new.addressee_id) then
+      raise exception 'No puedes enviar una solicitud de amistad a esta persona.';
+    end if;
+  elsif new.status = 'invited' and (select auth.uid()) is not null
+        and public.is_blocked_between((select auth.uid()), new.user_id) then
+    raise exception 'No puedes invitar a esta persona.';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.check_not_blocked() from public, anon, authenticated;
+
+create trigger friendships_not_blocked
+  before insert on public.friendships
+  for each row execute function public.check_not_blocked();
+
+create trigger group_invites_not_blocked
+  before insert on public.group_members
+  for each row execute function public.check_not_blocked();
+
+-- Sugerencias: nunca alguien bloqueado (en cualquiera de los dos sentidos).
+create or replace function public.get_friend_suggestions(
+  p_contact_hashes text[] default '{}',
+  p_limit integer default 20,
+  p_offset integer default 0
+)
+returns table (
+  id uuid,
+  username text,
+  display_name text,
+  emoji text,
+  photo_path text,
+  is_contact boolean,
+  mutual_count integer
+)
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+#variable_conflict use_column
+declare
+  v_me uuid := (select auth.uid());
+  v_hashes text[];
+  v_used int;
+begin
+  if v_me is null then
+    raise exception 'not_authenticated';
+  end if;
+  v_hashes := array(
+    select distinct h from unnest(coalesce(p_contact_hashes[1:3000], '{}')) h
+     where h ~ '^[0-9a-f]{64}$'
+  );
+
+  -- Cupo: como mucho 3000 resúmenes distintos al día por usuario. Volver a mandar la misma
+  -- agenda no gasta nada. Los resúmenes solo sirven para este cupo y se borran cada noche
+  -- (tarea «borrar-resumenes-de-agenda», abajo), así no queda guardado a quién conoce nadie.
+  delete from public.contact_lookups where user_id = v_me and day < current_date;
+  select count(*) into v_used from public.contact_lookups where user_id = v_me;
+  insert into public.contact_lookups (user_id, day, phone_hash)
+  select v_me, current_date, h
+    from unnest(v_hashes) h
+   where not exists (
+     select 1 from public.contact_lookups l where l.user_id = v_me and l.phone_hash = h
+   )
+   limit greatest(3000 - v_used, 0)
+  on conflict do nothing;
+
+  return query
+  with me as (
+    select v_me as uid
+  ),
+  related as (
+    -- Cualquiera con quien ya tengo una amistad o una solicitud (en cualquier estado).
+    select case when f.requester_id = me.uid then f.addressee_id else f.requester_id end as uid
+    from public.friendships f, me
+    where me.uid in (f.requester_id, f.addressee_id)
+    union
+    -- Y cualquiera con un bloqueo de por medio.
+    select case when b.blocker_id = me.uid then b.blocked_id else b.blocker_id end as uid
+    from public.user_blocks b, me
+    where me.uid in (b.blocker_id, b.blocked_id)
+  ),
+  my_friends as (
+    select case when f.requester_id = me.uid then f.addressee_id else f.requester_id end as uid
+    from public.friendships f, me
+    where f.status = 'accepted' and me.uid in (f.requester_id, f.addressee_id)
+  ),
+  contacts as (
+    -- Solo los resúmenes que caben en mi cupo de hoy (ver arriba).
+    select distinct d.user_id as uid
+    from public.phone_directory d
+    join public.contact_lookups l
+      on l.user_id = v_me and l.phone_hash = d.phone_hash
+    where d.phone_hash = any (v_hashes)
+  ),
+  friends_of_friends as (
+    select
+      case when f.requester_id = mf.uid then f.addressee_id else f.requester_id end as uid,
+      count(*)::integer as mutual
+    from my_friends mf
+    join public.friendships f
+      on f.status = 'accepted' and mf.uid in (f.requester_id, f.addressee_id)
+    group by 1
+  ),
+  candidates as (
+    select uid from contacts
+    union
+    select uid from friends_of_friends
+  )
+  select
+    p.id,
+    p.username,
+    p.display_name,
+    p.emoji,
+    p.photo_path,
+    (c.uid is not null) as is_contact,
+    coalesce(fof.mutual, 0) as mutual_count
+  from candidates cand
+  join public.profiles p on p.id = cand.uid
+  left join contacts c on c.uid = cand.uid
+  left join friends_of_friends fof on fof.uid = cand.uid
+  where cand.uid <> (select uid from me)
+    and cand.uid not in (select uid from related)
+  order by (c.uid is not null) desc, coalesce(fof.mutual, 0) desc, p.display_name
+  limit least(greatest(coalesce(p_limit, 20), 1), 100)
+  offset greatest(coalesce(p_offset, 0), 0);
+end;
+$$;
+
+-- 3. Denuncias ---------------------------------------------------------------------------------
+
+-- Las revisa el responsable de la app en el panel de Supabase (Table Editor → reports). La app
+-- no puede leerlas: solo enviarlas con report_content. Se guarda una copia de lo denunciado
+-- (nombre, @usuario, foto) por si lo cambian después.
+create table public.reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter_id uuid default auth.uid() references public.profiles(id) on delete set null,
+  target_kind text not null check (target_kind in ('user', 'group')),
+  target_user_id uuid references public.profiles(id) on delete set null,
+  target_group_id uuid references public.groups(id) on delete set null,
+  target_snapshot jsonb not null default '{}'::jsonb,
+  reason text not null check (
+    reason in ('offensive', 'harassment', 'impersonation', 'spam', 'sexual_violent', 'other')
+  ),
+  details text check (details is null or char_length(details) <= 1000),
+  status text not null default 'open' check (status in ('open', 'resolved', 'dismissed')),
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz
+);
+create index reports_status_idx on public.reports (status, created_at);
+create index reports_reporter_id_idx on public.reports (reporter_id);
+create index reports_target_user_id_idx on public.reports (target_user_id);
+create index reports_target_group_id_idx on public.reports (target_group_id);
+
+alter table public.reports enable row level security;
+revoke all on public.reports from public, anon, authenticated;
+
+create or replace function public.report_content(
+  p_kind text,
+  p_target_id uuid,
+  p_reason text,
+  p_details text default null
+)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_me uuid := (select auth.uid());
+  v_snapshot jsonb;
+begin
+  if v_me is null then
+    raise exception 'not_authenticated';
+  end if;
+  if (select count(*) from public.reports
+       where reporter_id = v_me and created_at > now() - interval '1 day') >= 20 then
+    raise exception 'Has enviado muchas denuncias hoy. Inténtalo mañana.';
+  end if;
+
+  if p_kind = 'user' then
+    select jsonb_build_object(
+             'username', p.username, 'display_name', p.display_name,
+             'emoji', p.emoji, 'photo_path', p.photo_path)
+      into v_snapshot
+      from public.profiles p
+     where p.id = p_target_id and p.id <> v_me;
+  elsif p_kind = 'group' then
+    -- Solo se denuncia un grupo que se puede ver (miembro o invitado).
+    select jsonb_build_object(
+             'name', g.name, 'emoji', g.emoji, 'photo_path', g.photo_path, 'owner_id', g.owner_id)
+      into v_snapshot
+      from public.groups g
+     where g.id = p_target_id and public.is_group_participant(g.id);
+  end if;
+  if v_snapshot is null then
+    raise exception 'No se puede denunciar esto.';
+  end if;
+
+  insert into public.reports (
+    reporter_id, target_kind, target_user_id, target_group_id, target_snapshot, reason, details
+  )
+  values (
+    v_me,
+    p_kind,
+    case when p_kind = 'user' then p_target_id end,
+    case when p_kind = 'group' then p_target_id end,
+    v_snapshot,
+    p_reason,
+    nullif(left(btrim(coalesce(p_details, '')), 1000), '')
+  );
+end;
+$$;
+revoke all on function public.report_content(text, uuid, text, text) from public, anon;
+grant execute on function public.report_content(text, uuid, text, text) to authenticated;
+
+-- 4. Limpieza diaria (pg_cron) ------------------------------------------------------------------
+
+create extension if not exists pg_cron;
+
+-- Cada noche: los resúmenes de agendas de días anteriores (solo valían para el cupo) y los
+-- intentos de inicio de sesión de hace más de un día (solo valen para el bloqueo de 15 min).
+select cron.schedule(
+  'borrar-resumenes-de-agenda',
+  '15 3 * * *',
+  $$
+    delete from public.contact_lookups where day < current_date;
+    delete from public.login_attempts where attempted_at < now() - interval '1 day';
+  $$
+);
+
+-- Y una vez ahora, para lo que ya había.
+delete from public.contact_lookups where day < current_date;
+delete from public.login_attempts where attempted_at < now() - interval '1 day';
+
+-- ===========================================================================
+-- Migración 20261221120000: racha en todos los contadores (quita counters.streak_enabled,
+-- redefine my_counter_streaks y get_my_home de más arriba).
+-- ===========================================================================
+
+-- Todos los contadores tienen racha (petición del usuario, 2026-11-19). Desaparece el «Formato
+-- racha» (counters.streak_enabled): la racha de cada contador son los días seguidos en los que
+-- lo que sumo ese día es +1 o más, igual que antes en los de formato racha. Cada uno decide, por
+-- contador, si la ve junto al nombre en «Mis contadores» («Mostrar racha», desmarcado de serie):
+-- tabla personal shown_counter_streaks, como hidden_counters. En el detalle sale siempre.
+
+create table public.shown_counter_streaks (
+  user_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  counter_id uuid not null references public.counters(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, counter_id)
+);
+create index shown_counter_streaks_counter_idx on public.shown_counter_streaks (counter_id);
+
+alter table public.shown_counter_streaks enable row level security;
+revoke all on public.shown_counter_streaks from public, anon, authenticated;
+grant select, insert, delete on public.shown_counter_streaks to authenticated;
+
+create policy "shown_counter_streaks: cada uno los suyos"
+  on public.shown_counter_streaks for all
+  to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+-- Quien ya veía la racha de un contador de formato racha la sigue viendo: el dueño de los
+-- individuales y los miembros activos de los de grupo.
+insert into public.shown_counter_streaks (user_id, counter_id)
+select c.owner_id, c.id
+  from public.counters c
+ where c.streak_enabled and c.group_id is null
+union
+select m.user_id, c.id
+  from public.counters c
+  join public.group_members m on m.group_id = c.group_id and m.status = 'active'
+ where c.streak_enabled and c.group_id is not null
+on conflict do nothing;
+
+-- La racha se calcula para todos mis contadores (antes solo los de formato racha).
+create or replace view public.my_counter_streaks
+with (security_invoker = true) as
+with tz as (
+  select public.my_time_zone() as tz
+),
+mine as materialized (
+  select e.counter_id, e.logged_at, e.amount
+    from public.entries e
+   where e.user_id = (select auth.uid())
+     and not e.group_only
+),
+days as (
+  select m.counter_id,
+         (m.logged_at at time zone tz.tz)::date as day,
+         sum(m.amount) as amount
+    from mine m
+    cross join tz
+   group by 1, 2
+),
+good_days as (
+  -- Solo cuentan los días que acaban en +1 o más.
+  select d.counter_id, d.day from days d where d.amount >= 1
+),
+islands as (
+  select g.counter_id, g.day,
+         g.day - (row_number() over (partition by g.counter_id order by g.day))::int as grp
+    from good_days g
+),
+runs as (
+  select i.counter_id, max(i.day) as end_day, count(*)::int as days
+    from islands i
+   group by i.counter_id, i.grp
+),
+today as (
+  select (now() at time zone tz.tz)::date as d from tz
+)
+select
+  r.counter_id,
+  coalesce(max(r.days) filter (where r.end_day >= t.d - 1), 0)::numeric as current_total,
+  coalesce(max(r.days) filter (where r.end_day >= t.d - 1), 0) as current_days,
+  max(r.days)::numeric as best_total,
+  max(r.days) as best_days,
+  bool_or(r.end_day = t.d) as today_done,
+  -- Lo que llevo sumado hoy (para avisar si un −1 rompería la racha).
+  coalesce(max(td.amount), 0) as today_amount
+from runs r
+cross join today t
+left join days td on td.counter_id = r.counter_id and td.day = t.d
+group by r.counter_id;
+
+alter table public.counters drop column streak_enabled;
+
+-- La carga de «Mis contadores» trae también en qué contadores quiero ver la racha.
+create or replace function public.get_my_home()
+returns json
+language sql
+stable
+set search_path = ''
+as $$
+  with visible as (select public.my_visible_counter_ids() as id)
+  select json_build_object(
+    'counters', coalesce((
+      select json_agg(c order by c.created_at)
+        from public.counters c
+       where c.id in (select id from visible)
+    ), '[]'::json),
+    'totals', coalesce((
+      select json_agg(t) from public.my_counter_totals() t
+    ), '[]'::json),
+    'groups', coalesce((
+      select json_agg(json_build_object(
+        'id', g.id, 'name', g.name, 'owner_id', g.owner_id,
+        'emoji', g.emoji, 'photo_path', g.photo_path
+      ))
+        from public.group_members m
+        join public.groups g on g.id = m.group_id
+       where m.user_id = (select auth.uid()) and m.status = 'active'
+    ), '[]'::json),
+    'participants', coalesce((
+      select json_agg(json_build_object('counter_id', p.counter_id, 'user_id', p.user_id))
+        from public.counter_participants p
+       where p.counter_id in (select id from visible)
+    ), '[]'::json),
+    'aliases', coalesce((
+      select json_agg(json_build_object('counter_id', a.counter_id, 'name', a.name, 'emoji', a.emoji))
+        from public.counter_aliases a
+       where a.user_id = (select auth.uid())
+    ), '[]'::json),
+    'links', coalesce((
+      select json_agg(json_build_object(
+        'counter_id', l.counter_id, 'link_id', l.link_id, 'is_primary', l.is_primary
+      ))
+        from public.counter_links l
+       where l.user_id = (select auth.uid())
+    ), '[]'::json),
+    'hidden', coalesce((
+      select json_agg(h.counter_id)
+        from public.hidden_counters h
+       where h.user_id = (select auth.uid())
+    ), '[]'::json),
+    'removed', coalesce((
+      select json_agg(r.counter_id)
+        from public.home_removed_counters r
+       where r.user_id = (select auth.uid())
+    ), '[]'::json),
+    'streaks', coalesce((
+      select json_agg(s) from public.my_counter_streaks s
+    ), '[]'::json),
+    'streak_shown', coalesce((
+      select json_agg(s.counter_id)
+        from public.shown_counter_streaks s
+       where s.user_id = (select auth.uid())
+    ), '[]'::json)
+  );
+$$;
+
+-- ===========================================================================
+-- Migración 20261222120000: versión personal de un contador de grupo (alias con unidad y
+-- foto), aviso al editarlo para todos y disolver conservando la versión de cada uno.
+-- ===========================================================================
+
+-- Versión personal de un contador de grupo y aviso al editarlo (petición del usuario,
+-- 2026-11-19).
+--  * Cualquier miembro puede ponerle a un contador de grupo SU nombre, imagen (emoticono o foto) y
+--    unidad: solo los ve él, fuera del grupo (dentro del grupo se ve como lo dejó el
+--    administrador). Se guardan en counter_aliases, que gana unit y photo_path.
+--  * Las fotos personales van al bucket counter-photos en 'personal/<user_id>/…': solo las ve y
+--    toca su dueño (las políticas de antes no las cubren: group_id_from_path da null).
+--  * Si el administrador lo cambia para todos, los demás miembros activos reciben un aviso
+--    'counter_edited' (uno por ráfaga de cambios, p. ej. nombre y foto a la vez).
+--  * Al sacarlo del grupo, cada uno conserva su versión: el contador privado nuevo nace con su
+--    nombre, emoticono y unidad, y su foto personal sigue como alias de ese contador.
+
+alter table public.counter_aliases
+  add column unit text,
+  add column photo_path text;
+alter table public.counter_aliases add constraint counter_aliases_unit_check
+  check (unit is null or (char_length(btrim(unit)) between 1 and 30));
+
+-- Fotos personales ---------------------------------------------------------------------------
+
+create policy "counter-photos: cada uno ve sus fotos personales"
+  on storage.objects for select
+  to authenticated
+  using (
+    bucket_id = 'counter-photos'
+    and (storage.foldername(name))[1] = 'personal'
+    and (storage.foldername(name))[2] = (select auth.uid())::text
+  );
+
+create policy "counter-photos: cada uno sube sus fotos personales"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'counter-photos'
+    and (storage.foldername(name))[1] = 'personal'
+    and (storage.foldername(name))[2] = (select auth.uid())::text
+  );
+
+create policy "counter-photos: cada uno cambia sus fotos personales"
+  on storage.objects for update
+  to authenticated
+  using (
+    bucket_id = 'counter-photos'
+    and (storage.foldername(name))[1] = 'personal'
+    and (storage.foldername(name))[2] = (select auth.uid())::text
+  );
+
+create policy "counter-photos: cada uno borra sus fotos personales"
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'counter-photos'
+    and (storage.foldername(name))[1] = 'personal'
+    and (storage.foldername(name))[2] = (select auth.uid())::text
+  );
+
+-- Aviso al editar para todos -------------------------------------------------------------------
+
+alter table public.notifications drop constraint notifications_kind_check;
+alter table public.notifications add constraint notifications_kind_check check (kind = any (array[
+  'friend_accepted', 'friend_you_accepted', 'request_approved', 'request_rejected',
+  'counter_deleted', 'group_deleted', 'group_admin', 'member_left', 'new_leader',
+  'you_are_leader', 'kicked', 'group_activity', 'user_blocked', 'counter_edited'
+]::text[]));
+
+create or replace function public.notify_counter_edited()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_actor uuid := (select auth.uid());
+  v_actor_name text;
+  v_group_name text;
+begin
+  if new.group_id is null or v_actor is null then
+    return new;
+  end if;
+  if new.name is not distinct from old.name
+     and new.unit is not distinct from old.unit
+     and new.emoji is not distinct from old.emoji
+     and new.photo_path is not distinct from old.photo_path then
+    return new;
+  end if;
+  select p.display_name into v_actor_name from public.profiles p where p.id = v_actor;
+  select g.name into v_group_name from public.groups g where g.id = new.group_id;
+
+  -- Varios cambios seguidos (nombre y foto se guardan por separado): un solo aviso, al día.
+  update public.notifications n
+     set counter_name = new.name, created_at = now()
+   where n.kind = 'counter_edited'
+     and n.counter_id = new.id
+     and n.actor_id = v_actor
+     and n.read_at is null
+     and n.created_at > now() - interval '2 minutes';
+
+  insert into public.notifications (user_id, kind, actor_id, actor_name, counter_id,
+                                    counter_name, group_name)
+  select m.user_id, 'counter_edited', v_actor, v_actor_name, new.id, new.name, v_group_name
+    from public.group_members m
+   where m.group_id = new.group_id
+     and m.status = 'active'
+     and m.user_id <> v_actor
+     and not exists (
+       select 1 from public.notifications n
+        where n.user_id = m.user_id
+          and n.kind = 'counter_edited'
+          and n.counter_id = new.id
+          and n.actor_id = v_actor
+          and n.read_at is null
+          and n.created_at > now() - interval '2 minutes'
+     );
+  return new;
+end;
+$$;
+revoke all on function public.notify_counter_edited() from public, anon, authenticated;
+
+create trigger on_counter_edited
+  after update of name, unit, emoji, photo_path on public.counters
+  for each row execute function public.notify_counter_edited();
+
+-- Al sacarlo del grupo, cada uno conserva su versión --------------------------------------------
+
+create or replace function public.dissolve_group_counter(p_counter_id uuid, p_kind text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_counter public.counters;
+  v_group_name text;
+  v_user uuid;
+  v_link uuid;
+  v_new uuid;
+  v_alias public.counter_aliases;
+begin
+  select * into v_counter from public.counters where id = p_counter_id;
+  if v_counter.id is null then
+    return;
+  end if;
+  select g.name into v_group_name from public.groups g where g.id = v_counter.group_id;
+
+  for v_user in
+    select e.user_id from public.entries e where e.counter_id = p_counter_id
+    union
+    select l.user_id from public.counter_links l where l.counter_id = p_counter_id
+  loop
+    select l.link_id into v_link
+      from public.counter_links l where l.user_id = v_user and l.counter_id = p_counter_id;
+    v_alias := null;
+    select * into v_alias
+      from public.counter_aliases a where a.user_id = v_user and a.counter_id = p_counter_id;
+
+    -- El contador con el que lo tenía fusionado (si sigue existiendo otro en el enlace).
+    select l.counter_id into v_new
+      from public.counter_links l
+     where l.user_id = v_user and l.link_id = v_link and l.counter_id <> p_counter_id
+     order by l.is_primary desc, l.counter_id
+     limit 1;
+
+    if v_new is not null then
+      -- Sus registros pasan a ese contador como solo personales; las copias para este grupo
+      -- sobran (ya hay una copia del mismo registro allí).
+      update public.entries
+         set counter_id = v_new, personal_only = true, group_only = false
+       where counter_id = p_counter_id and user_id = v_user and not group_only;
+      delete from public.entries where counter_id = p_counter_id and user_id = v_user;
+      delete from public.counter_links where user_id = v_user and counter_id = p_counter_id;
+      update public.counter_links set is_primary = (counter_id = v_new)
+       where user_id = v_user and link_id = v_link;
+      if (select count(*) from public.counter_links where user_id = v_user and link_id = v_link) < 2 then
+        delete from public.counter_links where user_id = v_user and link_id = v_link;
+      end if;
+      if v_alias.counter_id is not null then
+        insert into public.counter_aliases (counter_id, user_id, name, emoji, unit, photo_path)
+        values (v_new, v_user, v_alias.name, v_alias.emoji, v_alias.unit, v_alias.photo_path)
+        on conflict do nothing;
+      end if;
+    else
+      -- Contador privado nuevo con su versión personal (o la del grupo) y todos sus registros.
+      insert into public.counters (owner_id, name, unit, emoji)
+      values (
+        v_user,
+        coalesce(v_alias.name, v_counter.name),
+        coalesce(v_alias.unit, v_counter.unit),
+        case when v_alias.photo_path is not null or v_alias.emoji is not null
+             then v_alias.emoji else v_counter.emoji end
+      )
+      returning id into v_new;
+      -- Su foto personal sigue siendo suya (alias del contador nuevo).
+      if v_alias.photo_path is not null then
+        insert into public.counter_aliases (counter_id, user_id, photo_path)
+        values (v_new, v_user, v_alias.photo_path)
+        on conflict do nothing;
+      end if;
+      update public.entries
+         set counter_id = v_new, personal_only = false, group_only = false
+       where counter_id = p_counter_id and user_id = v_user;
+      delete from public.counter_links where user_id = v_user and counter_id = p_counter_id;
+      insert into public.folder_counters (folder_id, counter_id)
+      select fc.folder_id, v_new
+        from public.folder_counters fc
+        join public.folders f on f.id = fc.folder_id
+       where fc.counter_id = p_counter_id and f.owner_id = v_user
+      on conflict do nothing;
+      -- Y si veía su racha, la sigue viendo.
+      insert into public.shown_counter_streaks (user_id, counter_id)
+      select v_user, v_new
+       where exists (
+         select 1 from public.shown_counter_streaks s
+          where s.user_id = v_user and s.counter_id = p_counter_id
+       )
+      on conflict do nothing;
+    end if;
+
+    perform public.notify(v_user, p_kind, coalesce(v_alias.name, v_counter.name), v_group_name);
+    v_new := null;
+    v_link := null;
+  end loop;
+
+  delete from public.counters where id = p_counter_id;
+end;
+$$;
+
+-- Mis alias traen también la unidad y la foto personales.
+create or replace function public.get_my_home()
+returns json
+language sql
+stable
+set search_path = ''
+as $$
+  with visible as (select public.my_visible_counter_ids() as id)
+  select json_build_object(
+    'counters', coalesce((
+      select json_agg(c order by c.created_at)
+        from public.counters c
+       where c.id in (select id from visible)
+    ), '[]'::json),
+    'totals', coalesce((
+      select json_agg(t) from public.my_counter_totals() t
+    ), '[]'::json),
+    'groups', coalesce((
+      select json_agg(json_build_object(
+        'id', g.id, 'name', g.name, 'owner_id', g.owner_id,
+        'emoji', g.emoji, 'photo_path', g.photo_path
+      ))
+        from public.group_members m
+        join public.groups g on g.id = m.group_id
+       where m.user_id = (select auth.uid()) and m.status = 'active'
+    ), '[]'::json),
+    'participants', coalesce((
+      select json_agg(json_build_object('counter_id', p.counter_id, 'user_id', p.user_id))
+        from public.counter_participants p
+       where p.counter_id in (select id from visible)
+    ), '[]'::json),
+    'aliases', coalesce((
+      select json_agg(json_build_object(
+        'counter_id', a.counter_id, 'name', a.name, 'emoji', a.emoji,
+        'unit', a.unit, 'photo_path', a.photo_path
+      ))
+        from public.counter_aliases a
+       where a.user_id = (select auth.uid())
+    ), '[]'::json),
+    'links', coalesce((
+      select json_agg(json_build_object(
+        'counter_id', l.counter_id, 'link_id', l.link_id, 'is_primary', l.is_primary
+      ))
+        from public.counter_links l
+       where l.user_id = (select auth.uid())
+    ), '[]'::json),
+    'hidden', coalesce((
+      select json_agg(h.counter_id)
+        from public.hidden_counters h
+       where h.user_id = (select auth.uid())
+    ), '[]'::json),
+    'removed', coalesce((
+      select json_agg(r.counter_id)
+        from public.home_removed_counters r
+       where r.user_id = (select auth.uid())
+    ), '[]'::json),
+    'streaks', coalesce((
+      select json_agg(s) from public.my_counter_streaks s
+    ), '[]'::json),
+    'streak_shown', coalesce((
+      select json_agg(s.counter_id)
+        from public.shown_counter_streaks s
+       where s.user_id = (select auth.uid())
+    ), '[]'::json)
+  );
+$$;
